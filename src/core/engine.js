@@ -7,7 +7,8 @@
  */
 
 import state from './state.js';
-import { BALANCE, DAY_NIGHT_CYCLE_SECONDS, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from '../config.js';
+import { BALANCE, BOOST_TYPES, DAY_NIGHT_CYCLE_SECONDS, DIFFICULTY_MODES, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from '../config.js';
+import { getBoostSprite } from './boostSprites.js';
 import { storage, save } from './storage.js';
 import { tryStartAudio, stopAudio, SFX } from './audio.js';
 import Player from '../entities/player.js';
@@ -27,6 +28,163 @@ function getViewMetrics() {
     };
 }
 
+function getDifficultyMode() {
+    return DIFFICULTY_MODES[state.game.modeId] || DIFFICULTY_MODES.medium;
+}
+
+function updateActiveBoost() {
+    const activeBoost = state.activeBoost;
+    if (!activeBoost) {
+        state.game.timeScale = 1;
+        return;
+    }
+
+    activeBoost.duration--;
+    state.game.timeScale = activeBoost.id === 'slow' ? 0.58 : 1;
+
+    if (activeBoost.duration <= 0) {
+        state.activeBoost = null;
+        state.game.timeScale = 1;
+        if (state.player) {
+            state.player.boostAirDashCharges = 0;
+        }
+    }
+}
+
+function updateVirusWall(viewH) {
+    const virus = state.virusWall;
+    const mode = getDifficultyMode();
+
+    if (!state.game.started || !mode.virusPressure) {
+        virus.active = false;
+        virus.x = state.camera.x - 420;
+        virus.damageTick = 0;
+        return;
+    }
+
+    const player = state.player;
+    virus.active = true;
+    virus.pulse += 0.12;
+    const pressureSpeed = 2.1 + Math.min(3.8, state.game.dist / 2200);
+    const targetX = player.x - 320;
+    virus.x = Math.min(targetX, virus.x + pressureSpeed);
+
+    if (virus.damageTick > 0) virus.damageTick--;
+
+    if (player.x + player.w < virus.x + 10) {
+        player.takeDamage(100);
+        return;
+    }
+
+    if (player.x < virus.x + 88) {
+        if (virus.damageTick <= 0) {
+            player.takeDamage(16);
+            virus.damageTick = 18;
+        }
+        player.vx = Math.max(player.vx, 7 + (state.game.difficulty * 0.4));
+        state.camera.shake = Math.max(state.camera.shake, 5);
+        if (state.game.frames % 8 === 0) {
+            state.particles.push({
+                x: virus.x + 18 + Math.random() * 18,
+                y: state.camera.y + Math.random() * (viewH + 120),
+                vx: 1.5 + Math.random() * 2.5,
+                vy: (Math.random() - 0.5) * 1.3,
+                size: 1.8 + Math.random() * 2,
+                life: 14,
+                color: Math.random() > 0.5 ? '#ff547d' : '#89f7ff',
+                alpha: 0.72
+            });
+        }
+    }
+}
+
+function drawBoostPickup(ctx, boost) {
+    const boostDef = BOOST_TYPES[boost.id];
+    if (!boostDef) return;
+
+    const bob = Math.sin(boost.bob) * 4;
+    const squash = Math.max(0.22, Math.abs(Math.cos(boost.rot)));
+    const sprite = getBoostSprite(boost.id);
+
+    ctx.save();
+    ctx.translate(boost.x, boost.y + bob);
+    ctx.scale(squash, 1);
+
+    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, 18);
+    halo.addColorStop(0, `${boostDef.accent}ee`);
+    halo.addColorStop(0.55, `${boostDef.color}cc`);
+    halo.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = halo;
+    ctx.shadowBlur = 22;
+    ctx.shadowColor = boostDef.color;
+    ctx.beginPath();
+    ctx.arc(0, 0, 16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = 'rgba(4, 10, 26, 0.96)';
+    ctx.fillRect(-13, -13, 26, 26);
+
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = `${boostDef.accent}aa`;
+    ctx.strokeRect(-13, -13, 26, 26);
+
+    if (sprite?.loaded) {
+        ctx.drawImage(sprite.img, -10, -10, 20, 20);
+    } else {
+        ctx.fillStyle = boostDef.accent;
+        ctx.beginPath();
+        ctx.arc(0, 0, 6, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+function drawVirusWall(ctx, viewH) {
+    const virus = state.virusWall;
+    if (!virus.active) return;
+
+    const topY = state.camera.y - 180;
+    const wallH = viewH + 420;
+    const frontX = virus.x;
+    const pulse = 0.55 + Math.sin(virus.pulse) * 0.25;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.46)';
+    ctx.fillRect(frontX - 1600, topY, 1600, wallH);
+
+    const field = ctx.createLinearGradient(frontX - 190, 0, frontX + 24, 0);
+    field.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    field.addColorStop(0.3, 'rgba(34, 0, 18, 0.34)');
+    field.addColorStop(0.82, `rgba(255, 66, 122, ${0.2 + pulse * 0.12})`);
+    field.addColorStop(1, `rgba(150, 255, 241, ${0.18 + pulse * 0.08})`);
+    ctx.fillStyle = field;
+    ctx.fillRect(frontX - 190, topY, 214, wallH);
+
+    for (let i = 0; i < 16; i++) {
+        const stripW = 6 + Math.random() * 12;
+        const stripX = frontX - 18 + Math.random() * 22;
+        const stripY = topY + Math.random() * wallH;
+        const stripH = 24 + Math.random() * 120;
+        ctx.fillStyle = i % 2 === 0
+            ? `rgba(255, 80, 138, ${0.18 + Math.random() * 0.2})`
+            : `rgba(118, 241, 255, ${0.12 + Math.random() * 0.14})`;
+        ctx.fillRect(stripX, stripY, stripW, stripH);
+    }
+
+    ctx.strokeStyle = `rgba(255, 214, 234, ${0.32 + pulse * 0.2})`;
+    ctx.lineWidth = 2.4;
+    ctx.shadowBlur = 24;
+    ctx.shadowColor = 'rgba(255, 88, 132, 0.7)';
+    ctx.beginPath();
+    ctx.moveTo(frontX, topY);
+    ctx.lineTo(frontX, topY + wallH);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+}
+
 // Inicializa o jogo: instancia player, reseta listas e preenche
 // camadas de fundo, estrelas, poeira e atmosfera. Também associa
 // callbacks de controle ao estado.
@@ -37,10 +195,12 @@ export function initGame() {
     state.platforms = [{ x: -200, y: 400, w: 1000, h: 50, colorHue: 180, spikeInfo: null }];
     state.enemies = [];
     state.coins = [];
+    state.boosts = [];
     state.particles = [];
     state.texts = [];
     state.ghosts = [];
     state.attackEffects = [];
+    state.activeBoost = null;
     state.dustParticles = [];
     state.bgLayer1 = [];
     state.bgLayer2 = [];
@@ -61,11 +221,14 @@ export function initGame() {
     // reseta contadores de jogo
     state.game.dist = 0;
     state.game.difficulty = BALANCE.difficulty.base;
+    state.game.modeId = DIFFICULTY_MODES[storage.difficultyMode] ? storage.difficultyMode : 'medium';
     state.game.running = true;
     state.game.started = false;
     state.game.shopOpen = false;
     state.game.isGameOver = false;
     state.game.time = 0;
+    state.game.timeScale = 1;
+    state.game.simAccumulator = 0;
     state.game.frames = 0;
     state.game.runFrames = 0;
     state.game.coins = 0;
@@ -75,6 +238,10 @@ export function initGame() {
     state.camera.x = 0;
     state.camera.y = 0;
     state.camera.shake = 0;
+    state.virusWall.active = false;
+    state.virusWall.x = -900;
+    state.virusWall.pulse = 0;
+    state.virusWall.damageTick = 0;
     state.performance.lastTs = 0;
     state.performance.avgFrameMs = 16.67;
     state.performance.quality = 0.66;
@@ -104,6 +271,8 @@ function startGameRun() {
     // reinicia o contador de frames de corrida para que o ciclo
     // dia/noite comece do início quando uma nova corrida começa
     state.game.runFrames = 0;
+    state.virusWall.x = state.player.x - 520;
+    state.virusWall.active = getDifficultyMode().virusPressure;
     if (state.startHint) state.startHint.style.display = 'none';
     tryStartAudio();
     if (state.game.shopOpen) toggleShop();
@@ -117,6 +286,7 @@ function startGameRun() {
 function updateGame() {
     const quality = state.performance.quality || 1;
     const { viewW, viewH, extraW, extraH } = getViewMetrics();
+    updateActiveBoost();
     // Ajuste de dificuldade de acordo com a distância. Os parâmetros
     // vivem em BALANCE.difficulty para evitar números mágicos.
     state.game.difficulty = BALANCE.difficulty.base +
@@ -141,6 +311,7 @@ function updateGame() {
     state.camera.y += (targetCamY - state.camera.y) * 0.06;
     if (state.camera.y < (-120 - (extraH * 0.35))) state.camera.y = -120 - (extraH * 0.35);
     if (state.camera.y > (150 + (extraH * 0.55))) state.camera.y = 150 + (extraH * 0.55);
+    updateVirusWall(viewH);
     // Tremor de câmera
     let sx = 0;
     let sy = 0;
@@ -254,6 +425,10 @@ function updateGame() {
     // Rotaciona moedas
     state.coins.forEach(c => {
         c.rot += 0.1;
+    });
+    state.boosts.forEach(boost => {
+        boost.rot += 0.1;
+        boost.bob += 0.08;
     });
     // Atualiza a HUD
     updateUI();
@@ -414,6 +589,10 @@ function drawGame({ sx, sy }) {
         ctx.fillRect(-2, -2.2, 4, 0.9);
         ctx.restore();
     });
+    state.boosts.forEach(boost => {
+        drawBoostPickup(ctx, boost);
+    });
+    drawVirusWall(ctx, viewH);
     // inimigos e jogador
     state.enemies.forEach(e => e.draw());
     state.player.draw();
@@ -638,7 +817,13 @@ export function loopGame(ts = performance.now()) {
     if (state.game.started && state.game.running && !state.game.isGameOver && !state.game.shopOpen) {
         state.game.runFrames++;
     }
-    const shake = updateGame();
+    const timeScale = Math.max(0.35, Math.min(state.game.timeScale || 1, 1));
+    state.game.simAccumulator += timeScale;
+    let shake = { sx: 0, sy: 0 };
+    while (state.game.simAccumulator >= 1) {
+        shake = updateGame();
+        state.game.simAccumulator -= 1;
+    }
     drawGame(shake);
     if (state.game.running) {
         state.game.rafId = requestAnimationFrame(loopGame);

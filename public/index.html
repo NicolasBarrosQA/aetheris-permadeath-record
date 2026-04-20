@@ -23,6 +23,21 @@
 
         <!-- Dica inicial que some após o início do jogo -->
         <div id="start-hint">
+            <div id="difficulty-picker">
+                <button type="button" class="difficulty-btn" data-difficulty="easy">
+                    <span class="difficulty-name">FACIL</span>
+                    <span class="difficulty-desc">Boosts raros e mais folego.</span>
+                </button>
+                <button type="button" class="difficulty-btn selected" data-difficulty="medium">
+                    <span class="difficulty-name">MEDIO</span>
+                    <span class="difficulty-desc">A corrida atual, sem ajuda extra.</span>
+                </button>
+                <button type="button" class="difficulty-btn" data-difficulty="hard">
+                    <span class="difficulty-name">DIFICIL</span>
+                    <span class="difficulty-desc">Virus consome tudo atras.</span>
+                </button>
+            </div>
+            <div id="difficulty-shortcuts">[1] FACIL  [2] MEDIO  [3] DIFICIL</div>
             [ S ] ABRIR LOJA<br><br>
             [ SETAS / A D ] MOVER PARA INICIAR<br>
             [ ESPACO ] PULAR | [ C ] DASH+ATAQUE
@@ -50,6 +65,19 @@
             <div id="ui-dash" class="status-pill">GOLPE PRONTO</div>
             <div id="ui-attack" class="status-pill">C = GOLPE</div>
             <div id="ui-weather" class="status-pill">CLIMA ESTAVEL</div>
+        </div>
+
+        <div id="boost-hud" class="hidden">
+            <div id="boost-icon" class="boost-icon"></div>
+            <div class="boost-copy">
+                <div class="boost-head">
+                    <span id="boost-name">BOOST</span>
+                    <span id="boost-time">0.0s</span>
+                </div>
+                <div class="boost-bar">
+                    <div id="boost-fill" class="boost-fill"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Modal da loja de skins -->

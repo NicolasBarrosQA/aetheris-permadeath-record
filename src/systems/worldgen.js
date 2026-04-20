@@ -169,6 +169,22 @@ export function generateWorld() {
             let cy = hasSpikes ? y - 100 : y - 40;
             state.coins.push({ x: cx, y: cy, rot: Math.random() * 6 });
         }
+        if (state.game.modeId === 'easy' &&
+            !state.activeBoost &&
+            state.boosts.length === 0 &&
+            !hasSpikes &&
+            w > 170 &&
+            Math.random() < 0.11) {
+            const boostIds = ['repair', 'slow', 'triple', 'airDash'];
+            const boostId = boostIds[Math.floor(Math.random() * boostIds.length)];
+            state.boosts.push({
+                id: boostId,
+                x: x + (w * (0.34 + Math.random() * 0.32)),
+                y: y - 74,
+                rot: Math.random() * 6,
+                bob: Math.random() * Math.PI * 2
+            });
+        }
         lastPlatX = x + w;
         lastPlatY = y;
     }
@@ -176,6 +192,7 @@ export function generateWorld() {
     let cutoff = state.camera.x - Math.max(500, viewW * 0.7);
     state.platforms = state.platforms.filter(p => p.x + p.w > cutoff);
     state.enemies = state.enemies.filter(e => e.hp > 0 && e.x > cutoff);
+    state.boosts = state.boosts.filter(boost => boost.x > cutoff);
     // Garantia defensiva: nunca deixar duas moedas na mesma plataforma.
     const platformCoinKeys = new Set();
     state.coins = state.coins.filter(c => {

@@ -3,7 +3,7 @@
  * invalido entra no projeto.
  */
 
-import { BALANCE, PHYS, SKINS_DB } from '../config.js';
+import { BALANCE, BOOST_TYPES, DIFFICULTY_MODES, PHYS, SKINS_DB } from '../config.js';
 
 function assertFiniteNumber(value, label) {
     if (!Number.isFinite(value)) {
@@ -27,6 +27,21 @@ function validateBalance() {
 
     Object.entries(speed).forEach(([key, value]) => {
         assertFiniteNumber(value, `BALANCE.speed.${key}`);
+    });
+}
+
+function validateModes() {
+    Object.entries(DIFFICULTY_MODES).forEach(([key, mode]) => {
+        if (mode.id !== key) {
+            throw new Error(`Modo invalido em DIFFICULTY_MODES.${key}: id inconsistente.`);
+        }
+    });
+
+    Object.entries(BOOST_TYPES).forEach(([key, boost]) => {
+        if (boost.id !== key) {
+            throw new Error(`Boost invalido em BOOST_TYPES.${key}: id inconsistente.`);
+        }
+        assertFiniteNumber(boost.duration, `BOOST_TYPES.${key}.duration`);
     });
 }
 
@@ -59,5 +74,6 @@ function validateSkins() {
 export function validateGameConfig() {
     validatePhysics();
     validateBalance();
+    validateModes();
     validateSkins();
 }

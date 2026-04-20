@@ -7,7 +7,7 @@
  */
 
 import state from '../core/state.js';
-import { PHYS, SKINS_DB, COIN_LABEL, BALANCE } from '../config.js';
+import { PHYS, SKINS_DB, COIN_LABEL, BALANCE, BOOST_TYPES } from '../config.js';
 import { storage, save } from '../core/storage.js';
 import { SFX } from '../core/audio.js';
 import { spawnParticles, spawnShockwave, spawnText } from '../systems/particles.js';
@@ -39,6 +39,7 @@ export default class Player {
         this.runCycle = 0;
         this.bodyBob = 0;
         this.lean = 0;
+        this.boostAirDashCharges = 0;
         this.updateSkin();
     }
 
@@ -79,10 +80,58 @@ export default class Player {
      * Dispara a investida ofensiva no botao C, unificando dash e ataque.
      */
     startDashAttack() {
+        const usingAirDashCharge = !this.grounded &&
+            this.boostAirDashCharges > 0 &&
+            this.dashCd > 0;
+        if (usingAirDashCharge) {
+            this.boostAirDashCharges--;
+        }
         this.startDash();
         this.attack();
         this.attackCd = 18;
         SFX.swoosh();
+    }
+
+    getActiveBoostId() {
+        return state.activeBoost?.id || null;
+    }
+
+    getMaxJumpCount() {
+        return this.getActiveBoostId() === 'triple' ? 3 : 2;
+    }
+
+    primeAirDashCharge() {
+        if (this.getActiveBoostId() === 'airDash') {
+            this.boostAirDashCharges = 1;
+        }
+    }
+
+    applyBoost(typeId) {
+        const boostDef = BOOST_TYPES[typeId];
+        if (!boostDef) return;
+        state.activeBoost = {
+            id: typeId,
+            duration: boostDef.duration,
+            maxDuration: boostDef.duration
+        };
+
+        if (typeId === 'repair') {
+            this.hp = Math.min(this.maxHp, this.hp + (this.maxHp * 0.25));
+            spawnText('+25% HP', this.x, this.y - 18, '#63f0a7');
+            spawnParticles(this.x + this.w / 2, this.y + this.h * 0.4, 18, '#63f0a7', 2);
+        } else if (typeId === 'slow') {
+            spawnText('TIME SHIFT', this.x, this.y - 18, '#6bd7ff');
+            spawnShockwave(this.x + this.w / 2, this.y + this.h / 2, '#6bd7ff');
+        } else if (typeId === 'triple') {
+            spawnText('TRIPLE JUMP', this.x, this.y - 18, '#cf7bff');
+            spawnShockwave(this.x + this.w / 2, this.y + this.h / 2, '#cf7bff');
+        } else if (typeId === 'airDash') {
+            this.boostAirDashCharges = 1;
+            spawnText('AIR DASH', this.x, this.y - 18, '#ffb14d');
+            spawnShockwave(this.x + this.w / 2, this.y + this.h / 2, '#ffb14d');
+        }
+
+        SFX.coin();
     }
 
     /**
@@ -153,9 +202,10 @@ export default class Player {
         }
 
         // Golpe de investida unificado no botao C
+        const boostAirDashReady = !this.grounded && this.boostAirDashCharges > 0;
         if (!state.cheatFlight &&
             state.keys['c'] &&
-            this.dashCd <= 0 &&
+            (this.dashCd <= 0 || boostAirDashReady) &&
             this.attackCd <= 0 &&
             !this.isDashing &&
             state.game.started) {
@@ -195,17 +245,20 @@ export default class Player {
 
         // Lógica de pulo com coyote time e jump buffer quando cheat não está ativo
         if (!state.cheatFlight) {
+            const maxJumps = this.getMaxJumpCount();
             if (this.jumpBuffer > 0 && (this.grounded || this.coyote > 0) && !this.isDashing) {
                 this.vy = PHYS.jumpForce;
                 this.grounded = false;
                 this.jumps = 1;
                 this.jumpBuffer = 0;
+                this.primeAirDashCharge();
                 SFX.jump();
                 spawnParticles(this.x + this.w / 2, this.y + this.h, 8, this.skin.glow, 1);
-            } else if (this.jumpBuffer > 0 && this.jumps < 2 && !this.isDashing) {
-                this.vy = PHYS.doubleJumpForce;
+            } else if (this.jumpBuffer > 0 && this.jumps < maxJumps && !this.isDashing) {
+                this.vy = this.jumps >= 2 ? (PHYS.doubleJumpForce * 0.94) : PHYS.doubleJumpForce;
                 this.jumps++;
                 this.jumpBuffer = 0;
+                this.primeAirDashCharge();
                 SFX.jump();
                 spawnShockwave(this.x + this.w / 2, this.y + this.h / 2, this.skin.glow);
             }
@@ -362,6 +415,7 @@ export default class Player {
                 this.grounded = true;
                 this.coyote = PHYS.coyoteFrames;
                 this.jumps = 0;
+                this.boostAirDashCharges = 0;
             }
         });
 
@@ -377,6 +431,15 @@ export default class Player {
                 SFX.coin();
                 spawnText('+1 ' + COIN_LABEL.trim(), c.x, c.y, '#ffd700');
                 spawnParticles(c.x, c.y, 8, '#ffd700', 2);
+            }
+        }
+
+        for (let i = state.boosts.length - 1; i >= 0; i--) {
+            const boost = state.boosts[i];
+            if (this.x < boost.x + 20 && this.x + this.w > boost.x - 20 &&
+                this.y < boost.y + 20 && this.y + this.h > boost.y - 20) {
+                state.boosts.splice(i, 1);
+                this.applyBoost(boost.id);
             }
         }
 
@@ -596,6 +659,8 @@ export default class Player {
             ctx.strokeRect(dx + 1, dy + 1, drawW - 2, drawH - 2);
             ctx.globalAlpha = 1;
 
+            this.drawBoostAura(ctx);
+
             ctx.restore();
             return;
         }
@@ -632,6 +697,67 @@ export default class Player {
         ctx.fillStyle = 'rgba(153, 240, 255, 0.6)';
         ctx.fillRect(visorX + 1, 8, 3, 4);
 
+        this.drawBoostAura(ctx);
+
         ctx.restore();
+    }
+
+    drawBoostAura(ctx) {
+        const boostId = this.getActiveBoostId();
+        if (!boostId) return;
+
+        const pulse = 0.45 + Math.sin(state.game.frames * 0.18) * 0.18;
+
+        if (boostId === 'repair') {
+            ctx.strokeStyle = `rgba(99, 240, 167, ${0.34 + pulse * 0.28})`;
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.arc(this.w * 0.5, this.h * 0.5, Math.max(this.w, this.h) * 0.56, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = `rgba(214, 255, 233, ${0.16 + pulse * 0.1})`;
+            ctx.fillRect(this.w * 0.42, -7, this.w * 0.16, 6);
+            ctx.fillRect(-6, this.h * 0.42, 6, this.h * 0.16);
+            return;
+        }
+
+        if (boostId === 'slow') {
+            ctx.strokeStyle = `rgba(107, 215, 255, ${0.3 + pulse * 0.24})`;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(this.w * 0.5, this.h * 0.5, Math.max(this.w, this.h) * 0.62, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(this.w * 0.5, this.h * 0.5);
+            ctx.lineTo(this.w * 0.5, this.h * 0.18);
+            ctx.lineTo(this.w * 0.72, this.h * 0.44);
+            ctx.stroke();
+            return;
+        }
+
+        if (boostId === 'triple') {
+            ctx.strokeStyle = `rgba(207, 123, 255, ${0.28 + pulse * 0.24})`;
+            ctx.lineWidth = 1.6;
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath();
+                ctx.arc(this.w * 0.5, this.h * 0.56, (this.w * 0.34) + (i * 5), Math.PI, Math.PI * 2);
+                ctx.stroke();
+            }
+            return;
+        }
+
+        if (boostId === 'airDash') {
+            ctx.fillStyle = `rgba(255, 177, 77, ${0.24 + pulse * 0.2})`;
+            const tipX = this.facing === 1 ? this.w + 8 : -8;
+            const dir = this.facing === 1 ? 1 : -1;
+            for (let i = 0; i < 3; i++) {
+                const offset = i * 7;
+                ctx.beginPath();
+                ctx.moveTo(tipX - dir * offset, this.h * 0.2 + i * 8);
+                ctx.lineTo(tipX + dir * (8 - offset), this.h * 0.28 + i * 8);
+                ctx.lineTo(tipX - dir * offset, this.h * 0.36 + i * 8);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
     }
 }

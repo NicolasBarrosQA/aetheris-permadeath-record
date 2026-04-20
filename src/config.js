@@ -67,6 +67,68 @@ export const BALANCE = {
     }
 };
 
+export const DIFFICULTY_MODES = {
+    easy: {
+        id: 'easy',
+        label: 'FACIL',
+        accent: '#66f2a4',
+        description: 'Ritmo mais leve com drops raros de boost.',
+        boostDrops: true,
+        virusPressure: false
+    },
+    medium: {
+        id: 'medium',
+        label: 'MEDIO',
+        accent: '#5bd7ff',
+        description: 'A corrida atual, sem ajuda extra.',
+        boostDrops: false,
+        virusPressure: false
+    },
+    hard: {
+        id: 'hard',
+        label: 'DIFICIL',
+        accent: '#ff5b7d',
+        description: 'O virus apaga o mapa atras de voce.',
+        boostDrops: false,
+        virusPressure: true
+    }
+};
+
+export const BOOST_TYPES = {
+    repair: {
+        id: 'repair',
+        label: 'REPARO',
+        color: '#63f0a7',
+        accent: '#d7ffe8',
+        icon: 'repair.svg',
+        duration: 220
+    },
+    slow: {
+        id: 'slow',
+        label: 'TIME SHIFT',
+        color: '#6bd7ff',
+        accent: '#effaff',
+        icon: 'slow.svg',
+        duration: 280
+    },
+    triple: {
+        id: 'triple',
+        label: 'TRIPLE JUMP',
+        color: '#cf7bff',
+        accent: '#f7e6ff',
+        icon: 'triple.svg',
+        duration: 360
+    },
+    airDash: {
+        id: 'airDash',
+        label: 'AIR DASH',
+        color: '#ffb14d',
+        accent: '#fff0d9',
+        icon: 'airdash.svg',
+        duration: 320
+    }
+};
+
 // Cores do indicador de HP
 export const HP_COLOR = {
     high: '#28e0a2',

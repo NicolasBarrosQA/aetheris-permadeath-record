@@ -10,7 +10,8 @@ const STORAGE_KEYS = {
     totalCoins: 'nexus_coins_v8',
     unlockedSkins: 'nexus_skins_v8',
     currentSkinId: 'nexus_current_skin_v8',
-    highScore: 'nexus_highscore'
+    highScore: 'nexus_highscore',
+    difficultyMode: 'nexus_difficulty_mode_v1'
 };
 
 const validSkinIds = new Set(SKINS_DB.map(skin => skin.id));
@@ -69,6 +70,7 @@ export const storage = {
     unlockedSkins,
     currentSkinId: safeCurrentSkinId,
     highScore: Math.max(0, parseIntSafe(readItem(STORAGE_KEYS.highScore), 0)),
+    difficultyMode: readItem(STORAGE_KEYS.difficultyMode) || 'medium',
     initialHighScore: null
 };
 
@@ -77,6 +79,7 @@ export function save() {
     writeItem(STORAGE_KEYS.unlockedSkins, JSON.stringify(storage.unlockedSkins));
     writeItem(STORAGE_KEYS.currentSkinId, String(storage.currentSkinId));
     writeItem(STORAGE_KEYS.highScore, String(storage.highScore));
+    writeItem(STORAGE_KEYS.difficultyMode, storage.difficultyMode);
 }
 
 storage.initialHighScore = storage.highScore;

@@ -27,6 +27,12 @@ const state = {
     uiAttack: null,
     uiWeather: null,
     uiState: null,
+    uiBoost: null,
+    uiBoostIcon: null,
+    uiBoostName: null,
+    uiBoostTime: null,
+    uiBoostFill: null,
+    difficultyButtons: [],
 
     // Objeto de jogo contendo flags de estado e contadores
     game: {
@@ -41,7 +47,10 @@ const state = {
         dist: 0,
         coins: 0,
         difficulty: 1.0,
+        modeId: 'medium',
         time: 0,
+        timeScale: 1,
+        simAccumulator: 0,
         audioStarted: false,
         newRecordReached: false,
         isGameOver: false,
@@ -83,10 +92,13 @@ const state = {
     platforms: [],
     enemies: [],
     coins: [],
+    boosts: [],
     particles: [],
     texts: [],
     ghosts: [],
     attackEffects: [],
+    activeBoost: null,
+    virusWall: { active: false, x: -900, pulse: 0, damageTick: 0 },
 
     // Elementos de fundo e efeitos
     bgLayer1: [],

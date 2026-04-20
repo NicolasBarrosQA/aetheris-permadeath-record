@@ -4,7 +4,7 @@
 
 import state from '../core/state.js';
 import { storage, save } from '../core/storage.js';
-import { COIN_LABEL, SKINS_DB, HP_COLOR } from '../config.js';
+import { BOOST_TYPES, COIN_LABEL, DIFFICULTY_MODES, SKINS_DB, HP_COLOR } from '../config.js';
 import { resumeAudioContext, SFX } from '../core/audio.js';
 
 function getUnlockedSet() {
@@ -15,6 +15,21 @@ function setPillState(element, text, tone) {
     if (!element) return;
     element.innerText = text;
     element.className = `status-pill ${tone}`;
+}
+
+export function setDifficultyMode(modeId) {
+    if (!DIFFICULTY_MODES[modeId]) return;
+    storage.difficultyMode = modeId;
+    state.game.modeId = modeId;
+    save();
+    syncDifficultyUI();
+}
+
+export function syncDifficultyUI() {
+    if (!state.difficultyButtons?.length) return;
+    state.difficultyButtons.forEach(button => {
+        button.classList.toggle('selected', button.dataset.difficulty === storage.difficultyMode);
+    });
 }
 
 export function toggleShop() {
@@ -166,4 +181,22 @@ export function updateUI() {
     }
 
     state.uiLayer.style.opacity = state.game.started ? '1' : '0.3';
+
+    if (state.uiBoost) {
+        const activeBoost = state.activeBoost;
+        if (activeBoost) {
+            const boostDef = BOOST_TYPES[activeBoost.id];
+            const ratio = activeBoost.maxDuration > 0 ? (activeBoost.duration / activeBoost.maxDuration) : 0;
+            state.uiBoost.classList.remove('hidden');
+            state.uiBoostName.innerText = boostDef?.label || 'BOOST';
+            state.uiBoostTime.innerText = `${(activeBoost.duration / 60).toFixed(1)}s`;
+            state.uiBoostFill.style.width = `${Math.max(0, Math.min(100, ratio * 100))}%`;
+            state.uiBoostFill.style.background = `linear-gradient(90deg, ${boostDef?.color || '#63f0a7'}, ${boostDef?.accent || '#effaff'})`;
+            state.uiBoost.style.borderColor = `${boostDef?.color || '#63f0a7'}55`;
+            state.uiBoostIcon.style.backgroundImage = boostDef?.icon ? `url(../assets/img/boosts/${boostDef.icon})` : 'none';
+            state.uiBoostIcon.style.boxShadow = `0 0 22px ${boostDef?.color || '#63f0a7'}33`;
+        } else {
+            state.uiBoost.classList.add('hidden');
+        }
+    }
 }

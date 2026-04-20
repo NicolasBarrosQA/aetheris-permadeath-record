@@ -6,9 +6,10 @@
 import state from './core/state.js';
 import { initGame, loopGame, resetGame } from './core/engine.js';
 import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from './config.js';
-import { toggleShop } from './systems/ui.js';
+import { toggleShop, setDifficultyMode, syncDifficultyUI } from './systems/ui.js';
 import { resumeAudioContext, tryStartAudio } from './core/audio.js';
 import { spawnText } from './systems/particles.js';
+import { loadBoostSprites } from './core/boostSprites.js';
 import { loadSkinSprites } from './core/sprites.js';
 import { validateGameConfig } from './core/validation.js';
 
@@ -34,6 +35,7 @@ window.resetGame = resetGame;
 validateGameConfig();
 
 loadSkinSprites();
+loadBoostSprites();
 
 function getRequiredElement(id) {
     const element = document.getElementById(id);
@@ -127,6 +129,16 @@ function bootstrap() {
     state.uiAttack = getRequiredElement('ui-attack');
     state.uiWeather = getRequiredElement('ui-weather');
     state.uiState = getRequiredElement('ui-state');
+    state.uiBoost = getRequiredElement('boost-hud');
+    state.uiBoostIcon = getRequiredElement('boost-icon');
+    state.uiBoostName = getRequiredElement('boost-name');
+    state.uiBoostTime = getRequiredElement('boost-time');
+    state.uiBoostFill = getRequiredElement('boost-fill');
+    state.difficultyButtons = [...document.querySelectorAll('[data-difficulty]')];
+
+    state.difficultyButtons.forEach(button => {
+        button.addEventListener('click', () => setDifficultyMode(button.dataset.difficulty));
+    });
 
     resizeCanvas();
 
@@ -134,6 +146,7 @@ function bootstrap() {
     window.addEventListener('orientationchange', resizeCanvas);
 
     initGame();
+    syncDifficultyUI();
     loopGame();
 }
 
@@ -175,6 +188,11 @@ function setupInput() {
 
             if (key === 's') {
                 toggleShop();
+            }
+
+            if (!state.game.started && (key === '1' || key === '2' || key === '3')) {
+                const nextMode = key === '1' ? 'easy' : (key === '2' ? 'medium' : 'hard');
+                setDifficultyMode(nextMode);
             }
 
             if (key === 'escape' && state.game.shopOpen) {
