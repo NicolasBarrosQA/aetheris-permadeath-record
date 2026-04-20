@@ -30,10 +30,13 @@ export function resetWorldParams() {
 export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
     const patterns = ['grid', 'stripes', 'bars', 'slits'];
     const viewH = Math.max(600, state.view?.worldHeight || 600);
+    const minWidth = Math.max(110, wMin);
+    const maxWidth = Math.max(minWidth + 30, wMax);
+    const spacing = maxWidth + 35;
     return {
-        x: i * (wMax + 50),
+        x: i * spacing,
         y: yMin + Math.random() * (yMax - yMin),
-        w: wMin + Math.random() * (wMax - wMin),
+        w: minWidth + Math.random() * (maxWidth - minWidth),
         h: viewH + 140,
         opacity: opacity,
         parallax: parallax,

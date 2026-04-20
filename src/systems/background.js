@@ -218,9 +218,10 @@ export function drawLayer(layer, camX) {
         ctx.strokeRect(x + 1, building.y + 0.5, building.w - 2, building.h - 1);
         ctx.shadowBlur = 0;
 
-        if (quality >= 0.82) {
+        if (quality >= 0.72) {
+            const flashBoost = building.flashTimer > 0 ? ((building.flashTimer / 10) * 0.22) : 0;
             ctx.fillStyle = windows;
-            ctx.globalAlpha = (0.28 * building.opacity) + 0.22;
+            ctx.globalAlpha = Math.min(0.9, (0.28 * building.opacity) + 0.22 + flashBoost);
             if (building.pattern === 'grid') {
                 for (let wy = building.y + 14; wy < building.y + building.h - 18; wy += 18) {
                     for (let wx = 6; wx < building.w - 10; wx += 14) {
@@ -248,15 +249,6 @@ export function drawLayer(layer, camX) {
         const panelH = Math.min(36, building.h * 0.15);
         ctx.fillRect(x + 6, building.y + building.h * 0.44, building.w * 0.22, panelH);
         ctx.fillRect(x + building.w * 0.64, building.y + building.h * 0.26, building.w * 0.18, panelH * 0.7);
-
-        if (building.flashTimer > 0) {
-            const flash = ctx.createLinearGradient(x, building.y + 7, x, building.y + 18);
-            flash.addColorStop(0, 'rgba(255, 255, 255, 0.65)');
-            flash.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = flash;
-            ctx.globalAlpha = 0.36;
-            ctx.fillRect(x + 5, building.y + 7, building.w - 10, 11);
-        }
 
         const fade = ctx.createLinearGradient(0, building.y + building.h * 0.7, 0, building.y + building.h);
         fade.addColorStop(0, 'rgba(0, 0, 0, 0)');
