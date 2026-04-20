@@ -65,25 +65,26 @@ function updateVirusWall(viewH) {
     const player = state.player;
     virus.active = true;
     virus.pulse += 0.12;
-    const pressureSpeed = 2.1 + Math.min(3.8, state.game.dist / 2200);
-    const targetX = player.x - 320;
-    virus.x = Math.min(targetX, virus.x + pressureSpeed);
+    const pressureSpeed = 4.4 + Math.min(5.2, state.game.dist / 1400);
+    const screenTarget = state.camera.x + 36;
+    const chaseTarget = player.x - 225;
+    virus.x = Math.min(chaseTarget, Math.max(screenTarget, virus.x + pressureSpeed));
 
     if (virus.damageTick > 0) virus.damageTick--;
 
-    if (player.x + player.w < virus.x + 10) {
+    if (player.x + player.w < virus.x + 18) {
         player.takeDamage(100);
         return;
     }
 
-    if (player.x < virus.x + 88) {
+    if (player.x < virus.x + 120) {
         if (virus.damageTick <= 0) {
-            player.takeDamage(16);
-            virus.damageTick = 18;
+            player.takeDamage(18);
+            virus.damageTick = 14;
         }
-        player.vx = Math.max(player.vx, 7 + (state.game.difficulty * 0.4));
-        state.camera.shake = Math.max(state.camera.shake, 5);
-        if (state.game.frames % 8 === 0) {
+        player.vx = Math.max(player.vx, 10 + (state.game.difficulty * 0.55));
+        state.camera.shake = Math.max(state.camera.shake, 6);
+        if (state.game.frames % 5 === 0) {
             state.particles.push({
                 x: virus.x + 18 + Math.random() * 18,
                 y: state.camera.y + Math.random() * (viewH + 120),
@@ -151,20 +152,20 @@ function drawVirusWall(ctx, viewH) {
     const pulse = 0.55 + Math.sin(virus.pulse) * 0.25;
 
     ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.46)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.56)';
     ctx.fillRect(frontX - 1600, topY, 1600, wallH);
 
-    const field = ctx.createLinearGradient(frontX - 190, 0, frontX + 24, 0);
+    const field = ctx.createLinearGradient(frontX - 230, 0, frontX + 36, 0);
     field.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    field.addColorStop(0.3, 'rgba(34, 0, 18, 0.34)');
-    field.addColorStop(0.82, `rgba(255, 66, 122, ${0.2 + pulse * 0.12})`);
-    field.addColorStop(1, `rgba(150, 255, 241, ${0.18 + pulse * 0.08})`);
+    field.addColorStop(0.24, 'rgba(34, 0, 18, 0.42)');
+    field.addColorStop(0.74, `rgba(255, 66, 122, ${0.28 + pulse * 0.16})`);
+    field.addColorStop(1, `rgba(150, 255, 241, ${0.26 + pulse * 0.1})`);
     ctx.fillStyle = field;
-    ctx.fillRect(frontX - 190, topY, 214, wallH);
+    ctx.fillRect(frontX - 230, topY, 266, wallH);
 
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 22; i++) {
         const stripW = 6 + Math.random() * 12;
-        const stripX = frontX - 18 + Math.random() * 22;
+        const stripX = frontX - 24 + Math.random() * 30;
         const stripY = topY + Math.random() * wallH;
         const stripH = 24 + Math.random() * 120;
         ctx.fillStyle = i % 2 === 0
@@ -271,7 +272,7 @@ function startGameRun() {
     // reinicia o contador de frames de corrida para que o ciclo
     // dia/noite comece do início quando uma nova corrida começa
     state.game.runFrames = 0;
-    state.virusWall.x = state.player.x - 520;
+    state.virusWall.x = state.player.x - 300;
     state.virusWall.active = getDifficultyMode().virusPressure;
     if (state.startHint) state.startHint.style.display = 'none';
     tryStartAudio();
