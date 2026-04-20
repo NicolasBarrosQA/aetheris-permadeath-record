@@ -189,11 +189,15 @@ export function drawLayer(layer, camX) {
     const ctx = state.ctx;
     const quality = state.performance?.quality || 1;
     const hueBase = (state.game.dist / 100) % 360;
+    const lastBuilding = layer[layer.length - 1];
+    const layerSpan = lastBuilding
+        ? Math.max(2000, lastBuilding.x + lastBuilding.w + 260)
+        : 2000;
 
     layer.forEach(building => {
         const relativeX = building.x - (camX * building.parallax);
-        let x = relativeX % 2000;
-        if (x < (-building.w - 120)) x += 2000;
+        let x = relativeX % layerSpan;
+        if (x < (-building.w - 120)) x += layerSpan;
 
         const hue = hueBase;
         const accent = `hsla(${hue}, 100%, 62%, 0.5)`;
