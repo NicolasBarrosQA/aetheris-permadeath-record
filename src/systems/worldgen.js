@@ -152,14 +152,11 @@ export function generateWorld() {
         if (Math.random() < enemyChance && w > 150 && !hasSpikes) {
             state.enemies.push(new Enemy(x + w / 2, y - 50));
         }
-        // Gera moedas; se dificuldade alta, gera duas
+        // Gera no maximo uma moeda por plataforma
         if (Math.random() > 0.35) {
             let cx = x + w / 2;
             let cy = hasSpikes ? y - 100 : y - 40;
             state.coins.push({ x: cx, y: cy, rot: Math.random() * 6 });
-            if (state.game.difficulty > 1.5) {
-                state.coins.push({ x: cx + 40, y: cy, rot: Math.random() * 6 });
-            }
         }
         lastPlatX = x + w;
         lastPlatY = y;
