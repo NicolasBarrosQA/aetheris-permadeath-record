@@ -81,8 +81,8 @@ body::after {
 
 canvas {
     display: block;
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    inset: 0 auto auto 0;
 }
 
 #frame-glow {
@@ -285,7 +285,6 @@ canvas {
 .status-pill.cold {
     color: #bce8ff;
     border-color: rgba(103, 212, 255, 0.34);
-}
 }
 
 #overlay-screen {

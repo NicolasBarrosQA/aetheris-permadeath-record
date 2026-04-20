@@ -71,14 +71,17 @@ function resizeCanvas() {
 
     state.canvas.width = Math.round(VIRTUAL_WIDTH * dpr);
     state.canvas.height = Math.round(VIRTUAL_HEIGHT * dpr);
+    state.canvas.style.position = 'absolute';
+    state.canvas.style.left = `${offsetX}px`;
+    state.canvas.style.top = `${offsetY}px`;
     state.canvas.style.width = `${contentW}px`;
     state.canvas.style.height = `${contentH}px`;
 
     state.container.style.position = 'fixed';
-    state.container.style.left = `${offsetX}px`;
-    state.container.style.top = `${offsetY}px`;
-    state.container.style.width = `${contentW}px`;
-    state.container.style.height = `${contentH}px`;
+    state.container.style.left = '0px';
+    state.container.style.top = '0px';
+    state.container.style.width = `${vw}px`;
+    state.container.style.height = `${vh}px`;
     state.container.style.transform = 'none';
 }
 
