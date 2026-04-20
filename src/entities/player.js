@@ -169,14 +169,19 @@ export default class Player {
             this.vy = 0;
 
             if (state.game.frames % 2 === 0) {
+                const speedNorm = Math.min(Math.abs(this.vx) / PHYS.dashSpeed, 1);
                 state.ghosts.push({
-                    x: this.x,
-                    y: this.y,
+                    kind: 'dashTrail',
+                    x: this.x + this.w / 2,
+                    y: this.y + this.h / 2,
                     w: this.w,
                     h: this.h,
-                    c: this.skin.c1,
-                    alpha: 0.6,
-                    life: 10
+                    c: this.skin.glow || this.skin.c1,
+                    alpha: 0.62,
+                    life: 11,
+                    maxLife: 11,
+                    len: 28 + (speedNorm * 34),
+                    dir: this.facing
                 });
             }
 
@@ -478,21 +483,67 @@ export default class Player {
     draw() {
         const ctx = state.ctx;
 
-        // fantasmas do dash
-        state.ghosts.forEach((g, i) => {
-            const ghostGrad = ctx.createLinearGradient(g.x, g.y, g.x, g.y + g.h);
-            ghostGrad.addColorStop(0, 'rgba(255,255,255,0.35)');
-            ghostGrad.addColorStop(1, g.c);
-            ctx.fillStyle = ghostGrad;
-            ctx.globalAlpha = g.alpha * 0.85;
-            ctx.shadowBlur = 12;
-            ctx.shadowColor = g.c;
-            ctx.fillRect(g.x, g.y, g.w, g.h);
-            ctx.shadowBlur = 0;
-            g.alpha -= 0.1;
+        // trilhas do dash
+        for (let i = state.ghosts.length - 1; i >= 0; i--) {
+            const g = state.ghosts[i];
+            const lifeRatio = g.maxLife ? (g.life / g.maxLife) : 1;
+
+            if (g.kind === 'dashTrail') {
+                const tailDir = -(g.dir || 1);
+                const headX = g.x;
+                const headY = g.y;
+                const tailX = headX + tailDir * (g.len || 36);
+                const wave = Math.sin((state.game.frames * 0.4) + (i * 0.9)) * 2.4 * lifeRatio;
+                const headHalfH = g.h * 0.48;
+                const tailHalfH = Math.max(2.8, g.h * 0.16 * lifeRatio);
+
+                const trailGrad = ctx.createLinearGradient(headX, headY, tailX, headY);
+                trailGrad.addColorStop(0, 'rgba(255,255,255,0.82)');
+                trailGrad.addColorStop(0.24, g.c);
+                trailGrad.addColorStop(1, 'rgba(0,0,0,0)');
+
+                ctx.globalAlpha = g.alpha * Math.max(0.18, lifeRatio);
+                ctx.fillStyle = trailGrad;
+                ctx.shadowBlur = 24;
+                ctx.shadowColor = g.c;
+                ctx.beginPath();
+                ctx.moveTo(headX, headY - headHalfH);
+                ctx.lineTo(headX, headY + headHalfH);
+                ctx.lineTo(tailX, headY + wave + tailHalfH);
+                ctx.lineTo(tailX, headY + wave - tailHalfH);
+                ctx.closePath();
+                ctx.fill();
+
+                const coreGrad = ctx.createLinearGradient(headX, headY, tailX, headY);
+                coreGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
+                coreGrad.addColorStop(0.5, g.c);
+                coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                ctx.globalAlpha = g.alpha * 0.76 * lifeRatio;
+                ctx.strokeStyle = coreGrad;
+                ctx.lineWidth = Math.max(1.2, g.h * 0.11 * lifeRatio);
+                ctx.beginPath();
+                ctx.moveTo(headX, headY);
+                ctx.lineTo(tailX, headY + wave * 0.6);
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            } else {
+                const ghostGrad = ctx.createLinearGradient(g.x, g.y, g.x, g.y + g.h);
+                ghostGrad.addColorStop(0, 'rgba(255,255,255,0.35)');
+                ghostGrad.addColorStop(1, g.c);
+                ctx.fillStyle = ghostGrad;
+                ctx.globalAlpha = g.alpha * 0.85;
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = g.c;
+                ctx.fillRect(g.x, g.y, g.w, g.h);
+                ctx.shadowBlur = 0;
+            }
+
+            g.alpha *= 0.84;
             g.life--;
-            if (g.life <= 0) state.ghosts.splice(i, 1);
-        });
+            if (g.life <= 0 || g.alpha <= 0.02) {
+                state.ghosts.splice(i, 1);
+            }
+        }
         ctx.globalAlpha = 1;
 
         // pisca quando invulnerável
