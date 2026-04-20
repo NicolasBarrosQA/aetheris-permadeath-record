@@ -19,7 +19,6 @@ const ACTION_KEYS = new Set([
     'arrowleft',
     'arrowright',
     'escape',
-    'shift',
     'a',
     'c',
     'd',
@@ -27,8 +26,7 @@ const ACTION_KEYS = new Set([
     'r',
     's',
     't',
-    'w',
-    'z'
+    'w'
 ]);
 
 window.resetGame = resetGame;
@@ -55,7 +53,8 @@ function resizeCanvas() {
     const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
     const scaleX = vw / VIRTUAL_WIDTH;
     const scaleY = vh / VIRTUAL_HEIGHT;
-    const scale = Math.min(scaleX, scaleY);
+    // Preenche toda a viewport sem distorcer; o excesso fica fora da tela.
+    const scale = Math.max(scaleX, scaleY);
     const contentW = Math.max(1, Math.round(VIRTUAL_WIDTH * scale));
     const contentH = Math.max(1, Math.round(VIRTUAL_HEIGHT * scale));
     const offsetX = Math.floor((vw - contentW) * 0.5);

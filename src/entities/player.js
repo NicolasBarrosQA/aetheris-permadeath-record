@@ -76,6 +76,16 @@ export default class Player {
     }
 
     /**
+     * Dispara a investida ofensiva no botao C, unificando dash e ataque.
+     */
+    startDashAttack() {
+        this.startDash();
+        this.attack();
+        this.attackCd = 18;
+        SFX.swoosh();
+    }
+
+    /**
      * Atualiza a física e lida com entrada de controle. Chamado a cada
      * quadro pelo motor. Muitas variáveis globais são lidas através de
      * state.
@@ -142,13 +152,14 @@ export default class Player {
             if (this.vx < -maxSpeed) this.vx = -maxSpeed;
         }
 
-        // Dash manual (C ou Shift) quando disponível
+        // Golpe de investida unificado no botao C
         if (!state.cheatFlight &&
-            (state.keys['c'] || state.keys['shift']) &&
+            state.keys['c'] &&
             this.dashCd <= 0 &&
+            this.attackCd <= 0 &&
             !this.isDashing &&
             state.game.started) {
-            this.startDash();
+            this.startDashAttack();
         }
 
         // Comportamento durante o dash
@@ -193,13 +204,6 @@ export default class Player {
                 SFX.jump();
                 spawnShockwave(this.x + this.w / 2, this.y + this.h / 2, this.skin.glow);
             }
-        }
-
-        // Ataque (Z) quando em tempo de recarga
-        if (state.keys['z'] && this.attackCd <= 0 && state.game.started && !state.cheatFlight) {
-            this.attack();
-            this.attackCd = 18;
-            SFX.swoosh();
         }
 
         if (this.attackCd > 0) this.attackCd--;

@@ -138,8 +138,10 @@ export function updateUI() {
             state.hpBarFill.style.background = `linear-gradient(90deg, ${HP_COLOR.low}, #ff7a8a)`;
         }
 
-        const dashReady = state.player.dashCd <= 0 && !state.player.isDashing;
-        const attackReady = state.player.attackCd <= 0;
+        const strikeReady = state.player.dashCd <= 0 &&
+            state.player.attackCd <= 0 &&
+            !state.player.isDashing;
+        const strikeCd = Math.max(state.player.dashCd, state.player.attackCd, 0);
         const weatherActive = state.rainState.active && state.game.started;
         const stateText = state.game.isGameOver
             ? 'SINAL PERDIDO'
@@ -148,13 +150,13 @@ export function updateUI() {
         setPillState(state.uiState, stateText, state.game.started ? 'hot' : 'cold');
         setPillState(
             state.uiDash,
-            dashReady ? 'DASH PRONTO' : `DASH ${Math.max(0, state.player.dashCd)}`,
-            dashReady ? 'ready' : 'idle'
+            strikeReady ? 'GOLPE PRONTO' : `GOLPE ${strikeCd}`,
+            strikeReady ? 'ready' : 'idle'
         );
         setPillState(
             state.uiAttack,
-            attackReady ? 'ATAQUE PRONTO' : `ATAQUE ${Math.max(0, state.player.attackCd)}`,
-            attackReady ? 'ready' : 'idle'
+            state.player.isDashing ? 'INVESTIDA ATIVA' : 'C = GOLPE',
+            state.player.isDashing ? 'hot' : 'cold'
         );
         setPillState(
             state.uiWeather,
