@@ -61,6 +61,17 @@ export default class Player {
         this.vx = PHYS.dashSpeed * this.facing;
         SFX.dash();
         spawnShockwave(this.x + this.w / 2, this.y + this.h / 2, this.skin.glow);
+        state.attackEffects.push({
+            kind: 'dashBurst',
+            x: this.x + this.w / 2,
+            y: this.y + this.h / 2,
+            radius: 14,
+            color: this.skin.glow,
+            alpha: 0.84,
+            life: 8,
+            growth: 5.6,
+            fade: 0.74
+        });
         state.camera.shake = 8;
     }
 
@@ -385,6 +396,7 @@ export default class Player {
         const atkX = this.facing === 1 ? this.x + this.w : this.x - range;
 
         state.attackEffects.push({
+            kind: 'ring',
             x: this.x + this.w / 2,
             y: this.y + this.h / 2,
             radius: range,
@@ -392,6 +404,21 @@ export default class Player {
             alpha: 0.9,
             life: 6
         });
+        state.attackEffects.push({
+            kind: 'slash',
+            x: this.x + this.w / 2 + this.facing * 22,
+            y: this.y + this.h * 0.48,
+            radius: 30,
+            color: this.skin.glow,
+            alpha: 0.95,
+            life: 8,
+            growth: 6.2,
+            fade: 0.76,
+            arc: Math.PI * 0.9,
+            angle: this.facing === 1 ? -0.35 : Math.PI + 0.35,
+            spin: this.facing === 1 ? 0.24 : -0.24
+        });
+        spawnParticles(this.x + this.w / 2 + this.facing * 24, this.y + this.h * 0.5, 12, this.skin.glow, 1);
 
         // Checa inimigos no alcance
         state.enemies.forEach(e => {
@@ -399,6 +426,17 @@ export default class Player {
                 e.takeDamage(35);
                 e.vx = 8 * this.facing;
                 spawnText('CRIT!', e.x, e.y, this.skin.glow);
+                state.attackEffects.push({
+                    kind: 'impact',
+                    x: e.x + e.w / 2,
+                    y: e.y + e.h / 2,
+                    radius: 12,
+                    color: '#ffd98f',
+                    alpha: 0.9,
+                    life: 9,
+                    growth: 4.2,
+                    fade: 0.8
+                });
                 state.camera.shake = 4;
                 SFX.hit();
             }

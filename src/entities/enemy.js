@@ -25,6 +25,7 @@ export default class Enemy {
         this.bob = Math.random() * 100;
         this.grounded = false;
         this.drawY = y;
+        this.hitFlash = 0;
     }
 
     /**
@@ -99,6 +100,7 @@ export default class Enemy {
         }
         if (this.y > 1000) this.hp = 0;
         this.drawY = this.y + floatY;
+        if (this.hitFlash > 0) this.hitFlash--;
     }
 
     /**
@@ -108,6 +110,7 @@ export default class Enemy {
      */
     takeDamage(dmg) {
         this.hp -= dmg;
+        this.hitFlash = 8;
         spawnParticles(this.x + this.w / 2, this.y, 8, '#ffaa00', 1);
         spawnText(dmg, this.x, this.y, '#fff');
         if (this.hp <= 0) {
@@ -130,6 +133,7 @@ export default class Enemy {
         const dY = this.drawY || this.y;
         const color = this.alert ? '#ffbf44' : '#ff3e6f';
         const pulse = 0.4 + Math.sin((state.game.frames * 0.12) + this.bob) * 0.2;
+        const hitMix = this.hitFlash > 0 ? Math.min(1, this.hitFlash / 8) : 0;
 
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.beginPath();
@@ -154,6 +158,19 @@ export default class Enemy {
 
         ctx.fillStyle = `rgba(255,255,255,${0.12 + pulse * 0.2})`;
         ctx.fillRect(this.x + 3, dY + 3, this.w - 6, 5);
+
+        if (this.alert) {
+            ctx.strokeStyle = `rgba(255, 220, 128, ${0.2 + pulse * 0.26})`;
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.arc(this.x + this.w * 0.5, dY + this.h * 0.42, this.w * 0.72, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        if (hitMix > 0) {
+            ctx.fillStyle = `rgba(255, 244, 210, ${0.18 + hitMix * 0.28})`;
+            ctx.fillRect(this.x, dY, this.w, this.h);
+        }
 
         // visor
         ctx.fillStyle = '#05070f';

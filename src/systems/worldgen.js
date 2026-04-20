@@ -48,7 +48,7 @@ export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
 export function spawnDust(randomX) {
     state.dustParticles.push({
         x: randomX ? Math.random() * 900 : 900,
-        y: Math.random() * 600,
+        y: 320 + Math.random() * 280,
         vx: -0.5 - Math.random(),
         size: Math.random() * 2,
         alpha: Math.random() * 0.5
@@ -100,13 +100,9 @@ export function initAtmosphere() {
     state.lightBeams = [];
     state.rainDrops = [];
     state.rainSplashes = [];
-    state.rainState.active = Math.random() < 0.5;
+    // Chuva inicia desativada para evitar pico de custo no primeiro segundo.
+    state.rainState.active = false;
     resetRainTimer();
-    if (state.rainState.active) {
-        const quality = state.performance?.quality || 1;
-        const initialDrops = Math.max(56, Math.floor(96 * quality));
-        for (let i = 0; i < initialDrops; i++) spawnRainDrop(true);
-    }
 }
 
 /**

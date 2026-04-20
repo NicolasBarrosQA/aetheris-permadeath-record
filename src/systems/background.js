@@ -76,32 +76,23 @@ function drawCelestialBody(ctx, isSun, phase, x, y) {
     }
     ctx.restore();
 
-    const flareCount = isSun ? 5 : 3;
-    for (let i = 0; i < flareCount; i++) {
-        const flareX = x + (i - Math.floor(flareCount / 2)) * (outerRadius * 0.42);
-        const flareY = y + (Math.sin(phase * Math.PI + i) * 8);
-        const flareGrad = ctx.createRadialGradient(flareX, flareY, 0, flareX, flareY, 18);
-        flareGrad.addColorStop(0, isSun ? 'rgba(255, 220, 175, 0.55)' : 'rgba(190, 235, 255, 0.45)');
-        flareGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = flareGrad;
-        ctx.beginPath();
-        ctx.arc(flareX, flareY, 18, 0, Math.PI * 2);
-        ctx.fill();
-    }
+    // Removed floating flare circles to keep the sun/moon clean.
 }
 
-function drawSkyGrid(ctx) {
+function drawSkyGrid(ctx, detailScale = 1) {
     const hue = (state.game.dist / 120) % 360;
     const gridColor = `hsla(${hue}, 90%, 58%, 0.34)`;
     const midColor = `hsla(${hue}, 85%, 52%, 0.19)`;
+    const xStep = detailScale < 1 ? 72 : 48;
+    const horizonLines = detailScale < 1 ? 7 : 10;
 
     ctx.save();
     ctx.strokeStyle = gridColor;
-    ctx.shadowBlur = 16;
+    ctx.shadowBlur = detailScale < 1 ? 9 : 16;
     ctx.shadowColor = `hsla(${hue}, 100%, 60%, 0.28)`;
     ctx.lineWidth = 1.2;
     ctx.beginPath();
-    for (let x = 0; x <= VIRTUAL_WIDTH; x += 48) {
+    for (let x = 0; x <= VIRTUAL_WIDTH; x += xStep) {
         ctx.moveTo(x, VIRTUAL_HEIGHT);
         ctx.lineTo(VIRTUAL_WIDTH * 0.5, HORIZON_Y - 170);
     }
@@ -111,7 +102,7 @@ function drawSkyGrid(ctx) {
     ctx.strokeStyle = midColor;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < horizonLines; i++) {
         const y = HORIZON_Y + (i * i * 2.2);
         ctx.moveTo(0, y);
         ctx.lineTo(VIRTUAL_WIDTH, y);
@@ -147,18 +138,21 @@ export function drawBackground() {
     drawAtmosphereBands(ctx, isSun);
     drawCelestialBody(ctx, isSun, phase, celestialX, celestialY);
 
-    const starOpacity = isSun ? 0.28 : 0.95;
+    // Durante o dia, remove pontos brilhantes para o sol ficar limpo.
+    const starOpacity = isSun ? 0 : 0.95;
     const starStep = quality < 0.8 ? 2 : 1;
-    for (let idx = 0; idx < state.stars.length; idx += starStep) {
-        const star = state.stars[idx];
-        const pulse = Math.abs(Math.sin((state.game.frames * 0.045) + star.blink));
-        ctx.globalAlpha = pulse * starOpacity;
-        ctx.fillStyle = '#f3fbff';
-        ctx.fillRect(star.x, star.y, star.size + 0.25, star.size + 0.25);
-        if (quality >= 0.92 && star.size > 1.1) {
-            ctx.globalAlpha = pulse * starOpacity * 0.25;
-            ctx.fillRect(star.x - 2, star.y, star.size + 4, 0.8);
-            ctx.fillRect(star.x, star.y - 2, 0.8, star.size + 4);
+    if (starOpacity > 0) {
+        for (let idx = 0; idx < state.stars.length; idx += starStep) {
+            const star = state.stars[idx];
+            const pulse = Math.abs(Math.sin((state.game.frames * 0.045) + star.blink));
+            ctx.globalAlpha = pulse * starOpacity;
+            ctx.fillStyle = '#f3fbff';
+            ctx.fillRect(star.x, star.y, star.size + 0.25, star.size + 0.25);
+            if (quality >= 0.92 && star.size > 1.1) {
+                ctx.globalAlpha = pulse * starOpacity * 0.25;
+                ctx.fillRect(star.x - 2, star.y, star.size + 4, 0.8);
+                ctx.fillRect(star.x, star.y - 2, 0.8, star.size + 4);
+            }
         }
     }
     ctx.globalAlpha = 1;
@@ -169,7 +163,7 @@ export function drawBackground() {
     ctx.fillStyle = haze;
     ctx.fillRect(0, HORIZON_Y - 40, VIRTUAL_WIDTH, VIRTUAL_HEIGHT - HORIZON_Y + 40);
 
-    drawSkyGrid(ctx);
+    drawSkyGrid(ctx, state.game.started ? 1 : 0.6);
 }
 
 export function drawLayer(layer, camX) {

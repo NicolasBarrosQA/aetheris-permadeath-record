@@ -11,6 +11,12 @@ function getUnlockedSet() {
     return new Set(storage.unlockedSkins);
 }
 
+function setPillState(element, text, tone) {
+    if (!element) return;
+    element.innerText = text;
+    element.className = `status-pill ${tone}`;
+}
+
 export function toggleShop() {
     if (state.game.started || state.game.isGameOver) return;
 
@@ -43,8 +49,16 @@ export function renderShop() {
         card.className = `skin-card ${isEquipped ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}`;
 
         preview.className = 'skin-preview';
-        preview.style.background = `linear-gradient(to bottom, ${skin.c1}, ${skin.c2})`;
         preview.style.color = skin.glow;
+        if (skin.sprite) {
+            preview.style.backgroundColor = 'rgba(3, 8, 20, 0.88)';
+            preview.style.backgroundImage = `url(../assets/img/skins/${skin.sprite})`;
+            preview.style.backgroundPosition = 'center';
+            preview.style.backgroundRepeat = 'no-repeat';
+            preview.style.backgroundSize = 'contain';
+        } else {
+            preview.style.background = `linear-gradient(to bottom, ${skin.c1}, ${skin.c2})`;
+        }
 
         name.className = 'skin-name';
         name.innerText = skin.name;
@@ -123,6 +137,30 @@ export function updateUI() {
         } else {
             state.hpBarFill.style.background = `linear-gradient(90deg, ${HP_COLOR.low}, #ff7a8a)`;
         }
+
+        const dashReady = state.player.dashCd <= 0 && !state.player.isDashing;
+        const attackReady = state.player.attackCd <= 0;
+        const weatherActive = state.rainState.active && state.game.started;
+        const stateText = state.game.isGameOver
+            ? 'SINAL PERDIDO'
+            : (state.game.started ? 'CORRIDA ATIVA' : 'AGUARDANDO');
+
+        setPillState(state.uiState, stateText, state.game.started ? 'hot' : 'cold');
+        setPillState(
+            state.uiDash,
+            dashReady ? 'DASH PRONTO' : `DASH ${Math.max(0, state.player.dashCd)}`,
+            dashReady ? 'ready' : 'idle'
+        );
+        setPillState(
+            state.uiAttack,
+            attackReady ? 'ATAQUE PRONTO' : `ATAQUE ${Math.max(0, state.player.attackCd)}`,
+            attackReady ? 'ready' : 'idle'
+        );
+        setPillState(
+            state.uiWeather,
+            weatherActive ? 'CHUVA ATIVA' : 'CLIMA ESTAVEL',
+            weatherActive ? 'warn' : 'cold'
+        );
     }
 
     state.uiLayer.style.opacity = state.game.started ? '1' : '0.3';

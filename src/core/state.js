@@ -23,6 +23,10 @@ const state = {
     uiCoins: null,
     hpBarFill: null,
     shopBalance: null,
+    uiDash: null,
+    uiAttack: null,
+    uiWeather: null,
+    uiState: null,
 
     // Objeto de jogo contendo flags de estado e contadores
     game: {

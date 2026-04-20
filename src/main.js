@@ -48,32 +48,38 @@ function getRequiredElement(id) {
 }
 
 function resizeCanvas() {
-    const dpr = window.devicePixelRatio || 1;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    const pixelArea = vw * vh;
+    const dprCap = pixelArea > 2200000 ? 1.2 : (pixelArea > 1400000 ? 1.35 : 1.6);
+    const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
     const scaleX = vw / VIRTUAL_WIDTH;
     const scaleY = vh / VIRTUAL_HEIGHT;
     const scale = Math.min(scaleX, scaleY);
+    const contentW = Math.max(1, Math.round(VIRTUAL_WIDTH * scale));
+    const contentH = Math.max(1, Math.round(VIRTUAL_HEIGHT * scale));
+    const offsetX = Math.floor((vw - contentW) * 0.5);
+    const offsetY = Math.floor((vh - contentH) * 0.5);
 
     state.view.scale = scale;
-    state.view.scaleX = scaleX;
-    state.view.scaleY = scaleY;
-    state.view.offsetX = 0;
-    state.view.offsetY = 0;
+    state.view.scaleX = scale;
+    state.view.scaleY = scale;
+    state.view.offsetX = offsetX;
+    state.view.offsetY = offsetY;
     state.view.dpr = dpr;
-    state.view.width = vw;
-    state.view.height = vh;
+    state.view.width = contentW;
+    state.view.height = contentH;
 
-    state.canvas.width = Math.round(vw * dpr);
-    state.canvas.height = Math.round(vh * dpr);
-    state.canvas.style.width = `${vw}px`;
-    state.canvas.style.height = `${vh}px`;
+    state.canvas.width = Math.round(VIRTUAL_WIDTH * dpr);
+    state.canvas.height = Math.round(VIRTUAL_HEIGHT * dpr);
+    state.canvas.style.width = `${contentW}px`;
+    state.canvas.style.height = `${contentH}px`;
 
     state.container.style.position = 'fixed';
-    state.container.style.left = '0px';
-    state.container.style.top = '0px';
-    state.container.style.width = `${vw}px`;
-    state.container.style.height = `${vh}px`;
+    state.container.style.left = `${offsetX}px`;
+    state.container.style.top = `${offsetY}px`;
+    state.container.style.width = `${contentW}px`;
+    state.container.style.height = `${contentH}px`;
     state.container.style.transform = 'none';
 }
 
@@ -98,6 +104,10 @@ function bootstrap() {
     state.uiCoins = getRequiredElement('ui-coins');
     state.hpBarFill = getRequiredElement('hp-bar-fill');
     state.shopBalance = getRequiredElement('shop-balance');
+    state.uiDash = getRequiredElement('ui-dash');
+    state.uiAttack = getRequiredElement('ui-attack');
+    state.uiWeather = getRequiredElement('ui-weather');
+    state.uiState = getRequiredElement('ui-state');
 
     resizeCanvas();
 

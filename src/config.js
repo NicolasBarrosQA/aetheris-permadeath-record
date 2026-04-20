@@ -161,5 +161,14 @@ export const SKINS_DB = [
         c2: '#28b0d6ff',
         glow: '#01cffdff',
         sprite: 'goku.png'
+    },
+    {
+        id: 9,
+        name: 'naruto shipuden',
+        cost: 0,
+        c1: '#ffcf3a',
+        c2: '#ff941e',
+        glow: '#ffc84a',
+        sprite: 'naruto_shipuden.png'
     }
 ];

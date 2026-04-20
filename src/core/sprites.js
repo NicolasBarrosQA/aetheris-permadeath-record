@@ -1,40 +1,75 @@
-// Base do sistema de sprites (não muda nada no jogo ainda)
+// Sprite loading focused on startup smoothness:
+// 1) load equipped skin first
+// 2) preload others gradually in background
 
 import { SKINS_DB } from '../config.js';
+import { storage } from './storage.js';
 
-// Cache simples: { [skinId]: { img: Image, loaded: boolean } }
 const spriteCache = {};
+const loadingSet = new Set();
+const spriteSkins = SKINS_DB.filter(skin => Boolean(skin.sprite));
+const spriteById = new Map(spriteSkins.map(skin => [skin.id, skin]));
+let preloadStarted = false;
 
-// Carrega sprites definidos no SKINS_DB (campos "sprite")
-export function loadSkinSprites() {
-    SKINS_DB.forEach(skin => {
-        if (!skin.sprite) return; // skins sem sprite continuam normais
+function beginLoad(skinId) {
+    const skin = spriteById.get(skinId);
+    if (!skin) return;
+    if (spriteCache[skinId] || loadingSet.has(skinId)) return;
 
-        // Evita recarregar se já estiver no cache
-        if (spriteCache[skin.id]) return;
+    const img = new Image();
+    loadingSet.add(skinId);
 
-        const img = new Image();
+    spriteCache[skinId] = {
+        img,
+        loaded: false
+    };
 
-        spriteCache[skin.id] = {
-            img,
-            loaded: false
-        };
+    img.onload = () => {
+        if (spriteCache[skinId]) spriteCache[skinId].loaded = true;
+        loadingSet.delete(skinId);
+    };
 
-        img.onload = () => {
-            spriteCache[skin.id].loaded = true;
-        };
+    img.onerror = () => {
+        loadingSet.delete(skinId);
+        delete spriteCache[skinId];
+        console.warn(`Falha ao carregar sprite da skin ${skinId}: ${img.src}`);
+    };
 
-        img.onerror = () => {
-            delete spriteCache[skin.id]; // ignora sprite com erro
-            console.warn(`Falha ao carregar sprite da skin ${skin.id}: ${img.src}`);
-        };
-
-        img.decoding = 'async';
-        img.src = `../assets/img/skins/${skin.sprite}`;
-    });
+    img.decoding = 'async';
+    img.src = `../assets/img/skins/${skin.sprite}`;
 }
 
-// Retorna { img, loaded } ou null se não existir sprite
+function preloadInBackground() {
+    if (preloadStarted) return;
+    preloadStarted = true;
+
+    const queue = spriteSkins
+        .map(skin => skin.id)
+        .filter(id => id !== storage.currentSkinId);
+
+    let idx = 0;
+    const step = () => {
+        if (idx >= queue.length) return;
+        beginLoad(queue[idx]);
+        idx++;
+        setTimeout(step, 180);
+    };
+
+    const kickoff = () => setTimeout(step, 900);
+    if (typeof window !== 'undefined' && typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(kickoff, { timeout: 1500 });
+    } else {
+        setTimeout(kickoff, 1200);
+    }
+}
+
+export function loadSkinSprites() {
+    beginLoad(storage.currentSkinId);
+    preloadInBackground();
+}
+
+// Returns { img, loaded } or null; triggers on-demand loading if needed.
 export function getSkinSprite(skinId) {
+    beginLoad(skinId);
     return spriteCache[skinId] || null;
 }

@@ -38,10 +38,10 @@ export function initGame() {
     for (let i = 0; i < 20; i++) state.bgLayer2.push(worldgen.createBuilding(i, 0.2, 200, 400, 30, 80, 0.35));
     for (let i = 0; i < 20; i++) state.bgLayer3.push(worldgen.createBuilding(i, 0.5, 300, 500, 10, 40, 0.5));
     // poeira inicial
-    for (let i = 0; i < 40; i++) worldgen.spawnDust(true);
+    for (let i = 0; i < 18; i++) worldgen.spawnDust(true);
     // estrelas
     state.stars = [];
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 64; i++) {
         state.stars.push({ x: Math.random() * 900, y: Math.random() * 400, size: Math.random() * 2, blink: Math.random() });
     }
     // atmosfera (chuva)
@@ -65,8 +65,8 @@ export function initGame() {
     state.camera.shake = 0;
     state.performance.lastTs = 0;
     state.performance.avgFrameMs = 16.67;
-    state.performance.quality = 0.88;
-    state.performance.warmupFrames = 210;
+    state.performance.quality = 0.66;
+    state.performance.warmupFrames = 300;
     storage.initialHighScore = storage.highScore;
     // oculta overlay e loja, mostra dica inicial
     state.overlay.style.display = 'none';
@@ -177,8 +177,9 @@ function updateGame() {
     for (let i = state.attackEffects.length - 1; i >= 0; i--) {
         const effect = state.attackEffects[i];
         effect.life--;
-        effect.alpha *= 0.78;
-        effect.radius += 2.5;
+        effect.alpha *= effect.fade || 0.78;
+        effect.radius += effect.growth || 2.5;
+        if (effect.spin) effect.angle += effect.spin;
 
         if (effect.life <= 0 || effect.alpha <= 0.03) {
             state.attackEffects.splice(i, 1);
@@ -193,40 +194,50 @@ function updateGame() {
         }
     });
     // Atualiza chuva: alternância ativa/inativa e movimentação
-    if (state.rainState.timer > 0) state.rainState.timer--;
-    if (state.rainState.timer <= 0) {
-        state.rainState.active = !state.rainState.active;
-        worldgen.resetRainTimer();
-    }
-    const rainCount = state.rainState.active ? Math.floor(130 + quality * 90) : 0;
-    if (state.rainState.active) {
-        const needed = rainCount - state.rainDrops.length;
-        const burst = Math.max(4, Math.floor(10 + quality * 8));
-        const spawnNow = Math.min(Math.max(0, needed), burst);
-        for (let i = 0; i < spawnNow; i++) worldgen.spawnRainDrop(false);
-    }
-    for (let i = state.rainDrops.length - 1; i >= 0; i--) {
-        const r = state.rainDrops[i];
-        r.x -= 0.8;
-        r.y += r.speed;
-        if (r.y > 600) {
-            if (state.rainState.active) worldgen.spawnRainSplash(r.x, 590 + Math.random() * 6);
-            state.rainDrops.splice(i, 1);
-            if (state.rainState.active && state.rainDrops.length < rainCount) worldgen.spawnRainDrop(false);
+    if (!state.game.started) {
+        if (state.rainDrops.length) state.rainDrops.length = 0;
+        if (state.rainSplashes.length) state.rainSplashes.length = 0;
+        state.rainState.active = false;
+        if (state.rainState.timer <= 0) worldgen.resetRainTimer();
+    } else {
+        if (state.rainState.timer > 0) state.rainState.timer--;
+        if (state.rainState.timer <= 0) {
+            state.rainState.active = !state.rainState.active;
+            worldgen.resetRainTimer();
+        }
+        const rainCount = state.rainState.active ? Math.floor(86 + quality * 64) : 0;
+        if (state.rainState.active) {
+            const needed = rainCount - state.rainDrops.length;
+            const burst = Math.max(3, Math.floor(6 + quality * 5));
+            const spawnNow = Math.min(Math.max(0, needed), burst);
+            for (let i = 0; i < spawnNow; i++) worldgen.spawnRainDrop(false);
+        }
+        for (let i = state.rainDrops.length - 1; i >= 0; i--) {
+            const r = state.rainDrops[i];
+            r.x -= 0.8;
+            r.y += r.speed;
+            if (r.y > 600) {
+                if (state.rainState.active) worldgen.spawnRainSplash(r.x, 590 + Math.random() * 6);
+                state.rainDrops.splice(i, 1);
+                if (state.rainState.active && state.rainDrops.length < rainCount) worldgen.spawnRainDrop(false);
+            }
+        }
+        for (let i = state.rainSplashes.length - 1; i >= 0; i--) {
+            const s = state.rainSplashes[i];
+            s.life--;
+            if (s.life <= 0) state.rainSplashes.splice(i, 1);
         }
     }
-    for (let i = state.rainSplashes.length - 1; i >= 0; i--) {
-        const s = state.rainSplashes[i];
-        s.life--;
-        if (s.life <= 0) state.rainSplashes.splice(i, 1);
-    }
     // Piscadas de prédios
-    [state.bgLayer1, state.bgLayer2, state.bgLayer3].forEach(layer => {
-        layer.forEach(b => {
-            if (Math.random() < 0.01) b.flashTimer = 10;
-            if (b.flashTimer > 0) b.flashTimer--;
+    const shouldUpdateBuildingFlash = state.game.started || (state.game.frames % 3 === 0);
+    if (shouldUpdateBuildingFlash) {
+        [state.bgLayer1, state.bgLayer2, state.bgLayer3].forEach(layer => {
+            layer.forEach(b => {
+                if (Math.random() < 0.008) b.flashTimer = 10;
+                if (b.flashTimer > 0) b.flashTimer--;
+            });
         });
-    });
+    }
     // Rotaciona moedas
     state.coins.forEach(c => {
         c.rot += 0.1;
@@ -248,9 +259,10 @@ function drawGame({ sx, sy }) {
     // densidade. O escalonamento da cena em si é feito via CSS no
     // contêiner; aqui multiplicamos apenas pelo devicePixelRatio.
     const dpr = state.view?.dpr || 1;
-    const scaleX = state.view?.scaleX || 1;
-    const scaleY = state.view?.scaleY || 1;
-    ctx.setTransform(dpr * scaleX, 0, 0, dpr * scaleY, 0, 0);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#02040a';
+    ctx.fillRect(0, 0, state.canvas.width, state.canvas.height);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     // fundo (céu, sol/lua, estrelas, grade)
     background.drawBackground();
     // camadas de prédios
@@ -261,9 +273,10 @@ function drawGame({ sx, sy }) {
     background.drawRainBackground();
     // poeira em camada de tela
     state.dustParticles.forEach(d => {
+        if (d.y < 320) return;
         const r = 0.9 + (d.size * 1.6);
         const haze = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, r * 2.4);
-        haze.addColorStop(0, `rgba(198, 234, 255, ${d.alpha * 0.5})`);
+        haze.addColorStop(0, `rgba(198, 234, 255, ${d.alpha * 0.42})`);
         haze.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = haze;
         ctx.beginPath();
@@ -287,20 +300,21 @@ function drawGame({ sx, sy }) {
         ctx.fillStyle = bodyGrad;
         ctx.fillRect(p.x, p.y, p.w, p.h);
 
-        if (quality >= 0.72) {
-            const topGlow = ctx.createLinearGradient(p.x, p.y, p.x, p.y + 5);
-            topGlow.addColorStop(0, `hsla(${hue}, 100%, 72%, ${0.78 + pulse * 0.12})`);
-            topGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = topGlow;
-            ctx.fillRect(p.x, p.y - 1, p.w, 7);
+        // LED principal: sempre aceso, independente do modo de performance.
+        const ledAlpha = 0.86 + (Math.sin((state.game.frames * 0.08) + (p.x * 0.03)) * 0.08);
+        const ledStrip = ctx.createLinearGradient(p.x, p.y - 1, p.x, p.y + 8);
+        ledStrip.addColorStop(0, `hsla(${hue}, 100%, 78%, ${ledAlpha})`);
+        ledStrip.addColorStop(0.4, `hsla(${hue}, 100%, 67%, ${Math.max(0.62, ledAlpha - 0.12)})`);
+        ledStrip.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = ledStrip;
+        ctx.fillRect(p.x, p.y - 1, p.w, 9);
 
-            ctx.strokeStyle = neonColor;
-            ctx.lineWidth = 1.8;
-            ctx.shadowBlur = 18;
-            ctx.shadowColor = `hsla(${hue}, 100%, 62%, ${0.6 + pulse * 0.2})`;
-            ctx.strokeRect(p.x, p.y, p.w, p.h);
-            ctx.shadowBlur = 0;
-        }
+        ctx.strokeStyle = `hsla(${hue}, 100%, 62%, 0.94)`;
+        ctx.lineWidth = 1.9;
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = `hsla(${hue}, 100%, 62%, 0.72)`;
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
+        ctx.shadowBlur = 0;
 
         if (quality >= 0.78) {
             ctx.beginPath();
@@ -390,23 +404,54 @@ function drawGame({ sx, sy }) {
     state.player.draw();
     state.attackEffects.forEach(effect => {
         ctx.save();
-        ctx.globalAlpha = effect.alpha;
-        ctx.strokeStyle = effect.color;
-        ctx.lineWidth = 3.2;
-        ctx.shadowBlur = 18;
-        ctx.shadowColor = effect.color;
-        ctx.beginPath();
-        ctx.arc(effect.x, effect.y, effect.radius, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.globalAlpha = effect.alpha * 0.58;
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.arc(effect.x, effect.y, effect.radius * 0.72, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.fillStyle = `rgba(255, 255, 255, ${effect.alpha * 0.22})`;
-        ctx.beginPath();
-        ctx.arc(effect.x, effect.y, 8 + effect.alpha * 6, 0, Math.PI * 2);
-        ctx.fill();
+        if (effect.kind === 'slash') {
+            const arc = effect.arc || (Math.PI * 0.9);
+            const angle = effect.angle || 0;
+            ctx.globalAlpha = effect.alpha;
+            ctx.strokeStyle = effect.color;
+            ctx.lineWidth = 4.6;
+            ctx.shadowBlur = 20;
+            ctx.shadowColor = effect.color;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, effect.radius, angle - arc * 0.5, angle + arc * 0.5);
+            ctx.stroke();
+
+            ctx.globalAlpha = effect.alpha * 0.55;
+            ctx.lineWidth = 2.1;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, effect.radius * 0.72, angle - arc * 0.45, angle + arc * 0.45);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        } else if (effect.kind === 'impact' || effect.kind === 'dashBurst') {
+            const burstColor = effect.color || '#ffffff';
+            const core = ctx.createRadialGradient(effect.x, effect.y, 0, effect.x, effect.y, effect.radius * 1.8);
+            core.addColorStop(0, `rgba(255,255,255,${effect.alpha * 0.95})`);
+            core.addColorStop(0.45, burstColor);
+            core.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.globalAlpha = effect.alpha;
+            ctx.fillStyle = core;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, effect.radius * 1.8, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.globalAlpha = effect.alpha;
+            ctx.strokeStyle = effect.color;
+            ctx.lineWidth = 3.2;
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = effect.color;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, effect.radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = effect.alpha * 0.58;
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, effect.radius * 0.72, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = `rgba(255, 255, 255, ${effect.alpha * 0.22})`;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, 8 + effect.alpha * 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
         ctx.restore();
     });
     // partículas
@@ -462,7 +507,7 @@ function drawGame({ sx, sy }) {
         ctx.fillText(t.txt, t.x, t.y);
     });
     ctx.restore();
-    if (quality >= 0.76) {
+    if (state.game.started && quality >= 0.82) {
         drawScreenPostFX();
     }
 }
@@ -472,6 +517,7 @@ function drawScreenPostFX() {
     const speed = state.player ? Math.abs(state.player.vx) : 0;
     const speedNorm = Math.min(speed / 18, 1);
     const pulse = 0.55 + Math.sin(state.game.frames * 0.04) * 0.18;
+    const hotEffect = state.attackEffects.find(effect => effect.kind === 'impact' || effect.kind === 'dashBurst');
 
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
@@ -518,6 +564,24 @@ function drawScreenPostFX() {
         ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
     }
 
+    if (hotEffect) {
+        ctx.globalCompositeOperation = 'screen';
+        const actionGlow = ctx.createRadialGradient(
+            hotEffect.x - state.camera.x,
+            hotEffect.y - state.camera.y,
+            0,
+            hotEffect.x - state.camera.x,
+            hotEffect.y - state.camera.y,
+            180
+        );
+        actionGlow.addColorStop(0, `rgba(255, 245, 214, ${hotEffect.alpha * 0.18})`);
+        actionGlow.addColorStop(0.45, `rgba(255, 150, 96, ${hotEffect.alpha * 0.12})`);
+        actionGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = actionGlow;
+        ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
     // Faint chromatic edge accent
     ctx.globalAlpha = 0.15 + speedNorm * 0.08;
     ctx.fillStyle = `rgba(88, 215, 255, ${0.35 + pulse * 0.15})`;
@@ -545,7 +609,7 @@ export function loopGame(ts = performance.now()) {
     // Ajuste dinâmico para suavizar início e manter estabilidade.
     if (perf.warmupFrames > 0) {
         perf.warmupFrames--;
-        const warmupTarget = perf.warmupFrames > 140 ? 0.72 : (perf.warmupFrames > 70 ? 0.82 : 0.9);
+        const warmupTarget = perf.warmupFrames > 180 ? 0.66 : (perf.warmupFrames > 80 ? 0.76 : 0.88);
         perf.quality += (warmupTarget - perf.quality) * 0.08;
     } else {
         let targetQuality = 1;
