@@ -255,34 +255,55 @@ function drawGame({ sx, sy }) {
     ctx.translate(-state.camera.x + sx, -state.camera.y + sy);
     // plataformas
     state.platforms.forEach(p => {
-        ctx.fillStyle = '#050505';
-        let hue = (p.colorHue + state.game.frames) % 360;
-        let neonColor = `hsl(${hue}, 100%, 50%)`;
+        const hue = (p.colorHue + state.game.frames) % 360;
+        const neonColor = `hsl(${hue}, 100%, 58%)`;
+        const pulse = 0.45 + (Math.sin((state.game.frames * 0.05) + (p.x * 0.02)) * 0.2);
+
+        const bodyGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+        bodyGrad.addColorStop(0, '#070d1c');
+        bodyGrad.addColorStop(0.45, '#050811');
+        bodyGrad.addColorStop(1, '#010204');
+        ctx.fillStyle = bodyGrad;
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+
+        const topGlow = ctx.createLinearGradient(p.x, p.y, p.x, p.y + 5);
+        topGlow.addColorStop(0, `hsla(${hue}, 100%, 72%, ${0.78 + pulse * 0.12})`);
+        topGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = topGlow;
+        ctx.fillRect(p.x, p.y - 1, p.w, 7);
+
         ctx.strokeStyle = neonColor;
-        ctx.lineWidth = 2;
-        ctx.shadowBlur = 14;
-        ctx.shadowColor = neonColor;
-        ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.lineWidth = 1.8;
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = `hsla(${hue}, 100%, 62%, ${0.6 + pulse * 0.2})`;
         ctx.strokeRect(p.x, p.y, p.w, p.h);
-        let capGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
-        capGrad.addColorStop(0, 'rgba(255,255,255,0.08)');
-        capGrad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = capGrad;
-        ctx.fillRect(p.x, p.y, p.w, p.h);
+        ctx.shadowBlur = 0;
+
         ctx.beginPath();
-        ctx.strokeStyle = `hsla(${hue}, 100%, 50%, 0.2)`;
+        ctx.strokeStyle = `hsla(${hue}, 100%, 66%, 0.18)`;
         ctx.lineWidth = 1;
-        for (let gx = 0; gx < p.w; gx += 30) {
-            ctx.moveTo(p.x + gx, p.y);
-            ctx.lineTo(p.x + gx + 15, p.y + p.h);
+        for (let gx = 0; gx < p.w; gx += 28) {
+            ctx.moveTo(p.x + gx, p.y + 2);
+            ctx.lineTo(p.x + gx + 14, p.y + p.h - 2);
         }
         ctx.stroke();
+
+        const capGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+        capGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+        capGrad.addColorStop(0.55, 'rgba(255, 255, 255, 0.02)');
+        capGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = capGrad;
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+        ctx.fillRect(p.x, p.y + p.h - 4, p.w, 4);
+
         // reflexo molhado
-        let refl = ctx.createLinearGradient(p.x, p.y + p.h, p.x, p.y + p.h + 24);
-        refl.addColorStop(0, `hsla(${hue}, 100%, 50%, 0.18)`);
+        let refl = ctx.createLinearGradient(p.x, p.y + p.h, p.x, p.y + p.h + 28);
+        refl.addColorStop(0, `hsla(${hue}, 100%, 58%, 0.22)`);
         refl.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = refl;
-        ctx.fillRect(p.x, p.y + p.h, p.w, 24);
+        ctx.fillRect(p.x, p.y + p.h, p.w, 28);
         if (p.spikeInfo) {
             let sg = ctx.createLinearGradient(p.spikeInfo.x, p.y - 14, p.spikeInfo.x, p.y + 4);
             sg.addColorStop(0, '#ff7b9f');
@@ -309,20 +330,30 @@ function drawGame({ sx, sy }) {
         ctx.translate(c.x, c.y);
         let scaleX = Math.cos(c.rot);
         ctx.scale(scaleX, 1);
-        let grad = ctx.createRadialGradient(0, 0, 3, 0, 0, 10);
-        grad.addColorStop(0, '#fff7c3');
-        grad.addColorStop(1, '#ffd700');
+        let grad = ctx.createRadialGradient(-1, -1, 2, 0, 0, 11);
+        grad.addColorStop(0, '#fff9d8');
+        grad.addColorStop(0.5, '#ffd95f');
+        grad.addColorStop(1, '#f0a500');
         ctx.fillStyle = grad;
-        ctx.shadowBlur = 18;
-        ctx.shadowColor = '#ffaa00';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#ffb347';
         ctx.beginPath();
-        ctx.arc(0, 0, 9, 0, Math.PI * 2);
+        ctx.arc(0, 0, 9.2, 0, Math.PI * 2);
         ctx.fill();
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = 'rgba(255, 249, 220, 0.72)';
         ctx.stroke();
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(-2, -5, 4, 10);
+
+        ctx.beginPath();
+        ctx.arc(0, 0, 5.4, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(120, 70, 20, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillRect(-3.5, -4.8, 7, 1.8);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.fillRect(-2, -2.2, 4, 0.9);
         ctx.restore();
     });
     // inimigos e jogador
