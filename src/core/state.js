@@ -52,11 +52,19 @@ const state = {
     // devicePixelRatio para evitar blur em telas de alta densidade.
     view: {
         scale: 1,
+        scaleX: 1,
+        scaleY: 1,
         offsetX: 0,
         offsetY: 0,
         dpr: 1,
         width: 0,
         height: 0
+    },
+    performance: {
+        lastTs: 0,
+        avgFrameMs: 16.67,
+        quality: 1,
+        warmupFrames: 180
     },
 
     // Mapeamento de teclas; manipulado em main.js

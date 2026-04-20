@@ -63,6 +63,10 @@ export function initGame() {
     state.camera.x = 0;
     state.camera.y = 0;
     state.camera.shake = 0;
+    state.performance.lastTs = 0;
+    state.performance.avgFrameMs = 16.67;
+    state.performance.quality = 0.88;
+    state.performance.warmupFrames = 210;
     storage.initialHighScore = storage.highScore;
     // oculta overlay e loja, mostra dica inicial
     state.overlay.style.display = 'none';
@@ -99,6 +103,7 @@ function startGameRun() {
  * @returns {{sx:number, sy:number}} Valores de deslocamento da câmera
  */
 function updateGame() {
+    const quality = state.performance.quality || 1;
     // Ajuste de dificuldade de acordo com a distância. Os parâmetros
     // vivem em BALANCE.difficulty para evitar números mágicos.
     state.game.difficulty = BALANCE.difficulty.base +
@@ -193,9 +198,12 @@ function updateGame() {
         state.rainState.active = !state.rainState.active;
         worldgen.resetRainTimer();
     }
-    const rainCount = state.rainState.active ? 220 : 0;
+    const rainCount = state.rainState.active ? Math.floor(130 + quality * 90) : 0;
     if (state.rainState.active) {
-        while (state.rainDrops.length < rainCount) worldgen.spawnRainDrop(false);
+        const needed = rainCount - state.rainDrops.length;
+        const burst = Math.max(4, Math.floor(10 + quality * 8));
+        const spawnNow = Math.min(Math.max(0, needed), burst);
+        for (let i = 0; i < spawnNow; i++) worldgen.spawnRainDrop(false);
     }
     for (let i = state.rainDrops.length - 1; i >= 0; i--) {
         const r = state.rainDrops[i];
@@ -235,14 +243,14 @@ function updateGame() {
  */
 function drawGame({ sx, sy }) {
     const ctx = state.ctx;
+    const quality = state.performance?.quality || 1;
     // Aplica transformação para corrigir resolução em telas de alta
     // densidade. O escalonamento da cena em si é feito via CSS no
     // contêiner; aqui multiplicamos apenas pelo devicePixelRatio.
-    if (state.view && state.view.dpr) {
-        ctx.setTransform(state.view.dpr, 0, 0, state.view.dpr, 0, 0);
-    } else {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-    }
+    const dpr = state.view?.dpr || 1;
+    const scaleX = state.view?.scaleX || 1;
+    const scaleY = state.view?.scaleY || 1;
+    ctx.setTransform(dpr * scaleX, 0, 0, dpr * scaleY, 0, 0);
     // fundo (céu, sol/lua, estrelas, grade)
     background.drawBackground();
     // camadas de prédios
@@ -266,6 +274,7 @@ function drawGame({ sx, sy }) {
     ctx.save();
     ctx.translate(-state.camera.x + sx, -state.camera.y + sy);
     // plataformas
+    const platformDetailStep = quality < 0.74 ? 56 : (quality < 0.9 ? 40 : 28);
     state.platforms.forEach(p => {
         const hue = (p.colorHue + state.game.frames) % 360;
         const neonColor = `hsl(${hue}, 100%, 58%)`;
@@ -278,44 +287,52 @@ function drawGame({ sx, sy }) {
         ctx.fillStyle = bodyGrad;
         ctx.fillRect(p.x, p.y, p.w, p.h);
 
-        const topGlow = ctx.createLinearGradient(p.x, p.y, p.x, p.y + 5);
-        topGlow.addColorStop(0, `hsla(${hue}, 100%, 72%, ${0.78 + pulse * 0.12})`);
-        topGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = topGlow;
-        ctx.fillRect(p.x, p.y - 1, p.w, 7);
+        if (quality >= 0.72) {
+            const topGlow = ctx.createLinearGradient(p.x, p.y, p.x, p.y + 5);
+            topGlow.addColorStop(0, `hsla(${hue}, 100%, 72%, ${0.78 + pulse * 0.12})`);
+            topGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = topGlow;
+            ctx.fillRect(p.x, p.y - 1, p.w, 7);
 
-        ctx.strokeStyle = neonColor;
-        ctx.lineWidth = 1.8;
-        ctx.shadowBlur = 18;
-        ctx.shadowColor = `hsla(${hue}, 100%, 62%, ${0.6 + pulse * 0.2})`;
-        ctx.strokeRect(p.x, p.y, p.w, p.h);
-        ctx.shadowBlur = 0;
-
-        ctx.beginPath();
-        ctx.strokeStyle = `hsla(${hue}, 100%, 66%, 0.18)`;
-        ctx.lineWidth = 1;
-        for (let gx = 0; gx < p.w; gx += 28) {
-            ctx.moveTo(p.x + gx, p.y + 2);
-            ctx.lineTo(p.x + gx + 14, p.y + p.h - 2);
+            ctx.strokeStyle = neonColor;
+            ctx.lineWidth = 1.8;
+            ctx.shadowBlur = 18;
+            ctx.shadowColor = `hsla(${hue}, 100%, 62%, ${0.6 + pulse * 0.2})`;
+            ctx.strokeRect(p.x, p.y, p.w, p.h);
+            ctx.shadowBlur = 0;
         }
-        ctx.stroke();
 
-        const capGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
-        capGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-        capGrad.addColorStop(0.55, 'rgba(255, 255, 255, 0.02)');
-        capGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = capGrad;
-        ctx.fillRect(p.x, p.y, p.w, p.h);
+        if (quality >= 0.78) {
+            ctx.beginPath();
+            ctx.strokeStyle = `hsla(${hue}, 100%, 66%, 0.18)`;
+            ctx.lineWidth = 1;
+            for (let gx = 0; gx < p.w; gx += platformDetailStep) {
+                ctx.moveTo(p.x + gx, p.y + 2);
+                ctx.lineTo(p.x + gx + (platformDetailStep * 0.5), p.y + p.h - 2);
+            }
+            ctx.stroke();
+        }
+
+        if (quality >= 0.84) {
+            const capGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+            capGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+            capGrad.addColorStop(0.55, 'rgba(255, 255, 255, 0.02)');
+            capGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = capGrad;
+            ctx.fillRect(p.x, p.y, p.w, p.h);
+        }
 
         ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
         ctx.fillRect(p.x, p.y + p.h - 4, p.w, 4);
 
         // reflexo molhado
-        let refl = ctx.createLinearGradient(p.x, p.y + p.h, p.x, p.y + p.h + 28);
-        refl.addColorStop(0, `hsla(${hue}, 100%, 58%, 0.22)`);
-        refl.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = refl;
-        ctx.fillRect(p.x, p.y + p.h, p.w, 28);
+        if (quality >= 0.8) {
+            let refl = ctx.createLinearGradient(p.x, p.y + p.h, p.x, p.y + p.h + 28);
+            refl.addColorStop(0, `hsla(${hue}, 100%, 58%, 0.22)`);
+            refl.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = refl;
+            ctx.fillRect(p.x, p.y + p.h, p.w, 28);
+        }
         if (p.spikeInfo) {
             let sg = ctx.createLinearGradient(p.spikeInfo.x, p.y - 14, p.spikeInfo.x, p.y + 4);
             sg.addColorStop(0, '#ff7b9f');
@@ -445,7 +462,9 @@ function drawGame({ sx, sy }) {
         ctx.fillText(t.txt, t.x, t.y);
     });
     ctx.restore();
-    drawScreenPostFX();
+    if (quality >= 0.76) {
+        drawScreenPostFX();
+    }
 }
 
 function drawScreenPostFX() {
@@ -513,8 +532,30 @@ function drawScreenPostFX() {
  * Laço principal do jogo. Incrementa o contador de frames, chama update
  * e draw, e agenda o próximo quadro via requestAnimationFrame.
  */
-export function loopGame() {
+export function loopGame(ts = performance.now()) {
     if (!state.game.running) return;
+    const perf = state.performance;
+    if (!perf.lastTs) perf.lastTs = ts;
+    let frameMs = ts - perf.lastTs;
+    perf.lastTs = ts;
+    if (!Number.isFinite(frameMs) || frameMs <= 0) frameMs = 16.67;
+    frameMs = Math.min(frameMs, 50);
+    perf.avgFrameMs = (perf.avgFrameMs * 0.9) + (frameMs * 0.1);
+
+    // Ajuste dinâmico para suavizar início e manter estabilidade.
+    if (perf.warmupFrames > 0) {
+        perf.warmupFrames--;
+        const warmupTarget = perf.warmupFrames > 140 ? 0.72 : (perf.warmupFrames > 70 ? 0.82 : 0.9);
+        perf.quality += (warmupTarget - perf.quality) * 0.08;
+    } else {
+        let targetQuality = 1;
+        if (perf.avgFrameMs > 23) targetQuality = 0.66;
+        else if (perf.avgFrameMs > 20) targetQuality = 0.76;
+        else if (perf.avgFrameMs > 17.7) targetQuality = 0.88;
+        perf.quality += (targetQuality - perf.quality) * 0.05;
+    }
+    if (perf.quality < 0.62) perf.quality = 0.62;
+    if (perf.quality > 1) perf.quality = 1;
     // contador de quadros global para animações e efeitos
     state.game.frames++;
     // incrementa frames de corrida apenas quando a corrida está ativa

@@ -51,45 +51,40 @@ function resizeCanvas() {
     const dpr = window.devicePixelRatio || 1;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    const scale = Math.min(vw / VIRTUAL_WIDTH, vh / VIRTUAL_HEIGHT);
-    const scaledW = VIRTUAL_WIDTH * scale;
-    const scaledH = VIRTUAL_HEIGHT * scale;
-    const offsetX = (vw - scaledW) / 2;
-    let offsetY = (vh - scaledH) / 2;
-    const isPortrait = vh > vw;
-    if (isPortrait) {
-        const preferredTop = Math.max(10, vh * 0.11);
-        offsetY = preferredTop;
-        if ((offsetY + scaledH) > (vh - 10)) {
-            offsetY = Math.max(10, vh - scaledH - 10);
-        }
-    }
+    const scaleX = vw / VIRTUAL_WIDTH;
+    const scaleY = vh / VIRTUAL_HEIGHT;
+    const scale = Math.min(scaleX, scaleY);
 
     state.view.scale = scale;
-    state.view.offsetX = offsetX;
-    state.view.offsetY = offsetY;
+    state.view.scaleX = scaleX;
+    state.view.scaleY = scaleY;
+    state.view.offsetX = 0;
+    state.view.offsetY = 0;
     state.view.dpr = dpr;
-    state.view.width = scaledW;
-    state.view.height = scaledH;
+    state.view.width = vw;
+    state.view.height = vh;
 
-    state.canvas.width = Math.round(VIRTUAL_WIDTH * dpr);
-    state.canvas.height = Math.round(VIRTUAL_HEIGHT * dpr);
-    state.canvas.style.width = `${VIRTUAL_WIDTH}px`;
-    state.canvas.style.height = `${VIRTUAL_HEIGHT}px`;
+    state.canvas.width = Math.round(vw * dpr);
+    state.canvas.height = Math.round(vh * dpr);
+    state.canvas.style.width = `${vw}px`;
+    state.canvas.style.height = `${vh}px`;
 
-    state.container.style.position = 'absolute';
+    state.container.style.position = 'fixed';
     state.container.style.left = '0px';
     state.container.style.top = '0px';
-    state.container.style.width = `${VIRTUAL_WIDTH}px`;
-    state.container.style.height = `${VIRTUAL_HEIGHT}px`;
-    state.container.style.transformOrigin = 'top left';
-    state.container.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+    state.container.style.width = `${vw}px`;
+    state.container.style.height = `${vh}px`;
+    state.container.style.transform = 'none';
 }
 
 function bootstrap() {
     state.container = getRequiredElement('game-container');
     state.canvas = getRequiredElement('gameCanvas');
-    state.ctx = state.canvas.getContext('2d');
+    state.ctx = state.canvas.getContext('2d', {
+        alpha: false,
+        desynchronized: true
+    }) || state.canvas.getContext('2d');
+    state.ctx.imageSmoothingEnabled = true;
     state.overlay = getRequiredElement('overlay-screen');
     state.overlayTitle = getRequiredElement('overlay-title');
     state.overlayMsg = getRequiredElement('overlay-msg');

@@ -103,7 +103,9 @@ export function initAtmosphere() {
     state.rainState.active = Math.random() < 0.5;
     resetRainTimer();
     if (state.rainState.active) {
-        for (let i = 0; i < 220; i++) spawnRainDrop(true);
+        const quality = state.performance?.quality || 1;
+        const initialDrops = Math.max(56, Math.floor(96 * quality));
+        for (let i = 0; i < initialDrops; i++) spawnRainDrop(true);
     }
 }
 

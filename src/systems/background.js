@@ -9,10 +9,12 @@ import { BUILDING_BASE, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from '../config.js';
 const HORIZON_Y = 380;
 
 function drawAtmosphereBands(ctx, isSun) {
+    const quality = state.performance?.quality || 1;
     const t = state.game.frames * 0.006;
     const bandAlpha = isSun ? 0.12 : 0.07;
+    const bandCount = quality < 0.82 ? 2 : 4;
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < bandCount; i++) {
         const y = 90 + (i * 62) + Math.sin(t + (i * 1.9)) * 10;
         const h = 78 + (i * 12);
         const grad = ctx.createLinearGradient(0, y, VIRTUAL_WIDTH, y + h);
@@ -120,6 +122,7 @@ function drawSkyGrid(ctx) {
 
 export function drawBackground() {
     const ctx = state.ctx;
+    const quality = state.performance?.quality || 1;
     const cycleProg = state.game.time || 0;
     const isSun = cycleProg < 0.5;
     const phase = isSun ? (cycleProg / 0.5) : ((cycleProg - 0.5) / 0.5);
@@ -145,17 +148,19 @@ export function drawBackground() {
     drawCelestialBody(ctx, isSun, phase, celestialX, celestialY);
 
     const starOpacity = isSun ? 0.28 : 0.95;
-    state.stars.forEach(star => {
+    const starStep = quality < 0.8 ? 2 : 1;
+    for (let idx = 0; idx < state.stars.length; idx += starStep) {
+        const star = state.stars[idx];
         const pulse = Math.abs(Math.sin((state.game.frames * 0.045) + star.blink));
         ctx.globalAlpha = pulse * starOpacity;
         ctx.fillStyle = '#f3fbff';
         ctx.fillRect(star.x, star.y, star.size + 0.25, star.size + 0.25);
-        if (star.size > 1.1) {
+        if (quality >= 0.92 && star.size > 1.1) {
             ctx.globalAlpha = pulse * starOpacity * 0.25;
             ctx.fillRect(star.x - 2, star.y, star.size + 4, 0.8);
             ctx.fillRect(star.x, star.y - 2, 0.8, star.size + 4);
         }
-    });
+    }
     ctx.globalAlpha = 1;
 
     const haze = ctx.createLinearGradient(0, HORIZON_Y - 40, 0, VIRTUAL_HEIGHT);
@@ -169,6 +174,7 @@ export function drawBackground() {
 
 export function drawLayer(layer, camX) {
     const ctx = state.ctx;
+    const quality = state.performance?.quality || 1;
     const hueBase = (state.game.dist / 100) % 360;
 
     layer.forEach(building => {
@@ -199,25 +205,27 @@ export function drawLayer(layer, camX) {
         ctx.strokeRect(x + 1, building.y + 0.5, building.w - 2, building.h - 1);
         ctx.shadowBlur = 0;
 
-        ctx.fillStyle = windows;
-        ctx.globalAlpha = (0.28 * building.opacity) + 0.22;
-        if (building.pattern === 'grid') {
-            for (let wy = building.y + 14; wy < building.y + building.h - 18; wy += 18) {
-                for (let wx = 6; wx < building.w - 10; wx += 14) {
-                    ctx.fillRect(x + wx, wy, 6, 8);
+        if (quality >= 0.82) {
+            ctx.fillStyle = windows;
+            ctx.globalAlpha = (0.28 * building.opacity) + 0.22;
+            if (building.pattern === 'grid') {
+                for (let wy = building.y + 14; wy < building.y + building.h - 18; wy += 18) {
+                    for (let wx = 6; wx < building.w - 10; wx += 14) {
+                        ctx.fillRect(x + wx, wy, 6, 8);
+                    }
                 }
-            }
-        } else if (building.pattern === 'stripes') {
-            for (let wy = building.y + 16; wy < building.y + building.h - 24; wy += 24) {
-                ctx.fillRect(x + 6, wy, building.w - 12, 3);
-            }
-        } else if (building.pattern === 'bars') {
-            for (let wx = 8; wx < building.w - 8; wx += 18) {
-                ctx.fillRect(x + wx, building.y + 10, 6, building.h - 20);
-            }
-        } else {
-            for (let wy = building.y + 12; wy < building.y + building.h - 16; wy += 26) {
-                ctx.fillRect(x + 10, wy, building.w - 20, 3);
+            } else if (building.pattern === 'stripes') {
+                for (let wy = building.y + 16; wy < building.y + building.h - 24; wy += 24) {
+                    ctx.fillRect(x + 6, wy, building.w - 12, 3);
+                }
+            } else if (building.pattern === 'bars') {
+                for (let wx = 8; wx < building.w - 8; wx += 18) {
+                    ctx.fillRect(x + wx, building.y + 10, 6, building.h - 20);
+                }
+            } else {
+                for (let wy = building.y + 12; wy < building.y + building.h - 16; wy += 26) {
+                    ctx.fillRect(x + 10, wy, building.w - 20, 3);
+                }
             }
         }
 
@@ -250,11 +258,14 @@ export function drawLayer(layer, camX) {
 
 export function drawRainBackground() {
     const ctx = state.ctx;
+    const quality = state.performance?.quality || 1;
+    const stride = quality < 0.84 ? 2 : 1;
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
     ctx.lineWidth = 1.1;
 
-    state.rainDrops.forEach(drop => {
+    for (let i = 0; i < state.rainDrops.length; i += stride) {
+        const drop = state.rainDrops[i];
         ctx.strokeStyle = `rgba(80, 185, 255, ${drop.alpha * 0.7})`;
         ctx.beginPath();
         ctx.moveTo(drop.x, drop.y);
@@ -265,7 +276,7 @@ export function drawRainBackground() {
         ctx.fillStyle = 'rgba(120, 220, 255, 1)';
         ctx.fillRect(drop.x - 0.5, drop.y - 1, 1.2, 2);
         ctx.globalAlpha = 1;
-    });
+    }
 
     state.rainSplashes.forEach(splash => {
         const life = splash.life / splash.maxLife;
@@ -278,4 +289,3 @@ export function drawRainBackground() {
 
     ctx.restore();
 }
-

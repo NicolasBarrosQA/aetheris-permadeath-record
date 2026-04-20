@@ -16,7 +16,9 @@ import state from '../core/state.js';
  * @param {number} type Tipo de emissão (1 = pequenas, 2 = grandes)
  */
 export function spawnParticles(x, y, n, c, type) {
-    for (let i = 0; i < n; i++) {
+    const quality = state.performance?.quality || 1;
+    const total = Math.max(1, Math.round(n * (0.72 + quality * 0.28)));
+    for (let i = 0; i < total; i++) {
         const heavy = type === 2;
         state.particles.push({
             x,
