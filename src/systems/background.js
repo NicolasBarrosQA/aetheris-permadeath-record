@@ -185,129 +185,10 @@ export function drawBackground() {
     drawSkyGrid(ctx, state.game.started ? 1 : 0.6, viewW, viewH, horizonY);
 }
 
-function hash01(value) {
-    const s = Math.sin(value * 12.9898) * 43758.5453;
-    return s - Math.floor(s);
-}
-
-function windowOn(seed, row, col, frame, tempo, bias) {
-    const cycle = Math.floor((frame + (seed * 31.7)) / Math.max(6, tempo));
-    return hash01(seed + (row * 17.13) + (col * 11.71) + (cycle * 3.97)) > bias;
-}
-
-function drawGridWindows(ctx, building, x, hue, frame, quality, surge) {
-    const stepX = quality >= 0.86 ? 14 : 18;
-    const stepY = quality >= 0.86 ? 18 : 22;
-    const winW = quality >= 0.86 ? 6 : 5;
-    const winH = quality >= 0.86 ? 8 : 7;
-    const baseAlpha = 0.18 + (building.opacity * 0.28) + (surge * 0.24);
-    const seed = building.lightSeed || 1;
-    const tempo = building.lightTempo || 14;
-    const bias = building.lightBias || 0.5;
-
-    ctx.fillStyle = `hsl(${(hue + 30) % 360}, 100%, 76%)`;
-    let row = 0;
-    for (let wy = building.y + 14; wy < building.y + building.h - 20; wy += stepY) {
-        let col = 0;
-        for (let wx = 6; wx < building.w - 12; wx += stepX) {
-            if (!windowOn(seed, row, col, frame, tempo, bias)) {
-                col++;
-                continue;
-            }
-            const shimmer = 0.72 + (hash01(seed + (row * 1.3) + (col * 0.9)) * 0.28);
-            ctx.globalAlpha = Math.min(0.88, baseAlpha * shimmer);
-            ctx.fillRect(x + wx, wy, winW, winH);
-            col++;
-        }
-        row++;
-    }
-}
-
-function drawStripeWindows(ctx, building, x, hue, frame, quality, surge) {
-    const rowStep = quality >= 0.84 ? 24 : 28;
-    const segStep = quality >= 0.84 ? 34 : 40;
-    const segWidth = quality >= 0.84 ? 24 : 20;
-    const baseAlpha = 0.2 + (building.opacity * 0.26) + (surge * 0.2);
-    const seed = building.lightSeed || 1;
-    const tempo = (building.lightTempo || 14) + 6;
-    const bias = (building.lightBias || 0.5) + 0.03;
-
-    ctx.fillStyle = `hsl(${(hue + 24) % 360}, 100%, 74%)`;
-    let row = 0;
-    for (let wy = building.y + 16; wy < building.y + building.h - 26; wy += rowStep) {
-        if (!windowOn(seed + 8, row, 0, frame, tempo, bias)) {
-            row++;
-            continue;
-        }
-        let seg = 0;
-        for (let wx = 8; wx < building.w - 16; wx += segStep) {
-            if (!windowOn(seed + 17, row, seg, frame, tempo - 2, bias + 0.02)) {
-                seg++;
-                continue;
-            }
-            const rowGlow = 0.7 + (hash01(seed + (row * 2.7) + seg) * 0.3);
-            ctx.globalAlpha = Math.min(0.86, baseAlpha * rowGlow);
-            ctx.fillRect(x + wx, wy, segWidth, 3);
-            seg++;
-        }
-        row++;
-    }
-}
-
-function drawBarWindows(ctx, building, x, hue, frame, quality, surge) {
-    const colStep = quality >= 0.84 ? 18 : 22;
-    const yStep = quality >= 0.84 ? 22 : 28;
-    const baseAlpha = 0.18 + (building.opacity * 0.25) + (surge * 0.22);
-    const seed = building.lightSeed || 1;
-    const tempo = Math.max(8, (building.lightTempo || 14) - 2);
-    const bias = (building.lightBias || 0.5) + 0.05;
-
-    ctx.fillStyle = `hsl(${(hue + 34) % 360}, 100%, 79%)`;
-    let col = 0;
-    for (let wx = 10; wx < building.w - 10; wx += colStep) {
-        let row = 0;
-        for (let wy = building.y + 12; wy < building.y + building.h - 24; wy += yStep) {
-            if (!windowOn(seed + 29, row, col, frame, tempo, bias)) {
-                row++;
-                continue;
-            }
-            const pulse = 0.66 + (hash01(seed + (row * 1.5) + (col * 2.1)) * 0.34);
-            ctx.globalAlpha = Math.min(0.9, baseAlpha * pulse);
-            ctx.fillRect(x + wx, wy, 5, 11);
-            row++;
-        }
-        col++;
-    }
-}
-
-function drawSlitWindows(ctx, building, x, hue, frame, quality, surge) {
-    const rowStep = quality >= 0.84 ? 26 : 30;
-    const baseAlpha = 0.16 + (building.opacity * 0.22) + (surge * 0.2);
-    const seed = building.lightSeed || 1;
-    const tempo = (building.lightTempo || 14) + 4;
-    const bias = (building.lightBias || 0.5) + 0.08;
-
-    ctx.fillStyle = `hsl(${(hue + 20) % 360}, 100%, 72%)`;
-    let row = 0;
-    for (let wy = building.y + 14; wy < building.y + building.h - 20; wy += rowStep) {
-        if (!windowOn(seed + 43, row, 0, frame, tempo, bias)) {
-            row++;
-            continue;
-        }
-        const slitW = Math.max(20, Math.min(42, Math.floor(building.w * 0.22)));
-        const offset = 8 + (hash01(seed + row) * Math.max(8, building.w - slitW - 16));
-        const slitGlow = 0.72 + (hash01(seed + (row * 3.1)) * 0.28);
-        ctx.globalAlpha = Math.min(0.82, baseAlpha * slitGlow);
-        ctx.fillRect(x + offset, wy, slitW, 3);
-        row++;
-    }
-}
-
 export function drawLayer(layer, camX) {
     const ctx = state.ctx;
     const quality = state.performance?.quality || 1;
     const hueBase = (state.game.dist / 100) % 360;
-    const frame = state.game.frames;
     const lastBuilding = layer[layer.length - 1];
     const layerSpan = lastBuilding
         ? Math.max(2000, lastBuilding.x + lastBuilding.w + 260)
@@ -321,6 +202,7 @@ export function drawLayer(layer, camX) {
         const hue = hueBase;
         const accent = `hsla(${hue}, 100%, 62%, 0.5)`;
         const glow = `hsla(${hue}, 100%, 62%, 0.2)`;
+        const windows = `hsla(${(hue + 30) % 360}, 100%, 76%, 0.2)`;
         const buildingAlpha = 0.34 + (building.opacity * 0.4);
 
         ctx.save();
@@ -341,24 +223,51 @@ export function drawLayer(layer, camX) {
         ctx.shadowBlur = 0;
 
         if (quality >= 0.72) {
-            const surge = building.flashTimer > 0 ? (building.flashTimer / 10) : 0;
+            const flashBoost = building.flashTimer > 0 ? ((building.flashTimer / 10) * 0.22) : 0;
+            const frameBucket = Math.floor(state.game.frames / 14);
             if (building.pattern === 'grid') {
-                drawGridWindows(ctx, building, x, hue, frame, quality, surge);
+                for (let wy = building.y + 14; wy < building.y + building.h - 18; wy += 18) {
+                    for (let wx = 6; wx < building.w - 10; wx += 14) {
+                        const pulse = (Math.sin((building.x + (wx * 9) + (wy * 7) + (frameBucket * 23)) * 0.03) + 1) * 0.5;
+                        if (pulse < 0.46 && flashBoost < 0.05) continue;
+                        ctx.fillStyle = windows;
+                        ctx.globalAlpha = Math.min(0.9, (0.2 * building.opacity) + 0.18 + flashBoost + (pulse * 0.18));
+                        ctx.fillRect(x + wx, wy, 6, 8);
+                    }
+                }
             } else if (building.pattern === 'stripes') {
-                drawStripeWindows(ctx, building, x, hue, frame, quality, surge);
+                for (let wy = building.y + 16; wy < building.y + building.h - 24; wy += 24) {
+                    const pulse = (Math.sin((building.x + (wy * 5) + (frameBucket * 17)) * 0.035) + 1) * 0.5;
+                    if (pulse < 0.48 && flashBoost < 0.05) continue;
+                    ctx.fillStyle = windows;
+                    ctx.globalAlpha = Math.min(0.86, (0.16 * building.opacity) + 0.16 + flashBoost + (pulse * 0.2));
+                    ctx.fillRect(x + 6, wy, building.w - 12, 3);
+                }
             } else if (building.pattern === 'bars') {
-                drawBarWindows(ctx, building, x, hue, frame, quality, surge);
+                for (let wx = 8; wx < building.w - 8; wx += 18) {
+                    const pulse = (Math.sin((building.x + (wx * 11) + (frameBucket * 19)) * 0.028) + 1) * 0.5;
+                    if (pulse < 0.44 && flashBoost < 0.05) continue;
+                    ctx.fillStyle = windows;
+                    ctx.globalAlpha = Math.min(0.84, (0.17 * building.opacity) + 0.15 + flashBoost + (pulse * 0.18));
+                    ctx.fillRect(x + wx, building.y + 10, 6, building.h - 20);
+                }
             } else {
-                drawSlitWindows(ctx, building, x, hue, frame, quality, surge);
+                for (let wy = building.y + 12; wy < building.y + building.h - 16; wy += 26) {
+                    const pulse = (Math.sin((building.x + (wy * 13) + (frameBucket * 29)) * 0.024) + 1) * 0.5;
+                    if (pulse < 0.5 && flashBoost < 0.05) continue;
+                    ctx.fillStyle = windows;
+                    ctx.globalAlpha = Math.min(0.82, (0.16 * building.opacity) + 0.14 + flashBoost + (pulse * 0.16));
+                    ctx.fillRect(x + 10, wy, building.w - 20, 3);
+                }
             }
         }
 
         ctx.globalAlpha = 1;
         ctx.fillStyle = accent;
-        ctx.globalAlpha = 0.12;
-        const panelH = Math.min(34, building.h * 0.14);
-        ctx.fillRect(x + 8, building.y + building.h * 0.46, building.w * 0.18, panelH);
-        ctx.fillRect(x + building.w * 0.68, building.y + building.h * 0.28, building.w * 0.14, panelH * 0.64);
+        ctx.globalAlpha = 0.15;
+        const panelH = Math.min(36, building.h * 0.15);
+        ctx.fillRect(x + 6, building.y + building.h * 0.44, building.w * 0.22, panelH);
+        ctx.fillRect(x + building.w * 0.64, building.y + building.h * 0.26, building.w * 0.18, panelH * 0.7);
 
         const fade = ctx.createLinearGradient(0, building.y + building.h * 0.7, 0, building.y + building.h);
         fade.addColorStop(0, 'rgba(0, 0, 0, 0)');
