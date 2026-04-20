@@ -438,9 +438,15 @@ export default class Player {
 
         // fantasmas do dash
         state.ghosts.forEach((g, i) => {
-            ctx.fillStyle = g.c;
-            ctx.globalAlpha = g.alpha;
+            const ghostGrad = ctx.createLinearGradient(g.x, g.y, g.x, g.y + g.h);
+            ghostGrad.addColorStop(0, 'rgba(255,255,255,0.35)');
+            ghostGrad.addColorStop(1, g.c);
+            ctx.fillStyle = ghostGrad;
+            ctx.globalAlpha = g.alpha * 0.85;
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = g.c;
             ctx.fillRect(g.x, g.y, g.w, g.h);
+            ctx.shadowBlur = 0;
             g.alpha -= 0.1;
             g.life--;
             if (g.life <= 0) state.ghosts.splice(i, 1);
@@ -475,7 +481,12 @@ export default class Player {
             const dx = (this.w - drawW) / 2;
             const dy = (this.h - drawH) / 2;
 
-            ctx.shadowBlur = 25;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.34)';
+            ctx.beginPath();
+            ctx.ellipse(this.w * 0.5, this.h + 4, this.w * 0.5, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowBlur = 28;
             ctx.shadowColor = this.skin.glow || '#0ff';
 
             // espelha o sprite quando estiver virado para a esquerda
@@ -485,6 +496,12 @@ export default class Player {
             }
 
             ctx.drawImage(img, dx, dy, drawW, drawH);
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 0.35;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.1;
+            ctx.strokeRect(dx + 1, dy + 1, drawW - 2, drawH - 2);
+            ctx.globalAlpha = 1;
 
             ctx.restore();
             return;
@@ -495,22 +512,32 @@ export default class Player {
         grad.addColorStop(0, this.skin.c1);
         grad.addColorStop(1, this.skin.c2);
         ctx.fillStyle = grad;
-        ctx.shadowBlur = 25;
+        ctx.shadowBlur = 26;
         ctx.shadowColor = this.skin.glow;
         ctx.fillRect(0, 0, this.w, this.h);
 
-        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-        ctx.lineWidth = 2;
+        const edge = ctx.createLinearGradient(0, 0, this.w, this.h);
+        edge.addColorStop(0, 'rgba(255,255,255,0.45)');
+        edge.addColorStop(1, 'rgba(255,255,255,0.08)');
+        ctx.strokeStyle = edge;
+        ctx.lineWidth = 1.8;
         ctx.strokeRect(-1, -1, this.w + 2, this.h + 2);
 
-        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.lineWidth = 0.9;
         ctx.strokeRect(2, 2, this.w - 4, this.h - 4);
+        ctx.fillStyle = 'rgba(255,255,255,0.12)';
+        ctx.fillRect(2, 2, this.w - 4, 6);
 
         // visor
-        ctx.fillStyle = '#fff';
+        const visor = ctx.createLinearGradient(0, 0, 14, 0);
+        visor.addColorStop(0, '#d6f7ff');
+        visor.addColorStop(1, '#ffffff');
+        ctx.fillStyle = visor;
         let visorX = this.facing === 1 ? this.w - 14 : 0;
         ctx.fillRect(visorX, 8, 14, 4);
+        ctx.fillStyle = 'rgba(153, 240, 255, 0.6)';
+        ctx.fillRect(visorX + 1, 8, 3, 4);
 
         ctx.restore();
     }

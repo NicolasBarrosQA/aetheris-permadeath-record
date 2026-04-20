@@ -7,7 +7,7 @@
  */
 
 import state from './state.js';
-import { BALANCE, DAY_NIGHT_CYCLE_SECONDS } from '../config.js';
+import { BALANCE, DAY_NIGHT_CYCLE_SECONDS, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from '../config.js';
 import { storage, save } from './storage.js';
 import { tryStartAudio, stopAudio, SFX } from './audio.js';
 import Player from '../entities/player.js';
@@ -146,11 +146,17 @@ function updateGame() {
         }
         p.x += p.vx;
         p.y += p.vy;
+        if (p.drag) {
+            p.vx *= p.drag;
+            p.vy *= p.drag;
+        }
         p.life--;
         p.alpha -= 0.03;
         if (p.isWave) {
             p.radius += 5;
             p.life -= 2;
+        } else if (p.size) {
+            p.size *= 0.986;
         }
         if (p.life <= 0) state.particles.splice(i, 1);
     }
@@ -247,8 +253,14 @@ function drawGame({ sx, sy }) {
     background.drawRainBackground();
     // poeira em camada de tela
     state.dustParticles.forEach(d => {
-        ctx.fillStyle = `rgba(255, 255, 255, ${d.alpha})`;
-        ctx.fillRect(d.x, d.y, d.size, d.size);
+        const r = 0.9 + (d.size * 1.6);
+        const haze = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, r * 2.4);
+        haze.addColorStop(0, `rgba(198, 234, 255, ${d.alpha * 0.5})`);
+        haze.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = haze;
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, r * 2.4, 0, Math.PI * 2);
+        ctx.fill();
     });
     // mundo (plataformas, moedas, inimigos, player, partículas, textos)
     ctx.save();
@@ -363,12 +375,21 @@ function drawGame({ sx, sy }) {
         ctx.save();
         ctx.globalAlpha = effect.alpha;
         ctx.strokeStyle = effect.color;
-        ctx.lineWidth = 3;
-        ctx.shadowBlur = 15;
+        ctx.lineWidth = 3.2;
+        ctx.shadowBlur = 18;
         ctx.shadowColor = effect.color;
         ctx.beginPath();
         ctx.arc(effect.x, effect.y, effect.radius, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.globalAlpha = effect.alpha * 0.58;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.arc(effect.x, effect.y, effect.radius * 0.72, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = `rgba(255, 255, 255, ${effect.alpha * 0.22})`;
+        ctx.beginPath();
+        ctx.arc(effect.x, effect.y, 8 + effect.alpha * 6, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
     });
     // partículas
@@ -383,24 +404,37 @@ function drawGame({ sx, sy }) {
             g.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.globalAlpha = p.alpha || 1;
             ctx.fillStyle = g;
-            ctx.shadowBlur = 12;
+            ctx.shadowBlur = 16;
             ctx.shadowColor = p.color;
             ctx.fillRect(startX, p.y, width, p.h);
+            ctx.globalAlpha = (p.alpha || 1) * 0.5;
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            ctx.fillRect(startX, p.y + (p.h * 0.42), width, Math.max(1, p.h * 0.08));
             ctx.shadowBlur = 0;
             ctx.globalAlpha = 1;
         } else if (p.isWave) {
             ctx.strokeStyle = p.color;
-            ctx.lineWidth = 3;
+            ctx.lineWidth = p.lineWidth || 3;
             ctx.globalAlpha = p.life / 20;
+            ctx.shadowBlur = 16;
+            ctx.shadowColor = p.color;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
             ctx.stroke();
+            ctx.shadowBlur = 0;
             ctx.globalAlpha = 1;
         } else {
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = p.alpha || 1;
-            let s = p.vx * 2;
-            ctx.fillRect(p.x, p.y, 3 + Math.abs(s), 3 + Math.abs(s));
+            const alpha = p.alpha || 1;
+            const radius = Math.max(0.6, p.size || (2 + Math.abs(p.vx) * 0.3));
+            const spark = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * 2.4);
+            spark.addColorStop(0, `rgba(255,255,255,${alpha * 0.9})`);
+            spark.addColorStop(0.45, p.color);
+            spark.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = spark;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, radius * 2.4, 0, Math.PI * 2);
+            ctx.fill();
             ctx.globalAlpha = 1;
         }
     });
@@ -410,6 +444,68 @@ function drawGame({ sx, sy }) {
         ctx.font = 'bold 16px Courier New';
         ctx.fillText(t.txt, t.x, t.y);
     });
+    ctx.restore();
+    drawScreenPostFX();
+}
+
+function drawScreenPostFX() {
+    const ctx = state.ctx;
+    const speed = state.player ? Math.abs(state.player.vx) : 0;
+    const speedNorm = Math.min(speed / 18, 1);
+    const pulse = 0.55 + Math.sin(state.game.frames * 0.04) * 0.18;
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    const centerGlow = ctx.createRadialGradient(
+        VIRTUAL_WIDTH * 0.5,
+        VIRTUAL_HEIGHT * 0.5,
+        120,
+        VIRTUAL_WIDTH * 0.5,
+        VIRTUAL_HEIGHT * 0.5,
+        560
+    );
+    centerGlow.addColorStop(0, `rgba(122, 232, 255, ${0.06 + speedNorm * 0.08})`);
+    centerGlow.addColorStop(0.6, `rgba(255, 112, 178, ${0.03 + speedNorm * 0.04})`);
+    centerGlow.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = centerGlow;
+    ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+    ctx.globalCompositeOperation = 'overlay';
+    const sweepY = 180 + Math.sin(state.game.frames * 0.03) * 80;
+    const sweep = ctx.createLinearGradient(0, sweepY - 40, 0, sweepY + 120);
+    sweep.addColorStop(0, 'rgba(255,255,255,0)');
+    sweep.addColorStop(0.5, `rgba(180, 240, 255, ${0.06 + speedNorm * 0.06})`);
+    sweep.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = sweep;
+    ctx.fillRect(0, sweepY - 40, VIRTUAL_WIDTH, 170);
+
+    ctx.globalCompositeOperation = 'source-over';
+    const edge = ctx.createRadialGradient(
+        VIRTUAL_WIDTH * 0.5,
+        VIRTUAL_HEIGHT * 0.56,
+        200,
+        VIRTUAL_WIDTH * 0.5,
+        VIRTUAL_HEIGHT * 0.56,
+        620
+    );
+    edge.addColorStop(0, 'rgba(0,0,0,0)');
+    edge.addColorStop(1, `rgba(6, 4, 18, ${0.35 + speedNorm * 0.1})`);
+    ctx.fillStyle = edge;
+    ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+
+    if (state.player && state.player.invul > 0) {
+        const blink = (Math.sin(state.game.frames * 0.45) * 0.5) + 0.5;
+        ctx.fillStyle = `rgba(255, 75, 118, ${blink * 0.12})`;
+        ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    }
+
+    // Faint chromatic edge accent
+    ctx.globalAlpha = 0.15 + speedNorm * 0.08;
+    ctx.fillStyle = `rgba(88, 215, 255, ${0.35 + pulse * 0.15})`;
+    ctx.fillRect(0, 0, 3, VIRTUAL_HEIGHT);
+    ctx.fillStyle = 'rgba(255, 103, 163, 0.45)';
+    ctx.fillRect(VIRTUAL_WIDTH - 3, 0, 3, VIRTUAL_HEIGHT);
+    ctx.globalAlpha = 1;
     ctx.restore();
 }
 

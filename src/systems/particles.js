@@ -17,14 +17,18 @@ import state from '../core/state.js';
  */
 export function spawnParticles(x, y, n, c, type) {
     for (let i = 0; i < n; i++) {
+        const heavy = type === 2;
         state.particles.push({
             x,
             y,
-            vx: (Math.random() - 0.5) * (type === 1 ? 5 : 10),
-            vy: (Math.random() - 0.5) * (type === 1 ? 5 : 10),
+            vx: (Math.random() - 0.5) * (heavy ? 10 : 5),
+            vy: (Math.random() - 0.5) * (heavy ? 10 : 5),
             life: 20 + Math.random() * 20,
             color: c,
-            alpha: 1
+            alpha: 1,
+            size: heavy ? (2.4 + Math.random() * 3.4) : (1.4 + Math.random() * 2),
+            drag: heavy ? 0.976 : 0.986,
+            glow: heavy
         });
     }
 }
@@ -43,7 +47,8 @@ export function spawnShockwave(x, y, color) {
         isWave: true,
         radius: 10,
         life: 20,
-        color: color
+        color: color,
+        lineWidth: 3.2
     });
 }
 

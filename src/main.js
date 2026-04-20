@@ -55,7 +55,15 @@ function resizeCanvas() {
     const scaledW = VIRTUAL_WIDTH * scale;
     const scaledH = VIRTUAL_HEIGHT * scale;
     const offsetX = (vw - scaledW) / 2;
-    const offsetY = (vh - scaledH) / 2;
+    let offsetY = (vh - scaledH) / 2;
+    const isPortrait = vh > vw;
+    if (isPortrait) {
+        const preferredTop = Math.max(10, vh * 0.11);
+        offsetY = preferredTop;
+        if ((offsetY + scaledH) > (vh - 10)) {
+            offsetY = Math.max(10, vh - scaledH - 10);
+        }
+    }
 
     state.view.scale = scale;
     state.view.offsetX = offsetX;

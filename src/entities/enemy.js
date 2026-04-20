@@ -127,36 +127,58 @@ export default class Enemy {
      */
     draw() {
         const ctx = state.ctx;
-        let dY = this.drawY || this.y;
-        let color = this.alert ? '#ffaa00' : '#ff3355';
-        let grad = ctx.createLinearGradient(this.x, dY, this.x, dY + this.h);
+        const dY = this.drawY || this.y;
+        const color = this.alert ? '#ffbf44' : '#ff3e6f';
+        const pulse = 0.4 + Math.sin((state.game.frames * 0.12) + this.bob) * 0.2;
+
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(this.x + this.w * 0.5, dY + this.h + 5, this.w * 0.55, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const grad = ctx.createLinearGradient(this.x, dY, this.x, dY + this.h);
         grad.addColorStop(0, color);
-        grad.addColorStop(1, '#330000');
+        grad.addColorStop(0.35, this.alert ? '#b35800' : '#6b0f3a');
+        grad.addColorStop(1, '#1f0610');
         ctx.fillStyle = grad;
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = 20;
         ctx.shadowColor = color;
         ctx.fillRect(this.x, dY, this.w, this.h);
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-        ctx.strokeRect(this.x - 1, dY - 1, this.w + 2, this.h + 2);
-        // visor
-        ctx.fillStyle = '#000';
-        ctx.fillRect(this.x + 5, dY + 10, 30, 10);
-        ctx.fillStyle = this.alert ? '#fff' : '#ff0000';
-        let eyeX = this.dir === 1 ? this.x + 20 : this.x + 10;
-        ctx.shadowBlur = 5;
-        ctx.shadowColor = '#fff';
-        ctx.fillRect(eyeX, dY + 12, 6, 6);
         ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+        ctx.lineWidth = 1.2;
+        ctx.strokeRect(this.x - 1, dY - 1, this.w + 2, this.h + 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+        ctx.strokeRect(this.x + 2, dY + 2, this.w - 4, this.h - 4);
+
+        ctx.fillStyle = `rgba(255,255,255,${0.12 + pulse * 0.2})`;
+        ctx.fillRect(this.x + 3, dY + 3, this.w - 6, 5);
+
+        // visor
+        ctx.fillStyle = '#05070f';
+        ctx.fillRect(this.x + 5, dY + 10, 30, 11);
+        const eyeGrad = ctx.createLinearGradient(this.x + 10, dY + 12, this.x + 28, dY + 12);
+        eyeGrad.addColorStop(0, this.alert ? '#fff1c9' : '#ff899d');
+        eyeGrad.addColorStop(1, '#ffffff');
+        ctx.fillStyle = eyeGrad;
+        let eyeX = this.dir === 1 ? this.x + 20 : this.x + 10;
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = this.alert ? '#ffd574' : '#ff6f91';
+        ctx.fillRect(eyeX, dY + 12, 7, 7);
+        ctx.shadowBlur = 0;
+
         // barra de HP
         ctx.fillStyle = '#333';
-        ctx.fillRect(this.x, dY - 8, this.w, 4);
+        ctx.fillRect(this.x, dY - 9, this.w, 4);
         ctx.fillStyle = color;
-        ctx.fillRect(this.x, dY - 8, this.w * (this.hp / this.maxHp), 4);
+        ctx.fillRect(this.x, dY - 9, this.w * (this.hp / this.maxHp), 4);
+
         // reflexo inferior
-        let under = ctx.createLinearGradient(this.x, dY + this.h, this.x, dY + this.h + 12);
-        under.addColorStop(0, `${color}55`);
+        let under = ctx.createLinearGradient(this.x, dY + this.h, this.x, dY + this.h + 16);
+        under.addColorStop(0, `${color}66`);
         under.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = under;
-        ctx.fillRect(this.x, dY + this.h, this.w, 12);
+        ctx.fillRect(this.x, dY + this.h, this.w, 16);
     }
 }
