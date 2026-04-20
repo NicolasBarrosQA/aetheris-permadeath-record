@@ -165,5 +165,22 @@ export function generateWorld() {
     let cutoff = state.camera.x - Math.max(500, viewW * 0.7);
     state.platforms = state.platforms.filter(p => p.x + p.w > cutoff);
     state.enemies = state.enemies.filter(e => e.hp > 0 && e.x > cutoff);
-    state.coins = state.coins.filter(c => c.x > cutoff);
+    // Garantia defensiva: nunca deixar duas moedas na mesma plataforma.
+    const platformCoinKeys = new Set();
+    state.coins = state.coins.filter(c => {
+        if (c.x <= cutoff) return false;
+
+        const hostPlatform = state.platforms.find(p =>
+            c.x >= p.x &&
+            c.x <= (p.x + p.w) &&
+            c.y <= (p.y + 8)
+        );
+
+        if (!hostPlatform) return true;
+
+        const key = `${hostPlatform.x}|${hostPlatform.y}|${hostPlatform.w}`;
+        if (platformCoinKeys.has(key)) return false;
+        platformCoinKeys.add(key);
+        return true;
+    });
 }
