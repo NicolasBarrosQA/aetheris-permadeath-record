@@ -45,16 +45,9 @@ body::after {
 }
 
 body::before {
-    background:
-        repeating-linear-gradient(
-            115deg,
-            rgba(130, 223, 255, 0.05) 0,
-            rgba(130, 223, 255, 0.05) 1px,
-            transparent 1px,
-            transparent 24px
-        );
-    opacity: 0.45;
-    animation: drift-lines 18s linear infinite;
+    background: none;
+    opacity: 0;
+    animation: none;
 }
 
 body::after {
