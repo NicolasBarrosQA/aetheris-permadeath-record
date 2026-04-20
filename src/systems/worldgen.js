@@ -33,15 +33,25 @@ export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
     const minWidth = Math.max(90, wMin);
     const maxWidth = Math.max(minWidth + 30, wMax);
     const spacing = maxWidth + 35;
+    const width = minWidth + Math.random() * (maxWidth - minWidth);
     return {
         x: i * spacing,
         y: yMin + Math.random() * (yMax - yMin),
-        w: minWidth + Math.random() * (maxWidth - minWidth),
+        w: width,
         h: viewH + 140,
         opacity: opacity,
         parallax: parallax,
         flashTimer: 0,
-        pattern: patterns[Math.floor(Math.random() * patterns.length)]
+        pattern: patterns[Math.floor(Math.random() * patterns.length)],
+        accentShift: -16 + Math.random() * 32,
+        windowPhase: Math.random() * Math.PI * 2,
+        windowDensity: 0.86 + Math.random() * 0.28,
+        crownStyle: Math.floor(Math.random() * 4),
+        crownHeight: 10 + Math.random() * 24,
+        beacon: Math.random() < 0.35,
+        beaconOffset: 0.18 + Math.random() * 0.64,
+        antennaHeight: 14 + Math.random() * 22,
+        facadeBands: 2 + Math.floor(Math.random() * 3)
     };
 }
 

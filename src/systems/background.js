@@ -191,6 +191,138 @@ export function drawBackground() {
     drawSkyGrid(ctx, state.game.started ? 1 : 0.6, viewW, viewH, horizonY);
 }
 
+function drawBuildingRoof(ctx, building, x, accent, glow, quality) {
+    const crownH = Math.min(building.crownHeight || 18, 30);
+    const topY = building.y - (crownH * 0.55);
+    const style = building.crownStyle || 0;
+    const mainW = building.w;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(6, 10, 24, 0.92)';
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 1;
+    ctx.shadowBlur = quality >= 0.9 ? 5 : 0;
+    ctx.shadowColor = glow;
+
+    if (style === 0) {
+        const insetW = mainW * 0.56;
+        const insetX = x + ((mainW - insetW) * 0.5);
+        ctx.fillRect(insetX, topY, insetW, crownH);
+        ctx.strokeRect(insetX + 0.5, topY + 0.5, insetW - 1, crownH - 1);
+    } else if (style === 1) {
+        const towerW = Math.max(16, mainW * 0.22);
+        ctx.fillRect(x + (mainW * 0.18), topY + 5, towerW, crownH - 5);
+        ctx.fillRect(x + mainW - (mainW * 0.18) - towerW, topY, towerW, crownH);
+        ctx.strokeRect(x + (mainW * 0.18) + 0.5, topY + 5.5, towerW - 1, crownH - 6);
+        ctx.strokeRect(x + mainW - (mainW * 0.18) - towerW + 0.5, topY + 0.5, towerW - 1, crownH - 1);
+    } else if (style === 2) {
+        const capW = mainW * 0.78;
+        const capX = x + ((mainW - capW) * 0.5);
+        const capH = Math.max(8, crownH * 0.72);
+        ctx.fillRect(capX, topY + 6, capW, capH);
+        ctx.strokeRect(capX + 0.5, topY + 6.5, capW - 1, capH - 1);
+        ctx.fillStyle = accent;
+        ctx.globalAlpha = 0.2;
+        ctx.fillRect(capX + 6, topY + 10, capW - 12, 2);
+    } else {
+        const baseW = mainW * 0.46;
+        const baseX = x + ((mainW - baseW) * 0.5);
+        ctx.fillRect(baseX, topY + 8, baseW, crownH - 8);
+        ctx.strokeRect(baseX + 0.5, topY + 8.5, baseW - 1, crownH - 9);
+    }
+
+    if (building.beacon && quality >= 0.78) {
+        const beaconX = x + (mainW * building.beaconOffset);
+        const beaconY = topY - (building.antennaHeight || 18);
+        const beaconPulse = 0.45 + (Math.sin((state.game.frames * 0.05) + building.windowPhase) * 0.5);
+        ctx.globalAlpha = 0.35 + (beaconPulse * 0.35);
+        ctx.strokeStyle = 'rgba(255, 146, 176, 0.72)';
+        ctx.beginPath();
+        ctx.moveTo(beaconX, topY + 4);
+        ctx.lineTo(beaconX, beaconY);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255, 120, 160, 0.95)';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = 'rgba(255, 120, 160, 0.7)';
+        ctx.beginPath();
+        ctx.arc(beaconX, beaconY, 2.2 + (beaconPulse * 0.9), 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+}
+
+function drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost, windowCore, windowHot) {
+    const densityBias = Math.max(0, 1.06 - (building.windowDensity || 1));
+
+    if (building.pattern === 'grid') {
+        for (let wy = building.y + 16; wy < building.y + building.h - 22; wy += 18) {
+            for (let wx = 8; wx < building.w - 12; wx += 15) {
+                const pulse = (Math.sin(building.windowPhase + ((building.x + (wx * 7) + (wy * 9) + (frameBucket * 19)) * 0.03)) + 1) * 0.5;
+                if (pulse < 0.44 + densityBias && flashBoost < 0.05) continue;
+                ctx.fillStyle = windowCore;
+                ctx.globalAlpha = Math.min(0.9, (0.17 * building.opacity) + 0.16 + flashBoost + (pulse * 0.16));
+                ctx.fillRect(x + wx, wy, 6, 8);
+                if (quality >= 0.92 && pulse > 0.78) {
+                    ctx.fillStyle = windowHot;
+                    ctx.globalAlpha *= 0.55;
+                    ctx.fillRect(x + wx, wy, 6, 2);
+                }
+            }
+        }
+        return;
+    }
+
+    if (building.pattern === 'stripes') {
+        const leftW = Math.max(24, building.w * 0.28);
+        const rightW = Math.max(20, building.w * 0.2);
+        for (let wy = building.y + 18; wy < building.y + building.h - 26; wy += 24) {
+            const pulse = (Math.sin(building.windowPhase + ((building.x + (wy * 5) + (frameBucket * 17)) * 0.035)) + 1) * 0.5;
+            if (pulse < 0.46 + densityBias && flashBoost < 0.05) continue;
+            ctx.fillStyle = windowCore;
+            ctx.globalAlpha = Math.min(0.84, (0.15 * building.opacity) + 0.16 + flashBoost + (pulse * 0.18));
+            ctx.fillRect(x + 8, wy, leftW, 3);
+            ctx.fillRect(x + building.w - rightW - 8, wy, rightW, 3);
+            if (quality >= 0.92 && pulse > 0.76) {
+                ctx.fillStyle = windowHot;
+                ctx.globalAlpha *= 0.5;
+                ctx.fillRect(x + 8, wy, leftW * 0.45, 1.5);
+            }
+        }
+        return;
+    }
+
+    if (building.pattern === 'bars') {
+        for (let wx = 10; wx < building.w - 12; wx += 20) {
+            const pulse = (Math.sin(building.windowPhase + ((building.x + (wx * 11) + (frameBucket * 13)) * 0.026)) + 1) * 0.5;
+            if (pulse < 0.42 + densityBias && flashBoost < 0.05) continue;
+            ctx.fillStyle = windowCore;
+            ctx.globalAlpha = Math.min(0.8, (0.16 * building.opacity) + 0.14 + flashBoost + (pulse * 0.16));
+            ctx.fillRect(x + wx, building.y + 12, 6, building.h - 24);
+            if (quality >= 0.9 && pulse > 0.82) {
+                ctx.fillStyle = windowHot;
+                ctx.globalAlpha *= 0.42;
+                ctx.fillRect(x + wx, building.y + 12, 2, building.h - 24);
+            }
+        }
+        return;
+    }
+
+    for (let wy = building.y + 14; wy < building.y + building.h - 18; wy += 26) {
+        const pulse = (Math.sin(building.windowPhase + ((building.x + (wy * 13) + (frameBucket * 29)) * 0.024)) + 1) * 0.5;
+        if (pulse < 0.48 + densityBias && flashBoost < 0.05) continue;
+        ctx.fillStyle = windowCore;
+        ctx.globalAlpha = Math.min(0.8, (0.15 * building.opacity) + 0.14 + flashBoost + (pulse * 0.15));
+        const inset = Math.max(12, building.w * 0.12);
+        ctx.fillRect(x + inset, wy, building.w - (inset * 2), 3);
+        if (quality >= 0.92 && pulse > 0.74) {
+            ctx.fillStyle = windowHot;
+            ctx.globalAlpha *= 0.46;
+            ctx.fillRect(x + inset, wy, (building.w - (inset * 2)) * 0.3, 1.5);
+        }
+    }
+}
+
 export function drawLayer(layer, camX) {
     const ctx = state.ctx;
     const quality = state.performance?.quality || 1;
@@ -205,20 +337,30 @@ export function drawLayer(layer, camX) {
         let x = relativeX % layerSpan;
         if (x < (-building.w - 120)) x += layerSpan;
 
-        const hue = hueBase;
-        const accent = `hsla(${hue}, 100%, 62%, 0.5)`;
-        const glow = `hsla(${hue}, 100%, 62%, 0.2)`;
-        const windows = `hsla(${(hue + 30) % 360}, 100%, 76%, 0.2)`;
+        const hue = (hueBase + (building.accentShift || 0) + 360) % 360;
+        const accent = `hsla(${hue}, 100%, 64%, 0.56)`;
+        const glow = `hsla(${hue}, 100%, 62%, 0.24)`;
+        const windowCore = `hsla(${(hue + 26) % 360}, 100%, 78%, 0.24)`;
+        const windowHot = `hsla(${(hue + 10) % 360}, 100%, 92%, 0.55)`;
         const buildingAlpha = 0.34 + (building.opacity * 0.4);
 
         ctx.save();
         ctx.globalAlpha = buildingAlpha;
 
         const bodyGrad = ctx.createLinearGradient(x, building.y, x, building.y + building.h);
-        bodyGrad.addColorStop(0, BUILDING_BASE.body);
-        bodyGrad.addColorStop(0.22, '#101329');
+        bodyGrad.addColorStop(0, '#11172d');
+        bodyGrad.addColorStop(0.18, '#0f1428');
+        bodyGrad.addColorStop(0.42, BUILDING_BASE.body);
         bodyGrad.addColorStop(1, 'rgba(0, 0, 0, 0.95)');
         ctx.fillStyle = bodyGrad;
+        ctx.fillRect(x, building.y, building.w, building.h);
+
+        const sideGloss = ctx.createLinearGradient(x, 0, x + building.w, 0);
+        sideGloss.addColorStop(0, 'rgba(170, 232, 255, 0.12)');
+        sideGloss.addColorStop(0.12, 'rgba(255, 255, 255, 0.04)');
+        sideGloss.addColorStop(0.48, 'rgba(0, 0, 0, 0)');
+        sideGloss.addColorStop(1, 'rgba(0, 0, 0, 0.24)');
+        ctx.fillStyle = sideGloss;
         ctx.fillRect(x, building.y, building.w, building.h);
 
         ctx.strokeStyle = accent;
@@ -228,52 +370,47 @@ export function drawLayer(layer, camX) {
         ctx.strokeRect(x + 1, building.y + 0.5, building.w - 2, building.h - 1);
         ctx.shadowBlur = 0;
 
+        if (quality >= 0.82) {
+            const ribCount = Math.max(2, Math.floor(building.w / 54));
+            ctx.globalAlpha = 0.16;
+            ctx.strokeStyle = 'rgba(140, 224, 255, 0.22)';
+            ctx.beginPath();
+            for (let rib = 1; rib <= ribCount; rib++) {
+                const ribX = x + ((building.w / (ribCount + 1)) * rib);
+                ctx.moveTo(ribX, building.y + 6);
+                ctx.lineTo(ribX, building.y + building.h);
+            }
+            ctx.stroke();
+            ctx.globalAlpha = buildingAlpha;
+        }
+
+        if (quality >= 0.76) {
+            const bandCount = building.facadeBands || 3;
+            const step = building.h / (bandCount + 2);
+            ctx.fillStyle = accent;
+            ctx.globalAlpha = 0.08;
+            for (let band = 1; band <= bandCount; band++) {
+                const bandY = building.y + (step * band);
+                ctx.fillRect(x + 6, bandY, building.w - 12, 1.6);
+            }
+            ctx.globalAlpha = buildingAlpha;
+        }
+
+        drawBuildingRoof(ctx, building, x, accent, glow, quality);
+
         if (quality >= 0.72) {
             const flashBoost = building.flashTimer > 0 ? ((building.flashTimer / 10) * 0.22) : 0;
             const frameBucket = Math.floor(state.game.frames / 14);
-            if (building.pattern === 'grid') {
-                for (let wy = building.y + 14; wy < building.y + building.h - 18; wy += 18) {
-                    for (let wx = 6; wx < building.w - 10; wx += 14) {
-                        const pulse = (Math.sin((building.x + (wx * 9) + (wy * 7) + (frameBucket * 23)) * 0.03) + 1) * 0.5;
-                        if (pulse < 0.46 && flashBoost < 0.05) continue;
-                        ctx.fillStyle = windows;
-                        ctx.globalAlpha = Math.min(0.9, (0.2 * building.opacity) + 0.18 + flashBoost + (pulse * 0.18));
-                        ctx.fillRect(x + wx, wy, 6, 8);
-                    }
-                }
-            } else if (building.pattern === 'stripes') {
-                for (let wy = building.y + 16; wy < building.y + building.h - 24; wy += 24) {
-                    const pulse = (Math.sin((building.x + (wy * 5) + (frameBucket * 17)) * 0.035) + 1) * 0.5;
-                    if (pulse < 0.48 && flashBoost < 0.05) continue;
-                    ctx.fillStyle = windows;
-                    ctx.globalAlpha = Math.min(0.86, (0.16 * building.opacity) + 0.16 + flashBoost + (pulse * 0.2));
-                    ctx.fillRect(x + 6, wy, building.w - 12, 3);
-                }
-            } else if (building.pattern === 'bars') {
-                for (let wx = 8; wx < building.w - 8; wx += 18) {
-                    const pulse = (Math.sin((building.x + (wx * 11) + (frameBucket * 19)) * 0.028) + 1) * 0.5;
-                    if (pulse < 0.44 && flashBoost < 0.05) continue;
-                    ctx.fillStyle = windows;
-                    ctx.globalAlpha = Math.min(0.84, (0.17 * building.opacity) + 0.15 + flashBoost + (pulse * 0.18));
-                    ctx.fillRect(x + wx, building.y + 10, 6, building.h - 20);
-                }
-            } else {
-                for (let wy = building.y + 12; wy < building.y + building.h - 16; wy += 26) {
-                    const pulse = (Math.sin((building.x + (wy * 13) + (frameBucket * 29)) * 0.024) + 1) * 0.5;
-                    if (pulse < 0.5 && flashBoost < 0.05) continue;
-                    ctx.fillStyle = windows;
-                    ctx.globalAlpha = Math.min(0.82, (0.16 * building.opacity) + 0.14 + flashBoost + (pulse * 0.16));
-                    ctx.fillRect(x + 10, wy, building.w - 20, 3);
-                }
-            }
+            drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost, windowCore, windowHot);
         }
 
         ctx.globalAlpha = 1;
         ctx.fillStyle = accent;
-        ctx.globalAlpha = 0.15;
+        ctx.globalAlpha = 0.12;
         const panelH = Math.min(36, building.h * 0.15);
-        ctx.fillRect(x + 6, building.y + building.h * 0.44, building.w * 0.22, panelH);
-        ctx.fillRect(x + building.w * 0.64, building.y + building.h * 0.26, building.w * 0.18, panelH * 0.7);
+        ctx.fillRect(x + 8, building.y + building.h * 0.42, building.w * 0.18, panelH);
+        ctx.fillRect(x + building.w * 0.62, building.y + building.h * 0.24, building.w * 0.14, panelH * 0.72);
+        ctx.fillRect(x + building.w * 0.28, building.y + building.h * 0.58, building.w * 0.1, panelH * 0.62);
 
         const fade = ctx.createLinearGradient(0, building.y + building.h * 0.7, 0, building.y + building.h);
         fade.addColorStop(0, 'rgba(0, 0, 0, 0)');
