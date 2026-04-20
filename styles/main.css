@@ -104,10 +104,10 @@ canvas {
     z-index: 5;
     pointer-events: none;
     background:
-        linear-gradient(rgba(10, 14, 26, 0) 52%, rgba(6, 10, 20, 0.22) 52%),
-        radial-gradient(circle at center, transparent 58%, rgba(0, 0, 0, 0.78) 100%);
-    background-size: 100% 3px, 100% 100%;
-    opacity: 0.82;
+        linear-gradient(rgba(10, 14, 26, 0) 54%, rgba(6, 10, 20, 0.16) 54%),
+        radial-gradient(circle at center, transparent 60%, rgba(0, 0, 0, 0.68) 100%);
+    background-size: 100% 4px, 100% 100%;
+    opacity: 0.62;
 }
 
 #vignette {
@@ -115,7 +115,7 @@ canvas {
     inset: 0;
     z-index: 4;
     pointer-events: none;
-    background: radial-gradient(circle at 50% 54%, rgba(0, 0, 0, 0) 56%, rgba(0, 0, 0, 0.62));
+    background: radial-gradient(circle at 50% 54%, rgba(0, 0, 0, 0) 58%, rgba(0, 0, 0, 0.5));
 }
 
 #ui-layer {
