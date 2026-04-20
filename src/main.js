@@ -137,7 +137,19 @@ function bootstrap() {
     state.difficultyButtons = [...document.querySelectorAll('[data-difficulty]')];
 
     state.difficultyButtons.forEach(button => {
-        button.addEventListener('click', () => setDifficultyMode(button.dataset.difficulty));
+        const applyDifficulty = event => {
+            event.preventDefault();
+            event.stopPropagation();
+            setDifficultyMode(button.dataset.difficulty);
+            button.blur();
+            window.focus();
+        };
+        button.addEventListener('pointerdown', applyDifficulty);
+        button.addEventListener('click', applyDifficulty);
+    });
+
+    state.container.addEventListener('pointerdown', () => {
+        window.focus();
     });
 
     resizeCanvas();
