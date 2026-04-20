@@ -51,31 +51,48 @@ function resizeCanvas() {
     const pixelArea = vw * vh;
     const dprCap = pixelArea > 2200000 ? 1.2 : (pixelArea > 1400000 ? 1.35 : 1.6);
     const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
-    const scaleX = vw / VIRTUAL_WIDTH;
-    const scaleY = vh / VIRTUAL_HEIGHT;
-    // Preenche toda a viewport sem distorcer; o excesso fica fora da tela.
-    const scale = Math.max(scaleX, scaleY);
-    const contentW = Math.max(1, Math.round(VIRTUAL_WIDTH * scale));
-    const contentH = Math.max(1, Math.round(VIRTUAL_HEIGHT * scale));
-    const offsetX = Math.floor((vw - contentW) * 0.5);
-    const offsetY = Math.floor((vh - contentH) * 0.5);
+    const baseAspect = VIRTUAL_WIDTH / VIRTUAL_HEIGHT;
+    const aspect = vw / Math.max(1, vh);
+
+    let worldWidth = VIRTUAL_WIDTH;
+    let worldHeight = VIRTUAL_HEIGHT;
+    let scale = 1;
+
+    if (aspect >= baseAspect) {
+        scale = vh / VIRTUAL_HEIGHT;
+        worldWidth = vw / scale;
+    } else {
+        scale = vw / VIRTUAL_WIDTH;
+        worldHeight = vh / scale;
+    }
 
     state.view.scale = scale;
     state.view.scaleX = scale;
     state.view.scaleY = scale;
-    state.view.offsetX = offsetX;
-    state.view.offsetY = offsetY;
+    state.view.offsetX = 0;
+    state.view.offsetY = 0;
     state.view.dpr = dpr;
-    state.view.width = contentW;
-    state.view.height = contentH;
+    state.view.width = vw;
+    state.view.height = vh;
+    state.view.worldWidth = worldWidth;
+    state.view.worldHeight = worldHeight;
+    state.view.screenWidth = vw;
+    state.view.screenHeight = vh;
 
-    state.canvas.width = Math.round(VIRTUAL_WIDTH * dpr);
-    state.canvas.height = Math.round(VIRTUAL_HEIGHT * dpr);
+    const buildingHeight = Math.max(600, worldHeight) + 140;
+    [state.bgLayer1, state.bgLayer2, state.bgLayer3].forEach(layer => {
+        layer.forEach(building => {
+            building.h = buildingHeight;
+        });
+    });
+
+    state.canvas.width = Math.round(vw * dpr);
+    state.canvas.height = Math.round(vh * dpr);
     state.canvas.style.position = 'absolute';
-    state.canvas.style.left = `${offsetX}px`;
-    state.canvas.style.top = `${offsetY}px`;
-    state.canvas.style.width = `${contentW}px`;
-    state.canvas.style.height = `${contentH}px`;
+    state.canvas.style.left = '0px';
+    state.canvas.style.top = '0px';
+    state.canvas.style.width = `${vw}px`;
+    state.canvas.style.height = `${vh}px`;
 
     state.container.style.position = 'fixed';
     state.container.style.left = '0px';

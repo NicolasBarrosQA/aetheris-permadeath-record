@@ -15,6 +15,18 @@ import * as worldgen from '../systems/worldgen.js';
 import * as background from '../systems/background.js';
 import { updateUI, toggleShop } from '../systems/ui.js';
 
+function getViewMetrics() {
+    const viewW = state.view?.worldWidth || VIRTUAL_WIDTH;
+    const viewH = state.view?.worldHeight || VIRTUAL_HEIGHT;
+
+    return {
+        viewW,
+        viewH,
+        extraW: Math.max(0, viewW - VIRTUAL_WIDTH),
+        extraH: Math.max(0, viewH - VIRTUAL_HEIGHT)
+    };
+}
+
 // Inicializa o jogo: instancia player, reseta listas e preenche
 // camadas de fundo, estrelas, poeira e atmosfera. Também associa
 // callbacks de controle ao estado.
@@ -104,6 +116,7 @@ function startGameRun() {
  */
 function updateGame() {
     const quality = state.performance.quality || 1;
+    const { viewW, viewH, extraW, extraH } = getViewMetrics();
     // Ajuste de dificuldade de acordo com a distância. Os parâmetros
     // vivem em BALANCE.difficulty para evitar números mágicos.
     state.game.difficulty = BALANCE.difficulty.base +
@@ -120,14 +133,14 @@ function updateGame() {
     // Geração de mundo e atualização de câmera
     if (state.game.started) {
         worldgen.generateWorld();
-        state.camera.x += (state.player.x - 300 - state.camera.x) * 0.08;
+        state.camera.x += (state.player.x - (300 + (extraW * 0.22)) - state.camera.x) * 0.08;
     } else {
-        state.camera.x += (state.player.x - 300 - state.camera.x) * 0.02;
+        state.camera.x += (state.player.x - (300 + (extraW * 0.22)) - state.camera.x) * 0.02;
     }
-    let targetCamY = state.player.y - 320;
+    let targetCamY = state.player.y - (320 + (extraH * 0.52));
     state.camera.y += (targetCamY - state.camera.y) * 0.06;
-    if (state.camera.y < -120) state.camera.y = -120;
-    if (state.camera.y > 150) state.camera.y = 150;
+    if (state.camera.y < (-120 - (extraH * 0.35))) state.camera.y = -120 - (extraH * 0.35);
+    if (state.camera.y > (150 + (extraH * 0.55))) state.camera.y = 150 + (extraH * 0.55);
     // Tremor de câmera
     let sx = 0;
     let sy = 0;
@@ -216,8 +229,8 @@ function updateGame() {
             const r = state.rainDrops[i];
             r.x -= 0.8;
             r.y += r.speed;
-            if (r.y > 600) {
-                if (state.rainState.active) worldgen.spawnRainSplash(r.x, 590 + Math.random() * 6);
+            if (r.y > viewH) {
+                if (state.rainState.active) worldgen.spawnRainSplash(r.x, (viewH - 10) + Math.random() * 6);
                 state.rainDrops.splice(i, 1);
                 if (state.rainState.active && state.rainDrops.length < rainCount) worldgen.spawnRainDrop(false);
             }
@@ -255,14 +268,16 @@ function updateGame() {
 function drawGame({ sx, sy }) {
     const ctx = state.ctx;
     const quality = state.performance?.quality || 1;
+    const { viewH } = getViewMetrics();
     // Aplica transformação para corrigir resolução em telas de alta
     // densidade. O escalonamento da cena em si é feito via CSS no
     // contêiner; aqui multiplicamos apenas pelo devicePixelRatio.
     const dpr = state.view?.dpr || 1;
+    const renderScale = state.view?.scale || 1;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#02040a';
     ctx.fillRect(0, 0, state.canvas.width, state.canvas.height);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.setTransform(dpr * renderScale, 0, 0, dpr * renderScale, 0, 0);
     // fundo (céu, sol/lua, estrelas, grade)
     background.drawBackground();
     // camadas de prédios
@@ -273,7 +288,7 @@ function drawGame({ sx, sy }) {
     background.drawRainBackground();
     // poeira em camada de tela
     state.dustParticles.forEach(d => {
-        if (d.y < 320) return;
+        if (d.y < (viewH * (320 / VIRTUAL_HEIGHT))) return;
         const r = 0.9 + (d.size * 1.6);
         const haze = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, r * 2.4);
         haze.addColorStop(0, `rgba(198, 234, 255, ${d.alpha * 0.42})`);
@@ -514,6 +529,7 @@ function drawGame({ sx, sy }) {
 
 function drawScreenPostFX() {
     const ctx = state.ctx;
+    const { viewW, viewH } = getViewMetrics();
     const speed = state.player ? Math.abs(state.player.vx) : 0;
     const speedNorm = Math.min(speed / 18, 1);
     const pulse = 0.55 + Math.sin(state.game.frames * 0.04) * 0.18;
@@ -522,46 +538,46 @@ function drawScreenPostFX() {
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
     const centerGlow = ctx.createRadialGradient(
-        VIRTUAL_WIDTH * 0.5,
-        VIRTUAL_HEIGHT * 0.5,
-        120,
-        VIRTUAL_WIDTH * 0.5,
-        VIRTUAL_HEIGHT * 0.5,
-        560
+        viewW * 0.5,
+        viewH * 0.5,
+        Math.min(viewW, viewH) * 0.2,
+        viewW * 0.5,
+        viewH * 0.5,
+        Math.max(viewW, viewH) * 0.62
     );
     centerGlow.addColorStop(0, `rgba(122, 232, 255, ${0.06 + speedNorm * 0.08})`);
     centerGlow.addColorStop(0.6, `rgba(255, 112, 178, ${0.03 + speedNorm * 0.04})`);
     centerGlow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = centerGlow;
-    ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    ctx.fillRect(0, 0, viewW, viewH);
 
     ctx.globalCompositeOperation = 'overlay';
-    const sweepY = 180 + Math.sin(state.game.frames * 0.03) * 80;
+    const sweepY = (viewH * 0.3) + Math.sin(state.game.frames * 0.03) * (viewH * 0.13);
     const sweep = ctx.createLinearGradient(0, sweepY - 40, 0, sweepY + 120);
     sweep.addColorStop(0, 'rgba(255,255,255,0)');
     sweep.addColorStop(0.5, `rgba(180, 240, 255, ${0.06 + speedNorm * 0.06})`);
     sweep.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = sweep;
-    ctx.fillRect(0, sweepY - 40, VIRTUAL_WIDTH, 170);
+    ctx.fillRect(0, sweepY - 40, viewW, 170);
 
     ctx.globalCompositeOperation = 'source-over';
     const edge = ctx.createRadialGradient(
-        VIRTUAL_WIDTH * 0.5,
-        VIRTUAL_HEIGHT * 0.56,
-        200,
-        VIRTUAL_WIDTH * 0.5,
-        VIRTUAL_HEIGHT * 0.56,
-        620
+        viewW * 0.5,
+        viewH * 0.56,
+        Math.min(viewW, viewH) * 0.34,
+        viewW * 0.5,
+        viewH * 0.56,
+        Math.max(viewW, viewH) * 0.7
     );
     edge.addColorStop(0, 'rgba(0,0,0,0)');
     edge.addColorStop(1, `rgba(6, 4, 18, ${0.35 + speedNorm * 0.1})`);
     ctx.fillStyle = edge;
-    ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+    ctx.fillRect(0, 0, viewW, viewH);
 
     if (state.player && state.player.invul > 0) {
         const blink = (Math.sin(state.game.frames * 0.45) * 0.5) + 0.5;
         ctx.fillStyle = `rgba(255, 75, 118, ${blink * 0.12})`;
-        ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        ctx.fillRect(0, 0, viewW, viewH);
     }
 
     if (hotEffect) {
@@ -578,16 +594,16 @@ function drawScreenPostFX() {
         actionGlow.addColorStop(0.45, `rgba(255, 150, 96, ${hotEffect.alpha * 0.12})`);
         actionGlow.addColorStop(1, 'rgba(0,0,0,0)');
         ctx.fillStyle = actionGlow;
-        ctx.fillRect(0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+        ctx.fillRect(0, 0, viewW, viewH);
         ctx.globalCompositeOperation = 'source-over';
     }
 
     // Faint chromatic edge accent
     ctx.globalAlpha = 0.15 + speedNorm * 0.08;
     ctx.fillStyle = `rgba(88, 215, 255, ${0.35 + pulse * 0.15})`;
-    ctx.fillRect(0, 0, 3, VIRTUAL_HEIGHT);
+    ctx.fillRect(0, 0, 3, viewH);
     ctx.fillStyle = 'rgba(255, 103, 163, 0.45)';
-    ctx.fillRect(VIRTUAL_WIDTH - 3, 0, 3, VIRTUAL_HEIGHT);
+    ctx.fillRect(viewW - 3, 0, 3, viewH);
     ctx.globalAlpha = 1;
     ctx.restore();
 }

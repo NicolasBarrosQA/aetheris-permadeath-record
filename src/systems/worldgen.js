@@ -29,11 +29,12 @@ export function resetWorldParams() {
  */
 export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
     const patterns = ['grid', 'stripes', 'bars', 'slits'];
+    const viewH = Math.max(600, state.view?.worldHeight || 600);
     return {
         x: i * (wMax + 50),
         y: yMin + Math.random() * (yMax - yMin),
         w: wMin + Math.random() * (wMax - wMin),
-        h: 600,
+        h: viewH + 140,
         opacity: opacity,
         parallax: parallax,
         flashTimer: 0,
@@ -46,9 +47,12 @@ export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
  * @param {boolean} randomX Se verdadeiro, inicia em posição X aleatória; caso contrário começa fora da tela (lado direito).
  */
 export function spawnDust(randomX) {
+    const viewW = state.view?.worldWidth || 900;
+    const viewH = state.view?.worldHeight || 600;
+    const startY = viewH * (320 / 600);
     state.dustParticles.push({
-        x: randomX ? Math.random() * 900 : 900,
-        y: 320 + Math.random() * 280,
+        x: randomX ? Math.random() * viewW : viewW,
+        y: startY + Math.random() * Math.max(120, viewH - startY),
         vx: -0.5 - Math.random(),
         size: Math.random() * 2,
         alpha: Math.random() * 0.5
@@ -60,9 +64,11 @@ export function spawnDust(randomX) {
  * @param {boolean} randomY Se verdadeiro, a gota nasce em qualquer altura da tela.
  */
 export function spawnRainDrop(randomY) {
+    const viewW = state.view?.worldWidth || 900;
+    const viewH = state.view?.worldHeight || 600;
     state.rainDrops.push({
-        x: Math.random() * 900,
-        y: randomY ? Math.random() * 600 : -20,
+        x: Math.random() * viewW,
+        y: randomY ? Math.random() * viewH : -20,
         len: 12 + Math.random() * 18,
         speed: 10 + Math.random() * 8,
         alpha: 0.35 + Math.random() * 0.25
@@ -113,7 +119,8 @@ export function initAtmosphere() {
  */
 export function generateWorld() {
     // Gera plataformas até uma distância à frente da câmera
-    while (lastPlatX < state.camera.x + 1500) {
+    const viewW = state.view?.worldWidth || 900;
+    while (lastPlatX < state.camera.x + viewW + 600) {
         // Definição de gaps mínima e máxima escalando com dificuldade
         let minGap = 120 + (state.game.difficulty * 18);
         let maxGap = 220 + (state.game.difficulty * 35);
@@ -158,7 +165,7 @@ export function generateWorld() {
         lastPlatY = y;
     }
     // Remove objetos que passaram muito para trás da câmera
-    let cutoff = state.camera.x - 500;
+    let cutoff = state.camera.x - Math.max(500, viewW * 0.7);
     state.platforms = state.platforms.filter(p => p.x + p.w > cutoff);
     state.enemies = state.enemies.filter(e => e.hp > 0 && e.x > cutoff);
     state.coins = state.coins.filter(c => c.x > cutoff);

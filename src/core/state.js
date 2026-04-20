@@ -62,7 +62,11 @@ const state = {
         offsetY: 0,
         dpr: 1,
         width: 0,
-        height: 0
+        height: 0,
+        worldWidth: 900,
+        worldHeight: 600,
+        screenWidth: 0,
+        screenHeight: 0
     },
     performance: {
         lastTs: 0,
