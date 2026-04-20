@@ -46,9 +46,9 @@ export function initGame() {
     state.bgLayer2 = [];
     state.bgLayer3 = [];
     // cria prédios em três camadas com diferentes paralaxes
-    for (let i = 0; i < 20; i++) state.bgLayer1.push(worldgen.createBuilding(i, 0.05, 100, 300, 20, 50, 0.15));
-    for (let i = 0; i < 20; i++) state.bgLayer2.push(worldgen.createBuilding(i, 0.2, 200, 400, 30, 80, 0.35));
-    for (let i = 0; i < 20; i++) state.bgLayer3.push(worldgen.createBuilding(i, 0.5, 300, 500, 10, 40, 0.5));
+    for (let i = 0; i < 20; i++) state.bgLayer1.push(worldgen.createBuilding(i, 0.05, 100, 300, 80, 170, 0.18));
+    for (let i = 0; i < 20; i++) state.bgLayer2.push(worldgen.createBuilding(i, 0.2, 190, 400, 100, 220, 0.38));
+    for (let i = 0; i < 20; i++) state.bgLayer3.push(worldgen.createBuilding(i, 0.5, 260, 500, 120, 280, 0.54));
     // poeira inicial
     for (let i = 0; i < 18; i++) worldgen.spawnDust(true);
     // estrelas

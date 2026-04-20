@@ -193,7 +193,7 @@ export function drawLayer(layer, camX) {
     layer.forEach(building => {
         const relativeX = building.x - (camX * building.parallax);
         let x = relativeX % 2000;
-        if (x < -220) x += 2000;
+        if (x < (-building.w - 120)) x += 2000;
 
         const hue = hueBase;
         const accent = `hsla(${hue}, 100%, 62%, 0.5)`;
