@@ -46,8 +46,6 @@ export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
         accentShift: -16 + Math.random() * 32,
         windowPhase: Math.random() * Math.PI * 2,
         windowDensity: 0.86 + Math.random() * 0.28,
-        crownStyle: Math.floor(Math.random() * 4),
-        crownHeight: 10 + Math.random() * 24,
         beacon: Math.random() < 0.35,
         beaconOffset: 0.18 + Math.random() * 0.64,
         antennaHeight: 14 + Math.random() * 22,

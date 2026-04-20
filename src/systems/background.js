@@ -192,44 +192,24 @@ export function drawBackground() {
 }
 
 function drawBuildingRoof(ctx, building, x, accent, glow, quality) {
-    const crownH = Math.min(building.crownHeight || 18, 30);
-    const topY = building.y - (crownH * 0.55);
-    const style = building.crownStyle || 0;
+    const topY = building.y;
     const mainW = building.w;
 
     ctx.save();
-    ctx.fillStyle = 'rgba(6, 10, 24, 0.92)';
     ctx.strokeStyle = accent;
     ctx.lineWidth = 1;
     ctx.shadowBlur = quality >= 0.9 ? 5 : 0;
     ctx.shadowColor = glow;
+    ctx.beginPath();
+    ctx.moveTo(x + 3, topY + 0.5);
+    ctx.lineTo(x + mainW - 3, topY + 0.5);
+    ctx.stroke();
 
-    if (style === 0) {
-        const insetW = mainW * 0.56;
-        const insetX = x + ((mainW - insetW) * 0.5);
-        ctx.fillRect(insetX, topY, insetW, crownH);
-        ctx.strokeRect(insetX + 0.5, topY + 0.5, insetW - 1, crownH - 1);
-    } else if (style === 1) {
-        const towerW = Math.max(16, mainW * 0.22);
-        ctx.fillRect(x + (mainW * 0.18), topY + 5, towerW, crownH - 5);
-        ctx.fillRect(x + mainW - (mainW * 0.18) - towerW, topY, towerW, crownH);
-        ctx.strokeRect(x + (mainW * 0.18) + 0.5, topY + 5.5, towerW - 1, crownH - 6);
-        ctx.strokeRect(x + mainW - (mainW * 0.18) - towerW + 0.5, topY + 0.5, towerW - 1, crownH - 1);
-    } else if (style === 2) {
-        const capW = mainW * 0.78;
-        const capX = x + ((mainW - capW) * 0.5);
-        const capH = Math.max(8, crownH * 0.72);
-        ctx.fillRect(capX, topY + 6, capW, capH);
-        ctx.strokeRect(capX + 0.5, topY + 6.5, capW - 1, capH - 1);
-        ctx.fillStyle = accent;
-        ctx.globalAlpha = 0.2;
-        ctx.fillRect(capX + 6, topY + 10, capW - 12, 2);
-    } else {
-        const baseW = mainW * 0.46;
-        const baseX = x + ((mainW - baseW) * 0.5);
-        ctx.fillRect(baseX, topY + 8, baseW, crownH - 8);
-        ctx.strokeRect(baseX + 0.5, topY + 8.5, baseW - 1, crownH - 9);
-    }
+    ctx.globalAlpha = 0.12;
+    ctx.fillStyle = accent;
+    ctx.fillRect(x + 6, topY + 2, Math.max(24, mainW * 0.22), 2);
+    ctx.fillRect(x + mainW - Math.max(20, mainW * 0.16) - 6, topY + 2, Math.max(20, mainW * 0.16), 2);
+    ctx.globalAlpha = 1;
 
     if (building.beacon && quality >= 0.78) {
         const beaconX = x + (mainW * building.beaconOffset);
@@ -238,7 +218,7 @@ function drawBuildingRoof(ctx, building, x, accent, glow, quality) {
         ctx.globalAlpha = 0.35 + (beaconPulse * 0.35);
         ctx.strokeStyle = 'rgba(255, 146, 176, 0.72)';
         ctx.beginPath();
-        ctx.moveTo(beaconX, topY + 4);
+        ctx.moveTo(beaconX, topY + 1);
         ctx.lineTo(beaconX, beaconY);
         ctx.stroke();
         ctx.fillStyle = 'rgba(255, 120, 160, 0.95)';
