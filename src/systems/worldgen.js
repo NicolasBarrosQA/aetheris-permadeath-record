@@ -1,0 +1,167 @@
+/*
+ * Geração procedural do mundo, plataformas, inimigos e moedas. Mantém
+ * variáveis internas de posição para construir sequencialmente sem
+ * depender de estado externo. Algumas funções de ambiente como
+ * chuva e poeira também são definidas aqui, pois interagem com o
+ * cenário gerado.
+ */
+
+import state from '../core/state.js';
+import Enemy from '../entities/enemy.js';
+
+// Variáveis internas para acompanhar a posição das últimas plataformas
+let lastPlatX = 800;
+let lastPlatY = 400;
+
+/**
+ * Reinicia as variáveis internas de geração. Deve ser chamado pelo motor
+ * na inicialização para garantir que a geração comece do início.
+ */
+export function resetWorldParams() {
+    lastPlatX = 800;
+    lastPlatY = 400;
+}
+
+/**
+ * Cria um prédio para o plano de fundo. Os parâmetros controlam
+ * parallax, alturas e opacidade. Esta função não adiciona o prédio
+ * automaticamente; cabe ao chamador decidir onde armazená-lo.
+ */
+export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
+    const patterns = ['grid', 'stripes', 'bars', 'slits'];
+    return {
+        x: i * (wMax + 50),
+        y: yMin + Math.random() * (yMax - yMin),
+        w: wMin + Math.random() * (wMax - wMin),
+        h: 600,
+        opacity: opacity,
+        parallax: parallax,
+        flashTimer: 0,
+        pattern: patterns[Math.floor(Math.random() * patterns.length)]
+    };
+}
+
+/**
+ * Gera uma partícula de poeira que se move suavemente para a esquerda.
+ * @param {boolean} randomX Se verdadeiro, inicia em posição X aleatória; caso contrário começa fora da tela (lado direito).
+ */
+export function spawnDust(randomX) {
+    state.dustParticles.push({
+        x: randomX ? Math.random() * 900 : 900,
+        y: Math.random() * 600,
+        vx: -0.5 - Math.random(),
+        size: Math.random() * 2,
+        alpha: Math.random() * 0.5
+    });
+}
+
+/**
+ * Cria uma gota de chuva. A altura inicial pode ser aleatória ou fixa em -20.
+ * @param {boolean} randomY Se verdadeiro, a gota nasce em qualquer altura da tela.
+ */
+export function spawnRainDrop(randomY) {
+    state.rainDrops.push({
+        x: Math.random() * 900,
+        y: randomY ? Math.random() * 600 : -20,
+        len: 12 + Math.random() * 18,
+        speed: 10 + Math.random() * 8,
+        alpha: 0.35 + Math.random() * 0.25
+    });
+}
+
+/**
+ * Cria um respingo de chuva ao atingir o chão.
+ * @param {number} x Posição X
+ * @param {number} y Posição Y
+ */
+export function spawnRainSplash(x, y) {
+    state.rainSplashes.push({
+        x,
+        y,
+        life: 14,
+        maxLife: 14,
+        spread: 3 + Math.random() * 2
+    });
+}
+
+/**
+ * Reinicia o temporizador que determina quando começa/termina a chuva.
+ */
+export function resetRainTimer() {
+    state.rainState.timer = (20 + Math.random() * 40) * 60; // 20 a 60 segundos em frames
+}
+
+/**
+ * Inicializa as condições atmosféricas (chuva e feixes de luz). Escolhe
+ * aleatoriamente se a chuva começa ativa e preenche as listas de gotas
+ * iniciais, se necessário.
+ */
+export function initAtmosphere() {
+    state.lightBeams = [];
+    state.rainDrops = [];
+    state.rainSplashes = [];
+    state.rainState.active = Math.random() < 0.5;
+    resetRainTimer();
+    if (state.rainState.active) {
+        for (let i = 0; i < 220; i++) spawnRainDrop(true);
+    }
+}
+
+/**
+ * Gera novas plataformas, inimigos e moedas enquanto a câmera avança.
+ * Também remove entidades que ficaram muito para trás, garantindo
+ * desempenho. A dificuldade e os espaçamentos escalam com a distância
+ * percorrida conforme definido no protótipo.
+ */
+export function generateWorld() {
+    // Gera plataformas até uma distância à frente da câmera
+    while (lastPlatX < state.camera.x + 1500) {
+        // Definição de gaps mínima e máxima escalando com dificuldade
+        let minGap = 120 + (state.game.difficulty * 18);
+        let maxGap = 220 + (state.game.difficulty * 35);
+        if (maxGap > 360) maxGap = 360;
+        let gap = minGap + Math.random() * (maxGap - minGap);
+        let w = 220 + Math.random() * 260;
+        let y = lastPlatY + (Math.random() - 0.5) * 150;
+        if (y < 200) y = 200;
+        if (y > 480) y = 480;
+        let x = lastPlatX + gap;
+        let spikeInfo = null;
+        let hasSpikes = false;
+        if (w > 240 && Math.random() < 0.3) {
+            hasSpikes = true;
+            let spikeW = 60 + Math.random() * 80;
+            let spikeX = x + 50 + Math.random() * (w - 100 - spikeW);
+            spikeInfo = { x: spikeX, w: spikeW };
+        }
+        state.platforms.push({
+            x,
+            y,
+            w,
+            h: 40,
+            colorHue: (state.game.dist / 100) % 360,
+            spikeInfo: spikeInfo
+        });
+        // Chance de gerar inimigo baseado na dificuldade e largura da plataforma
+        let enemyChance = Math.min(0.25 + (state.game.difficulty * 0.12), 0.65);
+        if (Math.random() < enemyChance && w > 150 && !hasSpikes) {
+            state.enemies.push(new Enemy(x + w / 2, y - 50));
+        }
+        // Gera moedas; se dificuldade alta, gera duas
+        if (Math.random() > 0.35) {
+            let cx = x + w / 2;
+            let cy = hasSpikes ? y - 100 : y - 40;
+            state.coins.push({ x: cx, y: cy, rot: Math.random() * 6 });
+            if (state.game.difficulty > 1.5) {
+                state.coins.push({ x: cx + 40, y: cy, rot: Math.random() * 6 });
+            }
+        }
+        lastPlatX = x + w;
+        lastPlatY = y;
+    }
+    // Remove objetos que passaram muito para trás da câmera
+    let cutoff = state.camera.x - 500;
+    state.platforms = state.platforms.filter(p => p.x + p.w > cutoff);
+    state.enemies = state.enemies.filter(e => e.hp > 0 && e.x > cutoff);
+    state.coins = state.coins.filter(c => c.x > cutoff);
+}

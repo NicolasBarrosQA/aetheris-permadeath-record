@@ -1,0 +1,197 @@
+/*
+ * Estilos extraídos do jogo original. Esta folha agrupa todos os estilos
+ * que estavam no bloco <style> do protótipo monolítico. Nenhuma lógica
+ * visual foi alterada; apenas movemos para um arquivo dedicado para
+ * facilitar manutenção e empacotamento.
+ */
+
+:root {
+    --bg-1: #050712;
+    --bg-2: #0a1030;
+    --accent-1: #55e5ff;
+    --accent-2: #ff5fb2;
+    --accent-3: #ffd86b;
+    --panel: rgba(10, 15, 30, 0.7);
+    --glass: rgba(255, 255, 255, 0.06);
+    --grid: rgba(255, 255, 255, 0.08);
+    --frame: linear-gradient(120deg, #102b4b, #090a12 30%, #1d0f2b 60%, #0b2e3a);
+}
+
+body {
+    margin: 0;
+    background: radial-gradient(circle at 30% 20%, #0f2d6f, #040611 50%),
+                radial-gradient(circle at 70% 30%, #1b104a, transparent 40%),
+                linear-gradient(140deg, #05060f, #05091d 60%, #0c162f);
+    overflow: hidden;
+    font-family: 'Segoe UI', 'Courier New', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    user-select: none;
+    color: #e6f7ff;
+}
+
+#game-container {
+    position: relative;
+    width: 900px;
+    height: 600px;
+    box-shadow: 0 30px 120px rgba(0, 180, 255, 0.25), inset 0 0 80px rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    background: #000;
+    overflow: hidden;
+    border-radius: 18px;
+    backdrop-filter: blur(5px);
+}
+
+canvas { display: block; }
+
+#frame-glow {
+    position: absolute; inset: -1px;
+    border-radius: 18px;
+    pointer-events: none;
+    background: none;
+    mix-blend-mode: screen;
+    z-index: 2;
+}
+
+/* Efeito CRT */
+#crt-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background:
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%),
+        radial-gradient(circle at center, transparent 60%, rgba(0,0,0,0.8) 100%);
+    background-size: 100% 3px, 100% 100%;
+    pointer-events: none; z-index: 5;
+}
+#vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.55));
+    pointer-events: none;
+    z-index: 4;
+}
+
+/* UI do jogo */
+#ui-layer {
+    position: absolute; top: 18px; left: 18px; right: 18px;
+    display: flex; justify-content: space-between;
+    z-index: 10; pointer-events: none;
+    transition: opacity 0.5s;
+    gap: 12px;
+}
+
+.stat-box {
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,0.12);
+    padding: 10px 20px;
+    border-radius: 10px;
+    color: #fff;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35), inset 0 0 20px rgba(255,255,255,0.04);
+    text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    position: relative;
+    overflow: hidden;
+}
+.stat-box::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(120deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
+    opacity: 0.4;
+}
+.stat-label { font-size: 10px; color: #9bb3c8; letter-spacing: 2px; display: block; margin-bottom: 3px; text-transform: uppercase;}
+.stat-val { font-size: 24px; font-weight: 800; text-shadow: 0 0 15px currentColor; }
+
+.c-cyan { color: #0ff; border-left: 3px solid #0ff; }
+.c-gold { color: #ffd700; border-left: 3px solid #ffd700; }
+.c-red  { color: #ff3355; border-left: 3px solid #ff3355; }
+
+#hp-bar-bg { width: 180px; height: 6px; background: rgba(0,0,0,0.5); margin-top: 8px; border-radius: 3px; overflow: hidden;}
+#hp-bar-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff3355, #ff5588); transition: width 0.2s; }
+
+/* Menu translúcido unificado */
+#overlay-screen {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center; display: none;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 51, 85, 0.3);
+    box-shadow: 0 0 80px rgba(0, 0, 0, 0.9);
+    padding: 50px; z-index: 20; min-width: 350px;
+    border-radius: 12px;
+}
+
+h1 { font-size: 36px; margin: 0 0 10px 0; letter-spacing: 4px; color: #ff3355; text-shadow: 0 0 15px #ff3355; }
+
+.btn {
+    background: rgba(255,255,255,0.05);
+    color: #fff; border: 1px solid rgba(255,255,255,0.3);
+    padding: 12px 40px; font-weight: bold; cursor: pointer;
+    margin-top: 30px; text-transform: uppercase; letter-spacing: 2px;
+    font-family: inherit; transition: 0.3s;
+    backdrop-filter: blur(5px);
+}
+.btn:hover { background: #fff; color: #000; box-shadow: 0 0 25px #fff; }
+
+/* Loja */
+#shop-modal {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 700px; height: 400px;
+    background: linear-gradient(160deg, rgba(8, 12, 25, 0.95), rgba(12, 26, 54, 0.9));
+    backdrop-filter: blur(24px);
+    border: 1px solid rgba(0, 255, 255, 0.35);
+    box-shadow: 0 20px 80px rgba(0, 0, 0, 0.9), inset 0 0 50px rgba(0,255,255,0.05);
+    z-index: 30;
+    display: none;
+    flex-direction: column;
+    padding: 30px;
+    border-radius: 12px;
+}
+
+#shop-header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px;
+}
+#shop-header h2 { margin: 0; color: #0ff; letter-spacing: 3px; text-shadow: 0 0 10px #0ff; }
+#shop-balance { color: #ffd700; font-weight: bold; font-size: 24px; text-shadow: 0 0 10px orange; }
+
+#skins-grid {
+    display: flex; gap: 20px; overflow-x: auto; padding: 10px;
+    scrollbar-width: thin; scrollbar-color: #0ff #111;
+}
+
+.skin-card {
+    background: rgba(0,0,0,0.4); border: 1px solid #333;
+    min-width: 130px; height: 200px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; transition: 0.3s;
+    position: relative;
+    border-radius: 8px;
+}
+.skin-card:hover { border-color: #fff; background: rgba(255,255,255,0.1); transform: translateY(-5px); }
+.skin-card.selected { border-color: #0ff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); background: rgba(0, 255, 255, 0.05); }
+.skin-card.locked { opacity: 0.5; filter: grayscale(0.8); }
+
+.skin-preview { width: 40px; height: 60px; margin-bottom: 15px; box-shadow: 0 0 15px currentColor; border-radius: 4px;}
+.skin-name { font-size: 11px; color: #aaa; text-transform: uppercase; margin-bottom: 10px; text-align: center; letter-spacing: 1px;}
+
+.btn-buy {
+    background: #222; border: 1px solid #555; color: #fff;
+    padding: 6px 12px; font-size: 10px; cursor: pointer; transition: 0.2s;
+}
+.btn-buy:hover { background: #0ff; color: #000; border-color: #0ff; }
+.btn-equip { background: rgba(0, 255, 0, 0.2); border-color: #00ff00; color: #cfc; }
+
+#start-hint {
+    position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+    color: rgba(255,255,255,0.8); text-align: center;
+    font-size: 14px; animation: pulse 2s infinite;
+    z-index: 8; text-transform: uppercase; letter-spacing: 3px;
+    text-shadow: 0 0 10px #000;
+    padding: 10px 16px;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(0,0,0,0.45);
+    border-radius: 8px;
+}
+@keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }

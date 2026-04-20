@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8" />
+    <title>AETHERIS: PERMADEATH RECORD (V11.2)</title>
+    <!-- Carrega o estilo principal -->
+    <link rel="stylesheet" href="../styles/main.css" />
+</head>
+<body>
+
+    <!-- Música de fundo; o mp3 deve estar em assets/audio -->
+    <audio id="bgm" loop>
+        <source src="../assets/audio/Fuga_Neon.mp3" type="audio/mpeg" />
+    </audio>
+
+    <div id="game-container">
+        <!-- Canvas onde o jogo é desenhado -->
+        <canvas id="gameCanvas"></canvas>
+        <div id="frame-glow"></div>
+        <div id="crt-overlay"></div>
+        <div id="vignette"></div>
+
+        <!-- Dica inicial que some após o início do jogo -->
+        <div id="start-hint">
+            [ S ] ABRIR LOJA<br><br>
+            [ SETAS / A D ] MOVER PARA INICIAR<br>
+            [ ESPAÇO ] PULAR | [ Z ] ATAQUE | [ C ] DASH
+        </div>
+
+        <!-- HUD principal do jogo -->
+        <div id="ui-layer">
+            <div class="stat-box c-cyan">
+                <span class="stat-label">DISTÂNCIA</span>
+                <span id="ui-dist" class="stat-val">0m</span>
+                <div style="font-size:10px; color:#888; margin-top:2px;">BEST: <span id="ui-best" style="color:#ffd700">0m</span></div>
+            </div>
+            <div class="stat-box c-red">
+                <span class="stat-label">INTEGRIDADE</span>
+                <div id="hp-bar-bg"><div id="hp-bar-fill"></div></div>
+            </div>
+            <div class="stat-box c-gold">
+                <span class="stat-label">CACHE</span>
+                <span id="ui-coins" class="stat-val">0</span>
+            </div>
+        </div>
+
+        <!-- Modal da loja de skins -->
+        <div id="shop-modal">
+            <div id="shop-header">
+                <h2>BLACK MARKET</h2>
+                <span id="shop-balance">0 CR</span>
+            </div>
+            <div id="skins-grid"></div>
+            <div style="margin-top: 20px; text-align: center; color: #888; font-size: 10px; text-transform: uppercase;">
+                ESCOLHA SEU VISUAL - [ESC] PARA SAIR
+            </div>
+        </div>
+
+        <!-- Tela de game over / recorde -->
+        <div id="overlay-screen">
+            <h1 id="overlay-title">SISTEMA CRÍTICO</h1>
+            <p id="overlay-msg" style="color:#ccc; font-size: 14px;">CONEXÃO PERDIDA</p>
+            <button class="btn" onclick="resetGame()">REINICIAR</button>
+        </div>
+    </div>
+
+    <!-- Carrega o bootstrap do jogo como módulo -->
+    <script type="module" src="../src/main.js"></script>
+</body>
+</html>
