@@ -152,27 +152,39 @@ function drawVirusWall(ctx, viewH) {
     const pixelRows = Math.ceil(wallH / 18);
 
     ctx.save();
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.56)';
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
     ctx.fillRect(consumedStart, topY, 1600, wallH);
 
-    ctx.globalAlpha = 0.82;
+    const decay = ctx.createLinearGradient(consumedStart, 0, frontX + 40, 0);
+    decay.addColorStop(0, 'rgba(4, 5, 10, 0.92)');
+    decay.addColorStop(0.58, 'rgba(18, 7, 20, 0.7)');
+    decay.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = decay;
+    ctx.fillRect(consumedStart, topY, (frontX - consumedStart) + 40, wallH);
+    ctx.globalCompositeOperation = 'source-over';
+
+    ctx.globalAlpha = 0.84;
     for (let row = 0; row < pixelRows; row++) {
         const rowY = topY + (row * 18);
         const wave = Math.sin((row * 0.72) + (state.game.frames * 0.18));
-        const biteDepth = 30 + ((wave + 1) * 34);
-        const shardSpan = 120 + ((Math.sin((row * 0.28) + (state.game.frames * 0.08)) + 1) * 90);
+        const frontDrift = (Math.sin((row * 0.41) + (state.game.frames * 0.11)) * 18) +
+            (Math.sin((row * 0.13) + (state.game.frames * 0.05)) * 9);
+        const rowFront = frontX - 12 + frontDrift;
+        const biteDepth = 42 + ((wave + 1) * 40);
+        const shardSpan = 130 + ((Math.sin((row * 0.28) + (state.game.frames * 0.08)) + 1) * 120);
         ctx.fillStyle = row % 3 === 0
             ? 'rgba(11, 8, 24, 0.92)'
             : 'rgba(6, 5, 12, 0.82)';
-        ctx.fillRect(frontX - biteDepth - shardSpan, rowY, shardSpan, 14);
+        ctx.fillRect(rowFront - biteDepth - shardSpan, rowY, shardSpan, 14);
 
         if (row % 2 === 0) {
             ctx.fillStyle = `rgba(255, 74, 126, ${0.08 + pulse * 0.08})`;
-            ctx.fillRect(frontX - biteDepth - 22, rowY, 12 + (row % 4) * 4, 14);
+            ctx.fillRect(rowFront - biteDepth - 22, rowY, 12 + (row % 4) * 4, 14);
         }
         if (row % 5 === 0) {
             ctx.fillStyle = `rgba(106, 242, 255, ${0.06 + pulse * 0.05})`;
-            ctx.fillRect(frontX - biteDepth - 42, rowY + 2, 10, 10);
+            ctx.fillRect(rowFront - biteDepth - 42, rowY + 2, 10, 10);
         }
     }
     ctx.globalAlpha = 1;
@@ -185,6 +197,7 @@ function drawVirusWall(ctx, viewH) {
     ctx.fillStyle = field;
     ctx.fillRect(frontX - 230, topY, 266, wallH);
 
+    ctx.globalCompositeOperation = 'screen';
     const pixelFront = ctx.createLinearGradient(frontX - 46, 0, frontX + 14, 0);
     pixelFront.addColorStop(0, 'rgba(0, 0, 0, 0)');
     pixelFront.addColorStop(0.35, `rgba(255, 110, 156, ${0.26 + pulse * 0.14})`);
@@ -192,29 +205,36 @@ function drawVirusWall(ctx, viewH) {
     ctx.fillStyle = pixelFront;
     for (let row = 0; row < pixelRows; row++) {
         const rowY = topY + (row * 18);
-        const width = 10 + Math.abs(Math.sin((row * 0.83) + (state.game.frames * 0.14))) * 26;
-        ctx.fillRect(frontX - width, rowY, width + 8, 14);
+        const rowFront = frontX +
+            (Math.sin((row * 0.39) + (state.game.frames * 0.11)) * 13) +
+            (Math.sin((row * 0.12) + (state.game.frames * 0.04)) * 6);
+        const width = 14 + Math.abs(Math.sin((row * 0.83) + (state.game.frames * 0.14))) * 34;
+        ctx.fillRect(rowFront - width, rowY, width + 10, 14);
     }
 
-    for (let i = 0; i < 22; i++) {
-        const stripW = 6 + Math.random() * 12;
-        const stripX = frontX - 24 + Math.random() * 30;
-        const stripY = topY + Math.random() * wallH;
-        const stripH = 24 + Math.random() * 120;
-        ctx.fillStyle = i % 2 === 0
-            ? `rgba(255, 80, 138, ${0.18 + Math.random() * 0.2})`
-            : `rgba(118, 241, 255, ${0.12 + Math.random() * 0.14})`;
-        ctx.fillRect(stripX, stripY, stripW, stripH);
+    for (let i = 0; i < 10; i++) {
+        const lane = i / 9;
+        const veinX = frontX - 30 + Math.sin((state.game.frames * 0.08) + i) * 16;
+        const startY = topY + (wallH * lane);
+        const endY = startY + 110 + Math.sin((state.game.frames * 0.05) + (i * 0.7)) * 42;
+        ctx.strokeStyle = i % 2 === 0
+            ? `rgba(255, 92, 144, ${0.16 + pulse * 0.1})`
+            : `rgba(129, 248, 255, ${0.12 + pulse * 0.08})`;
+        ctx.lineWidth = 1.2 + (i % 3) * 0.55;
+        ctx.beginPath();
+        ctx.moveTo(veinX - 40, startY);
+        ctx.bezierCurveTo(
+            veinX - 20,
+            startY + 26,
+            veinX + 12,
+            endY - 28,
+            veinX - 10,
+            endY
+        );
+        ctx.stroke();
     }
 
-    ctx.strokeStyle = `rgba(255, 214, 234, ${0.32 + pulse * 0.2})`;
-    ctx.lineWidth = 2.4;
-    ctx.shadowBlur = 24;
-    ctx.shadowColor = 'rgba(255, 88, 132, 0.7)';
-    ctx.beginPath();
-    ctx.moveTo(frontX, topY);
-    ctx.lineTo(frontX, topY + wallH);
-    ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
     ctx.shadowBlur = 0;
     ctx.restore();
 }
@@ -626,7 +646,6 @@ function drawGame({ sx, sy }) {
     state.boosts.forEach(boost => {
         drawBoostPickup(ctx, boost);
     });
-    drawVirusWall(ctx, viewH);
     // inimigos e jogador
     state.enemies.forEach(e => e.draw());
     state.player.draw();
@@ -734,6 +753,7 @@ function drawGame({ sx, sy }) {
         ctx.font = 'bold 16px Courier New';
         ctx.fillText(t.txt, t.x, t.y);
     });
+    drawVirusWall(ctx, viewH);
     ctx.restore();
     if (state.game.started && quality >= 0.82) {
         drawScreenPostFX();
