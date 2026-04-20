@@ -131,7 +131,9 @@ export default class Enemy {
     draw() {
         const ctx = state.ctx;
         const dY = this.drawY || this.y;
-        const color = this.alert ? '#ffbf44' : '#ff3e6f';
+        const baseColor = '#ff9a2e';
+        const dangerColor = '#ff2f46';
+        const color = this.alert ? dangerColor : baseColor;
         const pulse = 0.4 + Math.sin((state.game.frames * 0.12) + this.bob) * 0.2;
         const hitMix = this.hitFlash > 0 ? Math.min(1, this.hitFlash / 8) : 0;
 
@@ -142,7 +144,7 @@ export default class Enemy {
 
         const grad = ctx.createLinearGradient(this.x, dY, this.x, dY + this.h);
         grad.addColorStop(0, color);
-        grad.addColorStop(0.35, this.alert ? '#b35800' : '#6b0f3a');
+        grad.addColorStop(0.35, this.alert ? '#8f1028' : '#b05f0d');
         grad.addColorStop(1, '#1f0610');
         ctx.fillStyle = grad;
         ctx.shadowBlur = 20;
@@ -160,7 +162,7 @@ export default class Enemy {
         ctx.fillRect(this.x + 3, dY + 3, this.w - 6, 5);
 
         if (this.alert) {
-            ctx.strokeStyle = `rgba(255, 220, 128, ${0.2 + pulse * 0.26})`;
+            ctx.strokeStyle = `rgba(255, 102, 132, ${0.2 + pulse * 0.26})`;
             ctx.lineWidth = 1.2;
             ctx.beginPath();
             ctx.arc(this.x + this.w * 0.5, dY + this.h * 0.42, this.w * 0.72, 0, Math.PI * 2);
@@ -176,12 +178,12 @@ export default class Enemy {
         ctx.fillStyle = '#05070f';
         ctx.fillRect(this.x + 5, dY + 10, 30, 11);
         const eyeGrad = ctx.createLinearGradient(this.x + 10, dY + 12, this.x + 28, dY + 12);
-        eyeGrad.addColorStop(0, this.alert ? '#fff1c9' : '#ff899d');
+        eyeGrad.addColorStop(0, this.alert ? '#ffd0d8' : '#ffd08c');
         eyeGrad.addColorStop(1, '#ffffff');
         ctx.fillStyle = eyeGrad;
         let eyeX = this.dir === 1 ? this.x + 20 : this.x + 10;
         ctx.shadowBlur = 8;
-        ctx.shadowColor = this.alert ? '#ffd574' : '#ff6f91';
+        ctx.shadowColor = this.alert ? '#ff5d7e' : '#ffad46';
         ctx.fillRect(eyeX, dY + 12, 7, 7);
         ctx.shadowBlur = 0;
 
