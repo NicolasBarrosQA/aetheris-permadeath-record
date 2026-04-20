@@ -40,6 +40,9 @@ export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
         h: viewH + 140,
         opacity: opacity,
         parallax: parallax,
+        lightSeed: Math.random() * 997,
+        lightTempo: 10 + Math.floor(Math.random() * 16),
+        lightBias: 0.42 + (Math.random() * 0.18),
         flashTimer: 0,
         pattern: patterns[Math.floor(Math.random() * patterns.length)]
     };
