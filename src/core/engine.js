@@ -532,33 +532,28 @@ function drawScreenPostFX() {
     const { viewW, viewH } = getViewMetrics();
     const speed = state.player ? Math.abs(state.player.vx) : 0;
     const speedNorm = Math.min(speed / 18, 1);
+    const motionEffect = Math.max(0, speedNorm - 0.52) / 0.48;
     const pulse = 0.55 + Math.sin(state.game.frames * 0.04) * 0.18;
     const hotEffect = state.attackEffects.find(effect => effect.kind === 'impact' || effect.kind === 'dashBurst');
+    const hotAlpha = hotEffect ? hotEffect.alpha || 0 : 0;
 
     ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    const centerGlow = ctx.createRadialGradient(
-        viewW * 0.5,
-        viewH * 0.5,
-        Math.min(viewW, viewH) * 0.2,
-        viewW * 0.5,
-        viewH * 0.5,
-        Math.max(viewW, viewH) * 0.62
-    );
-    centerGlow.addColorStop(0, `rgba(122, 232, 255, ${0.06 + speedNorm * 0.08})`);
-    centerGlow.addColorStop(0.6, `rgba(255, 112, 178, ${0.03 + speedNorm * 0.04})`);
-    centerGlow.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = centerGlow;
-    ctx.fillRect(0, 0, viewW, viewH);
-
-    ctx.globalCompositeOperation = 'overlay';
-    const sweepY = (viewH * 0.3) + Math.sin(state.game.frames * 0.03) * (viewH * 0.13);
-    const sweep = ctx.createLinearGradient(0, sweepY - 40, 0, sweepY + 120);
-    sweep.addColorStop(0, 'rgba(255,255,255,0)');
-    sweep.addColorStop(0.5, `rgba(180, 240, 255, ${0.06 + speedNorm * 0.06})`);
-    sweep.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = sweep;
-    ctx.fillRect(0, sweepY - 40, viewW, 170);
+    if (hotAlpha > 0.05 || motionEffect > 0.08) {
+        ctx.globalCompositeOperation = 'screen';
+        const centerGlow = ctx.createRadialGradient(
+            viewW * 0.5,
+            viewH * 0.5,
+            Math.min(viewW, viewH) * 0.22,
+            viewW * 0.5,
+            viewH * 0.5,
+            Math.max(viewW, viewH) * 0.64
+        );
+        centerGlow.addColorStop(0, `rgba(92, 222, 255, ${0.018 + (motionEffect * 0.02) + (hotAlpha * 0.08)})`);
+        centerGlow.addColorStop(0.58, `rgba(255, 110, 176, ${0.01 + (hotAlpha * 0.05)})`);
+        centerGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = centerGlow;
+        ctx.fillRect(0, 0, viewW, viewH);
+    }
 
     ctx.globalCompositeOperation = 'source-over';
     const edge = ctx.createRadialGradient(
@@ -570,7 +565,7 @@ function drawScreenPostFX() {
         Math.max(viewW, viewH) * 0.7
     );
     edge.addColorStop(0, 'rgba(0,0,0,0)');
-    edge.addColorStop(1, `rgba(6, 4, 18, ${0.35 + speedNorm * 0.1})`);
+    edge.addColorStop(1, `rgba(6, 4, 18, ${0.35 + motionEffect * 0.06})`);
     ctx.fillStyle = edge;
     ctx.fillRect(0, 0, viewW, viewH);
 
@@ -598,11 +593,11 @@ function drawScreenPostFX() {
         ctx.globalCompositeOperation = 'source-over';
     }
 
-    // Faint chromatic edge accent
-    ctx.globalAlpha = 0.15 + speedNorm * 0.08;
-    ctx.fillStyle = `rgba(88, 215, 255, ${0.35 + pulse * 0.15})`;
+    // Very subtle edge accent only at higher speed.
+    ctx.globalAlpha = 0.07 + motionEffect * 0.05;
+    ctx.fillStyle = `rgba(88, 215, 255, ${0.24 + pulse * 0.1})`;
     ctx.fillRect(0, 0, 3, viewH);
-    ctx.fillStyle = 'rgba(255, 103, 163, 0.45)';
+    ctx.fillStyle = 'rgba(255, 103, 163, 0.28)';
     ctx.fillRect(viewW - 3, 0, 3, viewH);
     ctx.globalAlpha = 1;
     ctx.restore();
