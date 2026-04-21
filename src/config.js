@@ -180,7 +180,7 @@ export const SKINS_DB = [
     { 
         id: 1, 
         name: 'Crimson Ronin',  
-        cost: 0, 
+        cost: 250, 
         c1: '#ff3333', 
         c2: '#880000', 
         glow: '#ff0000' 
@@ -188,7 +188,7 @@ export const SKINS_DB = [
     { 
         id: 2, 
         name: 'Bio-Hazard',     
-        cost: 0, 
+        cost: 400, 
         c1: '#33ff33', 
         c2: '#005500', 
         glow: '#00ff00' 
@@ -196,7 +196,7 @@ export const SKINS_DB = [
     { 
         id: 3, 
         name: 'Golden Glitch',  
-        cost: 0, 
+        cost: 650, 
         c1: '#ffd700', 
         c2: '#ffaa00', 
         glow: '#ffff00' 
@@ -204,7 +204,7 @@ export const SKINS_DB = [
     { 
         id: 4, 
         name: 'Void Specter',   
-        cost: 1000, 
+        cost: 950, 
         c1: '#220033', 
         c2: '#110011', 
         glow: '#aa00ff' 
@@ -212,7 +212,7 @@ export const SKINS_DB = [
     { 
         id: 5, 
         name: 'Storm Shinobi',  
-        cost: 0, 
+        cost: 1200, 
         c1: '#fce45c', 
         c2: '#0a2a73', 
         glow: '#4ddbff'
@@ -223,7 +223,7 @@ export const SKINS_DB = [
     {
         id: 6,
         name: "Naruto",
-        cost: 0,
+        cost: 1400,
         c1: "#fce45c",
         c2: "#fca53c",
         glow: "#ff7700ff",
@@ -233,7 +233,7 @@ export const SKINS_DB = [
     {
         id: 7,
         name: 'Pirate King',
-        cost: 0,
+        cost: 1650,
         c1: '#850505ff',
         c2: '#d62828',
         glow: '#ff0000ff',
@@ -243,7 +243,7 @@ export const SKINS_DB = [
     {
         id: 8,
         name: 'Goku',
-        cost: 0,
+        cost: 1900,
         c1: '#01cffdff',
         c2: '#28b0d6ff',
         glow: '#01cffdff',
@@ -252,7 +252,7 @@ export const SKINS_DB = [
     {
         id: 9,
         name: 'naruto shipuden',
-        cost: 0,
+        cost: 2200,
         c1: '#ffcf3a',
         c2: '#ff941e',
         glow: '#ffc84a',
