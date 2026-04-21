@@ -209,20 +209,11 @@ export const SKINS_DB = [
         c2: '#110011', 
         glow: '#aa00ff' 
     },
-    { 
-        id: 5, 
-        name: 'Storm Shinobi',  
-        cost: 1200, 
-        c1: '#fce45c', 
-        c2: '#0a2a73', 
-        glow: '#4ddbff'
-    },
-
     // --- SKINS COM SPRITE ---
 
     {
         id: 6,
-        name: "Naruto",
+        name: 'Shinobi Storm',
         cost: 1400,
         c1: "#fce45c",
         c2: "#fca53c",
@@ -232,7 +223,7 @@ export const SKINS_DB = [
 
     {
         id: 7,
-        name: 'Pirate King',
+        name: 'Scarlet Corsair',
         cost: 1650,
         c1: '#850505ff',
         c2: '#d62828',
@@ -242,7 +233,7 @@ export const SKINS_DB = [
     
     {
         id: 8,
-        name: 'Goku',
+        name: 'Celestial Striker',
         cost: 1900,
         c1: '#01cffdff',
         c2: '#28b0d6ff',
@@ -251,7 +242,7 @@ export const SKINS_DB = [
     },
     {
         id: 9,
-        name: 'naruto shipuden',
+        name: 'Shadow Sage',
         cost: 2200,
         c1: '#ffcf3a',
         c2: '#ff941e',
