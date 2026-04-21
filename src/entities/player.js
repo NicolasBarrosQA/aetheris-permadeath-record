@@ -7,7 +7,7 @@
  */
 
 import state from '../core/state.js';
-import { PHYS, SKINS_DB, COIN_LABEL, BALANCE, BOOST_TYPES } from '../config.js';
+import { PHYS, WORLD, SKINS_DB, COIN_LABEL, BALANCE, BOOST_TYPES } from '../config.js';
 import { storage, save } from '../core/storage.js';
 import { SFX } from '../core/audio.js';
 import { spawnParticles, spawnShockwave, spawnText } from '../systems/particles.js';
@@ -40,6 +40,12 @@ export default class Player {
         this.bodyBob = 0;
         this.lean = 0;
         this.boostAirDashCharges = 0;
+        this.hardComboSequence = ['RIGHT', 'DASH', 'UP', 'DASH', 'LEFT', 'DASH', 'RIGHT', 'DASH'];
+        this.hardComboIndex = 0;
+        this.hardComboTimer = 0;
+        this.hardComboStepWindow = 90;
+        this.prevRightPressed = false;
+        this.prevLeftPressed = false;
         this.updateSkin();
     }
 
@@ -57,7 +63,7 @@ export default class Player {
     startDash() {
         this.isDashing = true;
         this.dashTimer = PHYS.dashDuration;
-        this.invul = 15;
+        this.invul = PHYS.invulOnDash;
         this.vy = 0;
         this.vx = PHYS.dashSpeed * this.facing;
         SFX.dash();
@@ -86,10 +92,41 @@ export default class Player {
         if (usingAirDashCharge) {
             this.boostAirDashCharges--;
         }
+        this.registerHardComboStep('DASH');
         this.startDash();
         this.attack();
         this.attackCd = 18;
         SFX.swoosh();
+    }
+
+    resetHardCombo() {
+        this.hardComboIndex = 0;
+        this.hardComboTimer = 0;
+    }
+
+    registerHardComboStep(step) {
+        if (state.game.modeId !== 'hard') return;
+
+        const expectedStep = this.hardComboSequence[this.hardComboIndex];
+        if (step === expectedStep) {
+            this.hardComboIndex++;
+            this.hardComboTimer = this.hardComboStepWindow;
+
+            if (this.hardComboIndex >= this.hardComboSequence.length) {
+                this.applyBoost('slow');
+                spawnText('COMBO TIME SHIFT', this.x, this.y - 40, '#6bd7ff');
+                this.resetHardCombo();
+            }
+            return;
+        }
+
+        if (step === this.hardComboSequence[0]) {
+            this.hardComboIndex = 1;
+            this.hardComboTimer = this.hardComboStepWindow;
+            return;
+        }
+
+        this.resetHardCombo();
     }
 
     getActiveBoostId() {
@@ -109,17 +146,21 @@ export default class Player {
     applyBoost(typeId) {
         const boostDef = BOOST_TYPES[typeId];
         if (!boostDef) return;
-        state.activeBoost = {
-            id: typeId,
-            duration: boostDef.duration,
-            maxDuration: boostDef.duration
-        };
 
         if (typeId === 'repair') {
+            state.activeBoost = null;
             this.hp = Math.min(this.maxHp, this.hp + (this.maxHp * 0.25));
             spawnText('+25% HP', this.x, this.y - 18, '#63f0a7');
             spawnParticles(this.x + this.w / 2, this.y + this.h * 0.4, 18, '#63f0a7', 2);
-        } else if (typeId === 'slow') {
+        } else {
+            state.activeBoost = {
+                id: typeId,
+                duration: boostDef.duration,
+                maxDuration: boostDef.duration
+            };
+        }
+
+        if (typeId === 'slow') {
             spawnText('TIME SHIFT', this.x, this.y - 18, '#6bd7ff');
             spawnShockwave(this.x + this.w / 2, this.y + this.h / 2, '#6bd7ff');
         } else if (typeId === 'triple') {
@@ -144,6 +185,20 @@ export default class Player {
 
         const left = state.keys['arrowleft'] || state.keys['a'];
         const right = state.keys['arrowright'] || state.keys['d'];
+
+        if (state.game.modeId !== 'hard') {
+            this.resetHardCombo();
+        } else if (this.hardComboIndex > 0) {
+            this.hardComboTimer--;
+            if (this.hardComboTimer <= 0) this.resetHardCombo();
+        }
+
+        if (right && !this.prevRightPressed) {
+            this.registerHardComboStep('RIGHT');
+        }
+        if (left && !this.prevLeftPressed) {
+            this.registerHardComboStep('LEFT');
+        }
 
         // Ajuste de velocidade em função da distância percorrida
         const distM = state.game.dist / 10;
@@ -172,6 +227,7 @@ export default class Player {
 
         // Captura da tecla de pulo (space / w / seta cima) convertida em flag
         if (state.keys['spacepress']) {
+            this.registerHardComboStep('UP');
             this.jumpBuffer = PHYS.jumpBufferFrames;
             state.keys['spacepress'] = false;
         }
@@ -293,7 +349,7 @@ export default class Player {
         this.y += this.vy;
 
         // Mata se cair demais
-        if (!state.cheatFlight && this.y > 820) this.takeDamage(100);
+        if (!state.cheatFlight && this.y > WORLD.killFloorPlayer) this.takeDamage(100);
 
         // Atualiza distância percorrida e checa novo recorde em tempo real
         if (state.game.started && this.x > state.game.dist) {
@@ -347,6 +403,9 @@ export default class Player {
             if (this.vx > cap) this.vx = cap;
             if (this.vx < -cap) this.vx = -cap;
         }
+
+        this.prevRightPressed = Boolean(right);
+        this.prevLeftPressed = Boolean(left);
     }
 
     /**
@@ -390,7 +449,8 @@ export default class Player {
      */
     checkCollisions() {
         // Colisão com plataformas e espinhos
-        state.platforms.forEach(p => {
+        for (let i = 0; i < state.platforms.length; i++) {
+            const p = state.platforms[i];
             if (this.x + this.w > p.x + 5 &&
                 this.x < p.x + p.w - 5 &&
                 this.y + this.h >= p.y &&
@@ -406,7 +466,7 @@ export default class Player {
                         this.takeDamage(30);
                         this.vy = -12;
                         spawnParticles(this.x + this.w / 2, this.y + this.h, 10, '#ff0000', 1);
-                        return;
+                        break;
                     }
                 }
 
@@ -416,8 +476,9 @@ export default class Player {
                 this.coyote = PHYS.coyoteFrames;
                 this.jumps = 0;
                 this.boostAirDashCharges = 0;
+                break;
             }
-        });
+        }
 
         // Coleta de moedas
         for (let i = state.coins.length - 1; i >= 0; i--) {
@@ -444,7 +505,8 @@ export default class Player {
         }
 
         // Colisão com inimigos
-        state.enemies.forEach(e => {
+        for (let i = 0; i < state.enemies.length; i++) {
+            const e = state.enemies[i];
             if (Math.abs(this.x - e.x) < 30 && Math.abs(this.y - e.y) < 30) {
                 if (this.isDashing) {
                     e.takeDamage(100);
@@ -455,8 +517,9 @@ export default class Player {
                     this.vx = -12 * this.facing;
                     this.vy = -6;
                 }
+                break;
             }
-        });
+        }
     }
 
     /**
@@ -527,7 +590,7 @@ export default class Player {
 
         this.hp -= amount;
         if (this.hp < 0) this.hp = 0;
-        this.invul = 50;
+        this.invul = PHYS.invulOnHit;
 
         state.camera.shake = 12;
         SFX.hit();

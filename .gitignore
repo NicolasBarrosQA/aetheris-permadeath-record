@@ -8,3 +8,6 @@ Desktop.ini
 _*.png
 _*.html
 
+
+# Local Netlify folder
+.netlify

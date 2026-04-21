@@ -5,7 +5,7 @@
 
 import state from './core/state.js';
 import { initGame, loopGame, resetGame } from './core/engine.js';
-import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT } from './config.js';
+import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT, VIEWPORT } from './config.js';
 import { toggleShop, setDifficultyMode, syncDifficultyUI } from './systems/ui.js';
 import { resumeAudioContext, tryStartAudio } from './core/audio.js';
 import { spawnText } from './systems/particles.js';
@@ -24,6 +24,7 @@ const ACTION_KEYS = new Set([
     'c',
     'd',
     'f',
+    'k',
     'r',
     's',
     't',
@@ -68,11 +69,14 @@ function resizeCanvas() {
         worldHeight = vh / scale;
     }
 
+    const extraW = Math.max(0, worldWidth - VIRTUAL_WIDTH);
+    const extraH = Math.max(0, worldHeight - VIRTUAL_HEIGHT);
+
     state.view.scale = scale;
     state.view.scaleX = scale;
     state.view.scaleY = scale;
-    state.view.offsetX = 0;
-    state.view.offsetY = 0;
+    state.view.offsetX = extraW * VIEWPORT.CAMERA_OFFSET_X_RATIO;
+    state.view.offsetY = extraH * VIEWPORT.CAMERA_OFFSET_Y_RATIO;
     state.view.dpr = dpr;
     state.view.width = vw;
     state.view.height = vh;
@@ -118,6 +122,8 @@ function bootstrap() {
     state.shopModal = getRequiredElement('shop-modal');
     state.skinsGrid = getRequiredElement('skins-grid');
     state.startHint = getRequiredElement('start-hint');
+    state.difficultyPicker = document.getElementById('difficulty-picker');
+    state.difficultyShortcuts = document.getElementById('difficulty-shortcuts');
     state.bgm = getRequiredElement('bgm');
     state.uiLayer = getRequiredElement('ui-layer');
     state.uiDist = getRequiredElement('ui-dist');
@@ -140,7 +146,11 @@ function bootstrap() {
         const applyDifficulty = event => {
             event.preventDefault();
             event.stopPropagation();
-            setDifficultyMode(button.dataset.difficulty);
+            if (!state.game.started) {
+                setDifficultyMode(button.dataset.difficulty);
+                if (state.difficultyPicker) state.difficultyPicker.style.display = 'none';
+                if (state.difficultyShortcuts) state.difficultyShortcuts.style.display = 'none';
+            }
             button.blur();
             window.focus();
         };
@@ -194,6 +204,21 @@ function setupInput() {
         }
 
         if (!wasPressed) {
+            // TEMP MOD (screenshot): toggle de camera lenta para capturar frame.
+            // Tecla: K. Remover este bloco quando nao for mais necessario.
+            if (key === 'k') {
+                const currentlySlow = Number.isFinite(state.game.debugTimeScaleOverride);
+                state.game.debugTimeScaleOverride = currentlySlow ? null : 0.18;
+                if (state.player) {
+                    spawnText(
+                        currentlySlow ? 'CAMERA LENTA OFF' : 'CAMERA LENTA ON',
+                        state.player.x,
+                        state.player.y - 48,
+                        currentlySlow ? '#ff7a8a' : '#6bd7ff'
+                    );
+                }
+            }
+
             if (event.code === 'Space' || key === 'w' || key === 'arrowup') {
                 state.keys.spacepress = true;
             }
@@ -205,6 +230,13 @@ function setupInput() {
             if (!state.game.started && (key === '1' || key === '2' || key === '3')) {
                 const nextMode = key === '1' ? 'easy' : (key === '2' ? 'medium' : 'hard');
                 setDifficultyMode(nextMode);
+                if (state.difficultyPicker) state.difficultyPicker.style.display = 'none';
+                if (state.difficultyShortcuts) state.difficultyShortcuts.style.display = 'none';
+            }
+
+            if (!state.game.started && key === 'q') {
+                if (state.difficultyPicker) state.difficultyPicker.style.display = 'grid';
+                if (state.difficultyShortcuts) state.difficultyShortcuts.style.display = 'block';
             }
 
             if (key === 'escape' && state.game.shopOpen) {

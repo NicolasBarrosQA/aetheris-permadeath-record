@@ -7,14 +7,15 @@
  */
 
 import state from './state.js';
-import { BALANCE, BOOST_TYPES, DAY_NIGHT_CYCLE_SECONDS, DIFFICULTY_MODES, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from '../config.js';
-import { getBoostSprite } from './boostSprites.js';
+import { BALANCE, DAY_NIGHT_CYCLE_SECONDS, DIFFICULTY_MODES, VIEWPORT, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from '../config.js';
 import { storage, save } from './storage.js';
 import { tryStartAudio, stopAudio, SFX } from './audio.js';
 import Player from '../entities/player.js';
 import * as worldgen from '../systems/worldgen.js';
 import * as background from '../systems/background.js';
 import { updateUI, toggleShop } from '../systems/ui.js';
+import { updateVirus, drawVirus } from '../systems/virus.js';
+import { drawBoostPickup, drawScreenPostFX } from '../systems/vfx.js';
 
 function getViewMetrics() {
     const viewW = state.view?.worldWidth || VIRTUAL_WIDTH;
@@ -49,194 +50,6 @@ function updateActiveBoost() {
             state.player.boostAirDashCharges = 0;
         }
     }
-}
-
-function updateVirusWall(viewH) {
-    const virus = state.virusWall;
-    const mode = getDifficultyMode();
-
-    if (!state.game.started || !mode.virusPressure) {
-        virus.active = false;
-        virus.x = state.camera.x - 420;
-        virus.damageTick = 0;
-        return;
-    }
-
-    const player = state.player;
-    virus.active = true;
-    virus.pulse += 0.12;
-    const pressureSpeed = 3.8 + Math.min(4.8, state.game.dist / 1700);
-    virus.x += pressureSpeed;
-
-    if (virus.damageTick > 0) virus.damageTick--;
-
-    if (player.x + player.w < virus.x + 18) {
-        player.takeDamage(100);
-        return;
-    }
-
-    if (player.x < virus.x + 120) {
-        if (virus.damageTick <= 0) {
-            player.takeDamage(18);
-            virus.damageTick = 14;
-        }
-        player.vx = Math.max(player.vx, 10 + (state.game.difficulty * 0.55));
-        state.camera.shake = Math.max(state.camera.shake, 6);
-        if (state.game.frames % 5 === 0) {
-            state.particles.push({
-                x: virus.x + 18 + Math.random() * 18,
-                y: state.camera.y + Math.random() * (viewH + 120),
-                vx: 1.5 + Math.random() * 2.5,
-                vy: (Math.random() - 0.5) * 1.3,
-                size: 1.8 + Math.random() * 2,
-                life: 14,
-                color: Math.random() > 0.5 ? '#ff547d' : '#89f7ff',
-                alpha: 0.72
-            });
-        }
-    }
-}
-
-function drawBoostPickup(ctx, boost) {
-    const boostDef = BOOST_TYPES[boost.id];
-    if (!boostDef) return;
-
-    const bob = Math.sin(boost.bob) * 4;
-    const squash = Math.max(0.22, Math.abs(Math.cos(boost.rot)));
-    const sprite = getBoostSprite(boost.id);
-
-    ctx.save();
-    ctx.translate(boost.x, boost.y + bob);
-    ctx.scale(squash, 1);
-
-    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, 18);
-    halo.addColorStop(0, `${boostDef.accent}ee`);
-    halo.addColorStop(0.55, `${boostDef.color}cc`);
-    halo.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = halo;
-    ctx.shadowBlur = 22;
-    ctx.shadowColor = boostDef.color;
-    ctx.beginPath();
-    ctx.arc(0, 0, 16, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    ctx.fillStyle = 'rgba(4, 10, 26, 0.96)';
-    ctx.fillRect(-13, -13, 26, 26);
-
-    ctx.lineWidth = 1.2;
-    ctx.strokeStyle = `${boostDef.accent}aa`;
-    ctx.strokeRect(-13, -13, 26, 26);
-
-    if (sprite?.loaded) {
-        ctx.drawImage(sprite.img, -10, -10, 20, 20);
-    } else {
-        ctx.fillStyle = boostDef.accent;
-        ctx.beginPath();
-        ctx.arc(0, 0, 6, 0, Math.PI * 2);
-        ctx.fill();
-    }
-
-    ctx.restore();
-}
-
-function drawVirusWall(ctx, viewH) {
-    const virus = state.virusWall;
-    if (!virus.active) return;
-
-    const topY = state.camera.y - 180;
-    const wallH = viewH + 420;
-    const frontX = virus.x;
-    const pulse = 0.55 + Math.sin(virus.pulse) * 0.25;
-    const consumedStart = frontX - 1600;
-    const pixelRows = Math.ceil(wallH / 18);
-
-    ctx.save();
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.fillRect(consumedStart, topY, 1600, wallH);
-
-    const decay = ctx.createLinearGradient(consumedStart, 0, frontX + 40, 0);
-    decay.addColorStop(0, 'rgba(4, 5, 10, 0.92)');
-    decay.addColorStop(0.58, 'rgba(18, 7, 20, 0.7)');
-    decay.addColorStop(1, 'rgba(0, 0, 0, 0)');
-    ctx.fillStyle = decay;
-    ctx.fillRect(consumedStart, topY, (frontX - consumedStart) + 40, wallH);
-    ctx.globalCompositeOperation = 'source-over';
-
-    ctx.globalAlpha = 0.84;
-    for (let row = 0; row < pixelRows; row++) {
-        const rowY = topY + (row * 18);
-        const wave = Math.sin((row * 0.72) + (state.game.frames * 0.18));
-        const frontDrift = (Math.sin((row * 0.41) + (state.game.frames * 0.11)) * 18) +
-            (Math.sin((row * 0.13) + (state.game.frames * 0.05)) * 9);
-        const rowFront = frontX - 12 + frontDrift;
-        const biteDepth = 42 + ((wave + 1) * 40);
-        const shardSpan = 130 + ((Math.sin((row * 0.28) + (state.game.frames * 0.08)) + 1) * 120);
-        ctx.fillStyle = row % 3 === 0
-            ? 'rgba(11, 8, 24, 0.92)'
-            : 'rgba(6, 5, 12, 0.82)';
-        ctx.fillRect(rowFront - biteDepth - shardSpan, rowY, shardSpan, 14);
-
-        if (row % 2 === 0) {
-            ctx.fillStyle = `rgba(255, 74, 126, ${0.08 + pulse * 0.08})`;
-            ctx.fillRect(rowFront - biteDepth - 22, rowY, 12 + (row % 4) * 4, 14);
-        }
-        if (row % 5 === 0) {
-            ctx.fillStyle = `rgba(106, 242, 255, ${0.06 + pulse * 0.05})`;
-            ctx.fillRect(rowFront - biteDepth - 42, rowY + 2, 10, 10);
-        }
-    }
-    ctx.globalAlpha = 1;
-
-    const field = ctx.createLinearGradient(frontX - 230, 0, frontX + 36, 0);
-    field.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    field.addColorStop(0.24, 'rgba(34, 0, 18, 0.42)');
-    field.addColorStop(0.74, `rgba(255, 66, 122, ${0.28 + pulse * 0.16})`);
-    field.addColorStop(1, `rgba(150, 255, 241, ${0.26 + pulse * 0.1})`);
-    ctx.fillStyle = field;
-    ctx.fillRect(frontX - 230, topY, 266, wallH);
-
-    ctx.globalCompositeOperation = 'screen';
-    const pixelFront = ctx.createLinearGradient(frontX - 46, 0, frontX + 14, 0);
-    pixelFront.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    pixelFront.addColorStop(0.35, `rgba(255, 110, 156, ${0.26 + pulse * 0.14})`);
-    pixelFront.addColorStop(1, `rgba(223, 252, 255, ${0.28 + pulse * 0.16})`);
-    ctx.fillStyle = pixelFront;
-    for (let row = 0; row < pixelRows; row++) {
-        const rowY = topY + (row * 18);
-        const rowFront = frontX +
-            (Math.sin((row * 0.39) + (state.game.frames * 0.11)) * 13) +
-            (Math.sin((row * 0.12) + (state.game.frames * 0.04)) * 6);
-        const width = 14 + Math.abs(Math.sin((row * 0.83) + (state.game.frames * 0.14))) * 34;
-        ctx.fillRect(rowFront - width, rowY, width + 10, 14);
-    }
-
-    for (let i = 0; i < 10; i++) {
-        const lane = i / 9;
-        const veinX = frontX - 30 + Math.sin((state.game.frames * 0.08) + i) * 16;
-        const startY = topY + (wallH * lane);
-        const endY = startY + 110 + Math.sin((state.game.frames * 0.05) + (i * 0.7)) * 42;
-        ctx.strokeStyle = i % 2 === 0
-            ? `rgba(255, 92, 144, ${0.16 + pulse * 0.1})`
-            : `rgba(129, 248, 255, ${0.12 + pulse * 0.08})`;
-        ctx.lineWidth = 1.2 + (i % 3) * 0.55;
-        ctx.beginPath();
-        ctx.moveTo(veinX - 40, startY);
-        ctx.bezierCurveTo(
-            veinX - 20,
-            startY + 26,
-            veinX + 12,
-            endY - 28,
-            veinX - 10,
-            endY
-        );
-        ctx.stroke();
-    }
-
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.shadowBlur = 0;
-    ctx.restore();
 }
 
 // Inicializa o jogo: instancia player, reseta listas e preenche
@@ -282,6 +95,7 @@ export function initGame() {
     state.game.isGameOver = false;
     state.game.time = 0;
     state.game.timeScale = 1;
+    state.game.debugTimeScaleOverride = null;
     state.game.simAccumulator = 0;
     state.game.frames = 0;
     state.game.runFrames = 0;
@@ -308,7 +122,7 @@ export function initGame() {
     state.overlayTitle.innerText = 'SISTEMA CRITICO';
     state.overlayMsg.innerText = 'CONEXAO PERDIDA';
     state.shopModal.style.display = 'none';
-    state.startHint.style.display = 'block';
+    if (state.startHint) state.startHint.style.display = 'block';
     // associa callbacks para uso em outras partes do jogo
     state.startGameRun = startGameRun;
     state.gameOver = gameOver;
@@ -340,6 +154,8 @@ function startGameRun() {
 function updateGame() {
     const quality = state.performance.quality || 1;
     const { viewW, viewH, extraW, extraH } = getViewMetrics();
+    const cameraOffsetX = state.view?.offsetX ?? (extraW * VIEWPORT.CAMERA_OFFSET_X_RATIO);
+    const cameraOffsetY = state.view?.offsetY ?? (extraH * VIEWPORT.CAMERA_OFFSET_Y_RATIO);
     updateActiveBoost();
     // Ajuste de dificuldade de acordo com a distância. Os parâmetros
     // vivem em BALANCE.difficulty para evitar números mágicos.
@@ -357,15 +173,15 @@ function updateGame() {
     // Geração de mundo e atualização de câmera
     if (state.game.started) {
         worldgen.generateWorld();
-        state.camera.x += (state.player.x - (300 + (extraW * 0.22)) - state.camera.x) * 0.08;
+        state.camera.x += (state.player.x - (300 + cameraOffsetX) - state.camera.x) * 0.08;
     } else {
-        state.camera.x += (state.player.x - (300 + (extraW * 0.22)) - state.camera.x) * 0.02;
+        state.camera.x += (state.player.x - (300 + cameraOffsetX) - state.camera.x) * 0.02;
     }
-    let targetCamY = state.player.y - (320 + (extraH * 0.52));
+    let targetCamY = state.player.y - (320 + cameraOffsetY);
     state.camera.y += (targetCamY - state.camera.y) * 0.06;
     if (state.camera.y < (-120 - (extraH * 0.35))) state.camera.y = -120 - (extraH * 0.35);
     if (state.camera.y > (150 + (extraH * 0.55))) state.camera.y = 150 + (extraH * 0.55);
-    updateVirusWall(viewH);
+    updateVirus(viewH);
     // Tremor de câmera
     let sx = 0;
     let sy = 0;
@@ -753,87 +569,11 @@ function drawGame({ sx, sy }) {
         ctx.font = 'bold 16px Courier New';
         ctx.fillText(t.txt, t.x, t.y);
     });
-    drawVirusWall(ctx, viewH);
+    drawVirus(ctx, viewH);
     ctx.restore();
     if (state.game.started && quality >= 0.82) {
         drawScreenPostFX();
     }
-}
-
-function drawScreenPostFX() {
-    const ctx = state.ctx;
-    const { viewW, viewH } = getViewMetrics();
-    const speed = state.player ? Math.abs(state.player.vx) : 0;
-    const speedNorm = Math.min(speed / 18, 1);
-    const motionEffect = Math.max(0, speedNorm - 0.52) / 0.48;
-    const pulse = 0.55 + Math.sin(state.game.frames * 0.04) * 0.18;
-    const hotEffect = state.attackEffects.find(effect => effect.kind === 'impact' || effect.kind === 'dashBurst');
-    const hotAlpha = hotEffect ? hotEffect.alpha || 0 : 0;
-
-    ctx.save();
-    if (hotAlpha > 0.05 || motionEffect > 0.08) {
-        ctx.globalCompositeOperation = 'screen';
-        const centerGlow = ctx.createRadialGradient(
-            viewW * 0.5,
-            viewH * 0.5,
-            Math.min(viewW, viewH) * 0.22,
-            viewW * 0.5,
-            viewH * 0.5,
-            Math.max(viewW, viewH) * 0.64
-        );
-        centerGlow.addColorStop(0, `rgba(92, 222, 255, ${0.018 + (motionEffect * 0.02) + (hotAlpha * 0.08)})`);
-        centerGlow.addColorStop(0.58, `rgba(255, 110, 176, ${0.01 + (hotAlpha * 0.05)})`);
-        centerGlow.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = centerGlow;
-        ctx.fillRect(0, 0, viewW, viewH);
-    }
-
-    ctx.globalCompositeOperation = 'source-over';
-    const edge = ctx.createRadialGradient(
-        viewW * 0.5,
-        viewH * 0.56,
-        Math.min(viewW, viewH) * 0.34,
-        viewW * 0.5,
-        viewH * 0.56,
-        Math.max(viewW, viewH) * 0.7
-    );
-    edge.addColorStop(0, 'rgba(0,0,0,0)');
-    edge.addColorStop(1, `rgba(6, 4, 18, ${0.35 + motionEffect * 0.06})`);
-    ctx.fillStyle = edge;
-    ctx.fillRect(0, 0, viewW, viewH);
-
-    if (state.player && state.player.invul > 0) {
-        const blink = (Math.sin(state.game.frames * 0.45) * 0.5) + 0.5;
-        ctx.fillStyle = `rgba(255, 75, 118, ${blink * 0.12})`;
-        ctx.fillRect(0, 0, viewW, viewH);
-    }
-
-    if (hotEffect) {
-        ctx.globalCompositeOperation = 'screen';
-        const actionGlow = ctx.createRadialGradient(
-            hotEffect.x - state.camera.x,
-            hotEffect.y - state.camera.y,
-            0,
-            hotEffect.x - state.camera.x,
-            hotEffect.y - state.camera.y,
-            180
-        );
-        actionGlow.addColorStop(0, `rgba(255, 245, 214, ${hotEffect.alpha * 0.18})`);
-        actionGlow.addColorStop(0.45, `rgba(255, 150, 96, ${hotEffect.alpha * 0.12})`);
-        actionGlow.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = actionGlow;
-        ctx.fillRect(0, 0, viewW, viewH);
-        ctx.globalCompositeOperation = 'source-over';
-    }
-
-    // Very subtle edge accent only at higher speed.
-    ctx.globalAlpha = 0.07 + motionEffect * 0.05;
-    ctx.fillStyle = `rgba(88, 215, 255, ${0.24 + pulse * 0.1})`;
-    ctx.fillRect(0, 0, 3, viewH);
-    ctx.fillStyle = 'rgba(255, 103, 163, 0.28)';
-    ctx.fillRect(viewW - 3, 0, 3, viewH);
-    ctx.globalAlpha = 1;
-    ctx.restore();
 }
 
 /**
@@ -871,7 +611,12 @@ export function loopGame(ts = performance.now()) {
     if (state.game.started && state.game.running && !state.game.isGameOver && !state.game.shopOpen) {
         state.game.runFrames++;
     }
-    const timeScale = Math.max(0.35, Math.min(state.game.timeScale || 1, 1));
+    // TEMP MOD (screenshot): respeita override de camera lenta quando ativo.
+    const screenshotSlowMo = state.game.debugTimeScaleOverride;
+    const hasScreenshotSlowMo = Number.isFinite(screenshotSlowMo);
+    const timeScaleSource = hasScreenshotSlowMo ? screenshotSlowMo : (state.game.timeScale || 1);
+    const minTimeScale = hasScreenshotSlowMo ? 0.05 : 0.35;
+    const timeScale = Math.max(minTimeScale, Math.min(timeScaleSource, 1));
     state.game.simAccumulator += timeScale;
     let shake = { sx: 0, sy: 0 };
     while (state.game.simAccumulator >= 1) {
@@ -935,3 +680,4 @@ export function resetGame() {
     initGame();
     loopGame();
 }
+

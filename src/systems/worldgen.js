@@ -10,16 +10,18 @@ import state from '../core/state.js';
 import Enemy from '../entities/enemy.js';
 
 // Variáveis internas para acompanhar a posição das últimas plataformas
-let lastPlatX = 800;
-let lastPlatY = 400;
+const worldState = {
+    lastPlatX: 800,
+    lastPlatY: 400
+};
 
 /**
  * Reinicia as variáveis internas de geração. Deve ser chamado pelo motor
  * na inicialização para garantir que a geração comece do início.
  */
 export function resetWorldParams() {
-    lastPlatX = 800;
-    lastPlatY = 400;
+    worldState.lastPlatX = 800;
+    worldState.lastPlatY = 400;
 }
 
 /**
@@ -29,11 +31,18 @@ export function resetWorldParams() {
  */
 export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
     const patterns = ['grid', 'stripes', 'bars', 'slits'];
+    const skylineClasses = ['block', 'stacked', 'spire'];
+    const windowPalettes = ['cyan', 'magenta', 'mixed'];
     const viewH = Math.max(600, state.view?.worldHeight || 600);
     const minWidth = Math.max(90, wMin);
     const maxWidth = Math.max(minWidth + 30, wMax);
     const spacing = maxWidth + 35;
     const width = minWidth + Math.random() * (maxWidth - minWidth);
+    const neonStripCount = 1 + Math.floor(Math.random() * 3);
+    const neonStrips = [];
+    for (let idx = 0; idx < neonStripCount; idx++) {
+        neonStrips.push(0.12 + (Math.random() * 0.76));
+    }
     return {
         x: i * spacing,
         y: yMin + Math.random() * (yMax - yMin),
@@ -49,7 +58,13 @@ export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
         beacon: Math.random() < 0.35,
         beaconOffset: 0.18 + Math.random() * 0.64,
         antennaHeight: 14 + Math.random() * 22,
-        facadeBands: 2 + Math.floor(Math.random() * 3)
+        facadeBands: 2 + Math.floor(Math.random() * 3),
+        skylineClass: skylineClasses[Math.floor(Math.random() * skylineClasses.length)],
+        skylineInset: 0.16 + Math.random() * 0.24,
+        skylineHeight: 0.12 + Math.random() * 0.2,
+        windowPalette: windowPalettes[Math.floor(Math.random() * windowPalettes.length)],
+        antennaCount: 1 + Math.floor(Math.random() * 3),
+        neonStrips
     };
 }
 
@@ -131,17 +146,17 @@ export function initAtmosphere() {
 export function generateWorld() {
     // Gera plataformas até uma distância à frente da câmera
     const viewW = state.view?.worldWidth || 900;
-    while (lastPlatX < state.camera.x + viewW + 600) {
+    while (worldState.lastPlatX < state.camera.x + viewW + 600) {
         // Definição de gaps mínima e máxima escalando com dificuldade
         let minGap = 120 + (state.game.difficulty * 18);
         let maxGap = 220 + (state.game.difficulty * 35);
         if (maxGap > 360) maxGap = 360;
         let gap = minGap + Math.random() * (maxGap - minGap);
         let w = 220 + Math.random() * 260;
-        let y = lastPlatY + (Math.random() - 0.5) * 150;
+        let y = worldState.lastPlatY + (Math.random() - 0.5) * 150;
         if (y < 200) y = 200;
         if (y > 480) y = 480;
-        let x = lastPlatX + gap;
+        let x = worldState.lastPlatX + gap;
         let spikeInfo = null;
         let hasSpikes = false;
         if (w > 240 && Math.random() < 0.3) {
@@ -185,8 +200,8 @@ export function generateWorld() {
                 bob: Math.random() * Math.PI * 2
             });
         }
-        lastPlatX = x + w;
-        lastPlatY = y;
+        worldState.lastPlatX = x + w;
+        worldState.lastPlatY = y;
     }
     // Remove objetos que passaram muito para trás da câmera
     let cutoff = state.camera.x - Math.max(500, viewW * 0.7);

@@ -20,6 +20,7 @@ function validatePhysics() {
 function validateBalance() {
     const difficulty = BALANCE.difficulty;
     const speed = BALANCE.speed;
+    const virus = BALANCE.virus;
 
     Object.entries(difficulty).forEach(([key, value]) => {
         assertFiniteNumber(value, `BALANCE.difficulty.${key}`);
@@ -27,6 +28,10 @@ function validateBalance() {
 
     Object.entries(speed).forEach(([key, value]) => {
         assertFiniteNumber(value, `BALANCE.speed.${key}`);
+    });
+
+    Object.entries(virus).forEach(([key, value]) => {
+        assertFiniteNumber(value, `BALANCE.virus.${key}`);
     });
 }
 

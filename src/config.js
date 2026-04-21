@@ -18,7 +18,21 @@ export const PHYS = {
     jumpBufferFrames: 6,
     dashSpeed: 34,
     dashDuration: 14,
-    dashCooldown: 45
+    dashCooldown: 45,
+    invulOnHit: 50,
+    invulOnDash: 15
+};
+
+export const WORLD = {
+    killFloorPlayer: 820,
+    killFloorEnemy: 1000,
+    enemyDetectRangeX: 500,
+    enemyDetectRangeY: 200
+};
+
+export const VIEWPORT = {
+    CAMERA_OFFSET_X_RATIO: 0.22,
+    CAMERA_OFFSET_Y_RATIO: 0.52
 };
 
 // Largura e altura virtuais utilizadas pelo canvas.
@@ -64,6 +78,17 @@ export const BALANCE = {
         // Velocidades absolutas máximas após todos os multiplicadores.
         maxGroundSpeed: 22,
         maxAirSpeed: 19
+    },
+    // Escalonamento do vírus no modo dificil. A curva é assintotica:
+    // cresce rapido no inicio e desacelera com a distancia, evitando
+    // um teto matematico que torne a corrida impossivel.
+    virus: {
+        // Velocidade base quando difficulty = BALANCE.difficulty.base.
+        baseSpeed: 7.69824,
+        // Teto assintotico da velocidade do virus.
+        maxSpeed: 24.2,
+        // Quanto maior, mais cedo a curva se aproxima do teto.
+        difficultyFalloff: 0.6
     }
 };
 

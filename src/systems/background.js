@@ -191,9 +191,9 @@ export function drawBackground() {
     drawSkyGrid(ctx, state.game.started ? 1 : 0.6, viewW, viewH, horizonY);
 }
 
-function drawBuildingRoof(ctx, building, x, accent, glow, quality) {
-    const topY = building.y;
-    const mainW = building.w;
+function drawBuildingRoof(ctx, building, roofX, roofY, roofW, accent, glow, quality) {
+    const topY = roofY;
+    const mainW = roofW;
 
     ctx.save();
     ctx.strokeStyle = accent;
@@ -201,18 +201,18 @@ function drawBuildingRoof(ctx, building, x, accent, glow, quality) {
     ctx.shadowBlur = quality >= 0.9 ? 5 : 0;
     ctx.shadowColor = glow;
     ctx.beginPath();
-    ctx.moveTo(x + 3, topY + 0.5);
-    ctx.lineTo(x + mainW - 3, topY + 0.5);
+    ctx.moveTo(roofX + 3, topY + 0.5);
+    ctx.lineTo(roofX + mainW - 3, topY + 0.5);
     ctx.stroke();
 
     ctx.globalAlpha = 0.12;
     ctx.fillStyle = accent;
-    ctx.fillRect(x + 6, topY + 2, Math.max(24, mainW * 0.22), 2);
-    ctx.fillRect(x + mainW - Math.max(20, mainW * 0.16) - 6, topY + 2, Math.max(20, mainW * 0.16), 2);
+    ctx.fillRect(roofX + 6, topY + 2, Math.max(24, mainW * 0.22), 2);
+    ctx.fillRect(roofX + mainW - Math.max(20, mainW * 0.16) - 6, topY + 2, Math.max(20, mainW * 0.16), 2);
     ctx.globalAlpha = 1;
 
     if (building.beacon && quality >= 0.78) {
-        const beaconX = x + (mainW * building.beaconOffset);
+        const beaconX = roofX + (mainW * building.beaconOffset);
         const beaconY = topY - (building.antennaHeight || 18);
         const beaconPulse = 0.45 + (Math.sin((state.game.frames * 0.05) + building.windowPhase) * 0.5);
         ctx.globalAlpha = 0.35 + (beaconPulse * 0.35);
@@ -230,6 +230,59 @@ function drawBuildingRoof(ctx, building, x, accent, glow, quality) {
     }
 
     ctx.restore();
+}
+
+function drawBuildingSkylineCap(ctx, building, x, accent, buildingAlpha) {
+    const skylineClass = building.skylineClass || 'block';
+    const skylineInset = building.skylineInset || 0.2;
+    const skylineHeight = building.skylineHeight || 0.16;
+    const capHeight = Math.max(24, building.h * skylineHeight);
+    const capInsetPx = Math.max(10, building.w * skylineInset);
+    let roofX = x;
+    let roofY = building.y;
+    let roofW = building.w;
+
+    ctx.save();
+    ctx.globalAlpha = Math.min(0.9, buildingAlpha + 0.14);
+    ctx.fillStyle = 'rgba(7, 8, 20, 0.94)';
+
+    if (skylineClass === 'stacked') {
+        roofW = Math.max(26, building.w - (capInsetPx * 2));
+        roofX = x + ((building.w - roofW) * 0.5);
+        roofY = building.y - (capHeight * 0.55);
+        ctx.fillRect(roofX, roofY, roofW, capHeight);
+
+        const sideW = Math.max(12, roofW * 0.18);
+        const sideH = capHeight * 0.64;
+        ctx.fillRect(roofX - sideW * 0.55, roofY + (capHeight * 0.22), sideW, sideH);
+        ctx.fillRect(roofX + roofW - sideW * 0.45, roofY + (capHeight * 0.22), sideW, sideH);
+    } else if (skylineClass === 'spire') {
+        const coreW = Math.max(18, building.w * 0.26);
+        roofW = coreW;
+        roofX = x + ((building.w - coreW) * 0.5);
+        roofY = building.y - (capHeight * 0.92);
+        ctx.fillRect(roofX, roofY, roofW, capHeight * 1.2);
+
+        const shoulderW = Math.max(20, building.w * 0.5);
+        const shoulderX = x + ((building.w - shoulderW) * 0.5);
+        const shoulderY = building.y - (capHeight * 0.28);
+        ctx.fillRect(shoulderX, shoulderY, shoulderW, capHeight * 0.48);
+    } else {
+        const towerW = Math.max(22, building.w * 0.34);
+        const gap = Math.max(6, building.w * 0.07);
+        roofY = building.y - (capHeight * 0.46);
+        ctx.fillRect(x + gap, roofY, towerW, capHeight * 0.92);
+        ctx.fillRect(x + building.w - towerW - gap, roofY, towerW, capHeight * 0.92);
+        roofX = x + gap;
+        roofW = building.w - (gap * 2);
+    }
+
+    ctx.globalAlpha = 0.2;
+    ctx.fillStyle = accent;
+    ctx.fillRect(roofX + 2, roofY + 2, Math.max(6, roofW - 4), 2);
+    ctx.restore();
+
+    return { roofX, roofY, roofW };
 }
 
 function drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost, windowCore, windowHot) {
@@ -306,7 +359,7 @@ function drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost,
 export function drawLayer(layer, camX) {
     const ctx = state.ctx;
     const quality = state.performance?.quality || 1;
-    const hueBase = (state.game.dist / 100) % 360;
+    const layerTone = Math.round(272 + (Math.sin((state.game.dist * 0.0018) + (layer.length * 0.17)) * 8));
     const lastBuilding = layer[layer.length - 1];
     const layerSpan = lastBuilding
         ? Math.max(2000, lastBuilding.x + lastBuilding.w + 260)
@@ -317,31 +370,37 @@ export function drawLayer(layer, camX) {
         let x = relativeX % layerSpan;
         if (x < (-building.w - 120)) x += layerSpan;
 
-        const hue = (hueBase + (building.accentShift || 0) + 360) % 360;
-        const accent = `hsla(${hue}, 100%, 64%, 0.56)`;
-        const glow = `hsla(${hue}, 100%, 62%, 0.24)`;
-        const windowCore = `hsla(${(hue + 26) % 360}, 100%, 78%, 0.24)`;
-        const windowHot = `hsla(${(hue + 10) % 360}, 100%, 92%, 0.55)`;
+        const hue = (layerTone + (building.accentShift || 0) + 360) % 360;
+        const accent = `hsla(${(hue + 22) % 360}, 100%, 66%, 0.6)`;
+        const glow = `hsla(${(hue + 12) % 360}, 100%, 62%, 0.28)`;
+        const cyanCore = 'rgba(74, 235, 255, 0.32)';
+        const cyanHot = 'rgba(196, 255, 255, 0.72)';
+        const magentaCore = 'rgba(255, 86, 176, 0.3)';
+        const magentaHot = 'rgba(255, 190, 228, 0.68)';
+        const windowCore = building.windowPalette === 'magenta' ? magentaCore : cyanCore;
+        const windowHot = building.windowPalette === 'magenta' ? magentaHot : cyanHot;
         const buildingAlpha = 0.34 + (building.opacity * 0.4);
 
         ctx.save();
         ctx.globalAlpha = buildingAlpha;
 
         const bodyGrad = ctx.createLinearGradient(x, building.y, x, building.y + building.h);
-        bodyGrad.addColorStop(0, '#11172d');
-        bodyGrad.addColorStop(0.18, '#0f1428');
-        bodyGrad.addColorStop(0.42, BUILDING_BASE.body);
-        bodyGrad.addColorStop(1, 'rgba(0, 0, 0, 0.95)');
+        bodyGrad.addColorStop(0, '#0f1330');
+        bodyGrad.addColorStop(0.24, '#0a0e24');
+        bodyGrad.addColorStop(0.48, BUILDING_BASE.body);
+        bodyGrad.addColorStop(1, 'rgba(1, 1, 7, 0.98)');
         ctx.fillStyle = bodyGrad;
         ctx.fillRect(x, building.y, building.w, building.h);
 
         const sideGloss = ctx.createLinearGradient(x, 0, x + building.w, 0);
-        sideGloss.addColorStop(0, 'rgba(170, 232, 255, 0.12)');
-        sideGloss.addColorStop(0.12, 'rgba(255, 255, 255, 0.04)');
+        sideGloss.addColorStop(0, 'rgba(120, 226, 255, 0.14)');
+        sideGloss.addColorStop(0.12, 'rgba(255, 126, 206, 0.06)');
         sideGloss.addColorStop(0.48, 'rgba(0, 0, 0, 0)');
         sideGloss.addColorStop(1, 'rgba(0, 0, 0, 0.24)');
         ctx.fillStyle = sideGloss;
         ctx.fillRect(x, building.y, building.w, building.h);
+
+        const { roofX, roofY, roofW } = drawBuildingSkylineCap(ctx, building, x, accent, buildingAlpha);
 
         ctx.strokeStyle = accent;
         ctx.lineWidth = 1;
@@ -353,7 +412,7 @@ export function drawLayer(layer, camX) {
         if (quality >= 0.82) {
             const ribCount = Math.max(2, Math.floor(building.w / 54));
             ctx.globalAlpha = 0.16;
-            ctx.strokeStyle = 'rgba(140, 224, 255, 0.22)';
+            ctx.strokeStyle = 'rgba(150, 220, 255, 0.2)';
             ctx.beginPath();
             for (let rib = 1; rib <= ribCount; rib++) {
                 const ribX = x + ((building.w / (ribCount + 1)) * rib);
@@ -376,12 +435,35 @@ export function drawLayer(layer, camX) {
             ctx.globalAlpha = buildingAlpha;
         }
 
-        drawBuildingRoof(ctx, building, x, accent, glow, quality);
+        drawBuildingRoof(ctx, building, roofX, roofY, roofW, accent, glow, quality);
 
         if (quality >= 0.72) {
             const flashBoost = building.flashTimer > 0 ? ((building.flashTimer / 10) * 0.22) : 0;
             const frameBucket = Math.floor(state.game.frames / 14);
-            drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost, windowCore, windowHot);
+            if (building.windowPalette === 'mixed') {
+                const altCore = frameBucket % 2 === 0 ? cyanCore : magentaCore;
+                const altHot = frameBucket % 2 === 0 ? cyanHot : magentaHot;
+                drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost, altCore, altHot);
+            } else {
+                drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost, windowCore, windowHot);
+            }
+        }
+
+        if (quality >= 0.78 && Array.isArray(building.neonStrips)) {
+            ctx.globalAlpha = 0.22;
+            for (let s = 0; s < building.neonStrips.length; s++) {
+                const stripX = x + (building.w * building.neonStrips[s]);
+                const stripGrad = ctx.createLinearGradient(stripX, building.y, stripX, building.y + building.h);
+                stripGrad.addColorStop(0, 'rgba(255, 105, 194, 0.7)');
+                stripGrad.addColorStop(0.45, 'rgba(100, 237, 255, 0.34)');
+                stripGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.strokeStyle = stripGrad;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(stripX, building.y + 8);
+                ctx.lineTo(stripX, building.y + building.h - 12);
+                ctx.stroke();
+            }
         }
 
         ctx.globalAlpha = 1;

@@ -5,6 +5,7 @@
  */
 
 import state from '../core/state.js';
+import { WORLD } from '../config.js';
 import { spawnParticles, spawnText } from '../systems/particles.js';
 import { SFX } from '../core/audio.js';
 import { storage, save } from '../core/storage.js';
@@ -39,7 +40,7 @@ export default class Enemy {
         let floatY = Math.sin(this.bob) * 2;
         let distToPlayer = state.player.x - this.x;
         let distY = Math.abs(state.player.y - this.y);
-        if (Math.abs(distToPlayer) < 500 && distY < 200) {
+        if (Math.abs(distToPlayer) < WORLD.enemyDetectRangeX && distY < WORLD.enemyDetectRangeY) {
             this.dir = Math.sign(distToPlayer);
             this.alert = true;
         } else {
@@ -54,18 +55,16 @@ export default class Enemy {
             // Usa uma "area de pe" interna para evitar suporte quando o
             // inimigo esta quase todo fora da plataforma.
             const footInset = 8;
-            let best = null;
-            let bestDiff = Infinity;
-            for (let p of state.platforms) {
+            for (let i = 0; i < state.platforms.length; i++) {
+                const p = state.platforms[i];
                 if (xPos + this.w - footInset > p.x && xPos + footInset < p.x + p.w) {
                     const diff = p.y - (yPos + this.h);
-                    if (diff >= -6 && diff <= 24 && diff < bestDiff) {
-                        best = p;
-                        bestDiff = diff;
+                    if (diff >= -6 && diff <= 24) {
+                        return p;
                     }
                 }
             }
-            return best;
+            return null;
         };
         // previne cair das plataformas invertendo direção se não houver suporte
         let intendedX = this.x + this.vx * this.dir;
@@ -98,29 +97,39 @@ export default class Enemy {
             this.vy = Math.min(this.vy + 0.6, 10);
             this.y += this.vy;
         }
-        if (this.y > 1000) this.hp = 0;
+        if (this.y > WORLD.killFloorEnemy) this.hp = 0;
         this.drawY = this.y + floatY;
         if (this.hitFlash > 0) this.hitFlash--;
     }
 
     /**
-     * Aplica dano ao inimigo. Ao morrer, concede moedas ao jogador e
-     * dispara efeitos visuais e sonoros.
+     * Aplica dano ao inimigo. Pode ser dano do player ou do ambiente (vírus).
      * @param {number} dmg Valor do dano
+     * @param {boolean} killedByPlayer Se for false, não concederá moedas
      */
-    takeDamage(dmg) {
+    takeDamage(dmg, killedByPlayer = true) {
         this.hp -= dmg;
         this.hitFlash = 8;
         spawnParticles(this.x + this.w / 2, this.y, 8, '#ffaa00', 1);
-        spawnText(dmg, this.x, this.y, '#fff');
+        
+        const textColor = killedByPlayer ? '#fff' : '#ff203c';
+        spawnText(dmg, this.x, this.y, textColor);
+        
         if (this.hp <= 0) {
-            const reward = 2 + Math.floor(Math.random() * 4);
-            storage.totalCoins += reward;
-            state.game.coins += reward;
-            save();
-            spawnText('+' + reward + ' CR', this.x, this.y - 20, '#ffd700');
-            spawnParticles(this.x + this.w / 2, this.y, 15, '#ffd700', 2);
-            SFX.coin();
+            if (killedByPlayer) {
+                // Recompensa padrão se foi morto pelo player
+                const reward = 2 + Math.floor(Math.random() * 4);
+                storage.totalCoins += reward;
+                state.game.coins += reward;
+                save();
+                spawnText('+' + reward + ' CR', this.x, this.y - 20, '#ffd700');
+                spawnParticles(this.x + this.w / 2, this.y, 15, '#ffd700', 2);
+                SFX.coin();
+            } else {
+                // Efeito de corrupção se foi desintegrado pelo vírus
+                spawnText('CORRUPTED', this.x, this.y - 20, '#ff203c');
+                spawnParticles(this.x + this.w / 2, this.y, 15, '#000000', 3);
+            }
         }
     }
 

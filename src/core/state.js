@@ -50,6 +50,9 @@ const state = {
         modeId: 'medium',
         time: 0,
         timeScale: 1,
+        // TEMP MOD (screenshot): override de slow motion para capturar frames.
+        // Remover quando nao for mais necessario.
+        debugTimeScaleOverride: null,
         simAccumulator: 0,
         audioStarted: false,
         newRecordReached: false,
