@@ -369,7 +369,8 @@ export default class Player {
 
         // Efeito de aterrissagem
         if (this.grounded && !this.wasGrounded) {
-            spawnParticles(this.x + this.w / 2, this.y + this.h, 12, '#7cfbff', 1);
+            const landingDustColor = this.skin?.glow || this.skin?.c1 || '#7cfbff';
+            spawnParticles(this.x + this.w / 2, this.y + this.h, 12, landingDustColor, 1);
         }
 
         // Efeito de rastro quando se move rápido (agora também no ar)
