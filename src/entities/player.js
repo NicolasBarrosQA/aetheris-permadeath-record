@@ -14,7 +14,7 @@ import { spawnParticles, spawnShockwave, spawnText } from '../systems/particles.
 import { rectIntersect } from '../core/utils.js';
 import { getSkinSprite } from '../core/sprites.js';
 
-const MAX_SKIN_COST = SKINS_DB.reduce((maxCost, skin) => Math.max(maxCost, skin.cost || 0), 0);
+const STRONG_YELLOW_TRAIL_SKIN_ID = 9;
 
 export default class Player {
     constructor() {
@@ -421,7 +421,7 @@ export default class Player {
         const gap = 6;
         const baseY = this.y;
         const anchorX = this.facing === 1 ? this.x - gap : this.x + this.w + gap;
-        const isTopCostSkin = this.skin?.cost === MAX_SKIN_COST;
+        const isTopCostSkin = this.skin?.id === STRONG_YELLOW_TRAIL_SKIN_ID;
         const baseIntensity = 0.2 + Math.min(horizontalSpeed * 0.015, 0.12);
         const intensity = isTopCostSkin ? Math.min(0.5, baseIntensity + 0.14) : baseIntensity;
         const tailColor = isTopCostSkin
