@@ -209,6 +209,14 @@ export const SKINS_DB = [
         c2: '#110011', 
         glow: '#aa00ff' 
     },
+    {
+        id: 5,
+        name: 'Rainbow',
+        cost: 1200,
+        c1: '#ff4df2',
+        c2: '#4de9ff',
+        glow: '#ffffff'
+    },
     // --- SKINS COM SPRITE ---
 
     {

@@ -15,6 +15,7 @@ import { rectIntersect } from '../core/utils.js';
 import { getSkinSprite } from '../core/sprites.js';
 
 const STRONG_YELLOW_TRAIL_SKIN_ID = 9;
+const RAINBOW_PLATFORM_SKIN_ID = 5;
 
 export default class Player {
     constructor() {
@@ -57,25 +58,79 @@ export default class Player {
      */
     updateSkin() {
         this.skin = SKINS_DB.find(s => s.id === storage.currentSkinId) || SKINS_DB[0];
+        this.skinPalette = this.getSkinPalette();
+    }
+
+    getPlatformLinkedHue() {
+        const feetX = this.x + (this.w * 0.5);
+        const feetY = this.y + this.h;
+        let bestPlatform = null;
+        let bestVerticalGap = Number.POSITIVE_INFINITY;
+
+        for (let i = 0; i < state.platforms.length; i++) {
+            const p = state.platforms[i];
+            if (feetX >= p.x && feetX <= (p.x + p.w)) {
+                const verticalGap = Math.abs(feetY - p.y);
+                if (verticalGap < bestVerticalGap) {
+                    bestVerticalGap = verticalGap;
+                    bestPlatform = p;
+                }
+            }
+        }
+
+        if (!bestPlatform) {
+            let bestHorizontalGap = Number.POSITIVE_INFINITY;
+            for (let i = 0; i < state.platforms.length; i++) {
+                const p = state.platforms[i];
+                const dx = feetX < p.x
+                    ? (p.x - feetX)
+                    : (feetX > (p.x + p.w) ? (feetX - (p.x + p.w)) : 0);
+                if (dx < bestHorizontalGap) {
+                    bestHorizontalGap = dx;
+                    bestPlatform = p;
+                }
+            }
+        }
+
+        const hueBase = bestPlatform?.colorHue ?? ((state.game.dist / 100) % 360);
+        return (hueBase + state.game.frames) % 360;
+    }
+
+    getSkinPalette() {
+        if (!this.skin || this.skin.id !== RAINBOW_PLATFORM_SKIN_ID) {
+            return this.skin;
+        }
+
+        const hue = this.getPlatformLinkedHue();
+        return {
+            c1: `hsl(${hue}, 100%, 64%)`,
+            c2: `hsl(${(hue + 40) % 360}, 100%, 46%)`,
+            glow: `hsl(${hue}, 100%, 60%)`
+        };
+    }
+
+    getSkinColors() {
+        return this.skinPalette || this.skin;
     }
 
     /**
      * Inicia um dash horizontal, aplicando velocidade e invulnerabilidade.
      */
     startDash() {
+        const skinColors = this.getSkinColors();
         this.isDashing = true;
         this.dashTimer = PHYS.dashDuration;
         this.invul = PHYS.invulOnDash;
         this.vy = 0;
         this.vx = PHYS.dashSpeed * this.facing;
         SFX.dash();
-        spawnShockwave(this.x + this.w / 2, this.y + this.h / 2, this.skin.glow);
+        spawnShockwave(this.x + this.w / 2, this.y + this.h / 2, skinColors.glow);
         state.attackEffects.push({
             kind: 'dashBurst',
             x: this.x + this.w / 2,
             y: this.y + this.h / 2,
             radius: 14,
-            color: this.skin.glow,
+            color: skinColors.glow,
             alpha: 0.84,
             life: 8,
             growth: 5.6,
@@ -185,6 +240,8 @@ export default class Player {
     update() {
         if (!state.game.running || state.game.shopOpen) return;
 
+        this.skinPalette = this.getSkinPalette();
+        const skinColors = this.getSkinColors();
         const left = state.keys['arrowleft'] || state.keys['a'];
         const right = state.keys['arrowright'] || state.keys['d'];
 
@@ -284,7 +341,7 @@ export default class Player {
                     y: this.y + this.h / 2,
                     w: this.w,
                     h: this.h,
-                    c: this.skin.glow || this.skin.c1,
+                    c: skinColors.glow || skinColors.c1,
                     alpha: 0.62,
                     life: 11,
                     maxLife: 11,
@@ -311,14 +368,14 @@ export default class Player {
                 this.jumpBuffer = 0;
                 this.primeAirDashCharge();
                 SFX.jump();
-                spawnParticles(this.x + this.w / 2, this.y + this.h, 8, this.skin.glow, 1);
+                spawnParticles(this.x + this.w / 2, this.y + this.h, 8, skinColors.glow, 1);
             } else if (this.jumpBuffer > 0 && this.jumps < maxJumps && !this.isDashing) {
                 this.vy = this.jumps >= 2 ? (PHYS.doubleJumpForce * 0.94) : PHYS.doubleJumpForce;
                 this.jumps++;
                 this.jumpBuffer = 0;
                 this.primeAirDashCharge();
                 SFX.jump();
-                spawnShockwave(this.x + this.w / 2, this.y + this.h / 2, this.skin.glow);
+                spawnShockwave(this.x + this.w / 2, this.y + this.h / 2, skinColors.glow);
             }
         }
 
@@ -371,7 +428,7 @@ export default class Player {
 
         // Efeito de aterrissagem
         if (this.grounded && !this.wasGrounded) {
-            const landingDustColor = this.skin?.glow || this.skin?.c1 || '#7cfbff';
+            const landingDustColor = skinColors?.glow || skinColors?.c1 || '#7cfbff';
             spawnParticles(this.x + this.w / 2, this.y + this.h, 12, landingDustColor, 1);
         }
 
@@ -416,6 +473,7 @@ export default class Player {
      * @param {number} horizontalSpeed Velocidade horizontal atual
      */
     spawnRunTrail(horizontalSpeed) {
+        const skinColors = this.getSkinColors();
         const tailLen = 18 + Math.min(horizontalSpeed * 1.8, 16);
         const tailH = this.h;
         const gap = 6;
@@ -426,7 +484,7 @@ export default class Player {
         const intensity = isTopCostSkin ? Math.min(0.5, baseIntensity + 0.14) : baseIntensity;
         const tailColor = isTopCostSkin
             ? '#ffe600'
-            : (this.skin.glow || this.skin.c1);
+            : (skinColors.glow || skinColors.c1);
 
         state.particles.push({
             trail: true,
@@ -534,6 +592,7 @@ export default class Player {
      * luminoso e causa dano aos inimigos dentro do alcance.
      */
     attack() {
+        const skinColors = this.getSkinColors();
         const range = 90;
         const atkX = this.facing === 1 ? this.x + this.w : this.x - range;
 
@@ -542,7 +601,7 @@ export default class Player {
             x: this.x + this.w / 2,
             y: this.y + this.h / 2,
             radius: range,
-            color: this.skin.glow,
+            color: skinColors.glow,
             alpha: 0.9,
             life: 6
         });
@@ -551,7 +610,7 @@ export default class Player {
             x: this.x + this.w / 2 + this.facing * 22,
             y: this.y + this.h * 0.48,
             radius: 30,
-            color: this.skin.glow,
+            color: skinColors.glow,
             alpha: 0.95,
             life: 8,
             growth: 6.2,
@@ -560,14 +619,14 @@ export default class Player {
             angle: this.facing === 1 ? -0.35 : Math.PI + 0.35,
             spin: this.facing === 1 ? 0.24 : -0.24
         });
-        spawnParticles(this.x + this.w / 2 + this.facing * 24, this.y + this.h * 0.5, 12, this.skin.glow, 1);
+        spawnParticles(this.x + this.w / 2 + this.facing * 24, this.y + this.h * 0.5, 12, skinColors.glow, 1);
 
         // Checa inimigos no alcance
         state.enemies.forEach(e => {
             if (rectIntersect(atkX, this.y, range, this.h, e.x, e.y, e.w, e.h)) {
                 e.takeDamage(35);
                 e.vx = 8 * this.facing;
-                spawnText('CRIT!', e.x, e.y, this.skin.glow);
+                spawnText('CRIT!', e.x, e.y, skinColors.glow);
                 state.attackEffects.push({
                     kind: 'impact',
                     x: e.x + e.w / 2,
@@ -615,6 +674,8 @@ export default class Player {
      */
     draw() {
         const ctx = state.ctx;
+        this.skinPalette = this.getSkinPalette();
+        const skinColors = this.getSkinColors();
 
         // trilhas do dash
         for (let i = state.ghosts.length - 1; i >= 0; i--) {
@@ -713,7 +774,7 @@ export default class Player {
             ctx.fill();
 
             ctx.shadowBlur = 28;
-            ctx.shadowColor = this.skin.glow || '#0ff';
+            ctx.shadowColor = skinColors.glow || '#0ff';
 
             // espelha o sprite quando estiver virado para a esquerda
             if (this.facing === -1) {
@@ -737,11 +798,11 @@ export default class Player {
 
         // DESENHO PADRÃO (igual ao original) PARA TODAS AS SKINS SEM SPRITE
         let grad = ctx.createLinearGradient(0, 0, 0, this.h);
-        grad.addColorStop(0, this.skin.c1);
-        grad.addColorStop(1, this.skin.c2);
+        grad.addColorStop(0, skinColors.c1);
+        grad.addColorStop(1, skinColors.c2);
         ctx.fillStyle = grad;
         ctx.shadowBlur = 26;
-        ctx.shadowColor = this.skin.glow;
+        ctx.shadowColor = skinColors.glow;
         ctx.fillRect(0, 0, this.w, this.h);
 
         const edge = ctx.createLinearGradient(0, 0, this.w, this.h);
