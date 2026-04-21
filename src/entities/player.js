@@ -14,6 +14,8 @@ import { spawnParticles, spawnShockwave, spawnText } from '../systems/particles.
 import { rectIntersect } from '../core/utils.js';
 import { getSkinSprite } from '../core/sprites.js';
 
+const MAX_SKIN_COST = SKINS_DB.reduce((maxCost, skin) => Math.max(maxCost, skin.cost || 0), 0);
+
 export default class Player {
     constructor() {
         this.x = 100;
@@ -419,8 +421,12 @@ export default class Player {
         const gap = 6;
         const baseY = this.y;
         const anchorX = this.facing === 1 ? this.x - gap : this.x + this.w + gap;
-        const intensity = 0.2 + Math.min(horizontalSpeed * 0.015, 0.12);
-        const tailColor = this.skin.glow || this.skin.c1;
+        const isTopCostSkin = this.skin?.cost === MAX_SKIN_COST;
+        const baseIntensity = 0.2 + Math.min(horizontalSpeed * 0.015, 0.12);
+        const intensity = isTopCostSkin ? Math.min(0.5, baseIntensity + 0.14) : baseIntensity;
+        const tailColor = isTopCostSkin
+            ? '#ffe600'
+            : (this.skin.glow || this.skin.c1);
 
         state.particles.push({
             trail: true,
@@ -441,7 +447,7 @@ export default class Player {
             vy: -1,
             life: 12,
             color: tailColor,
-            alpha: 0.4
+            alpha: isTopCostSkin ? 0.56 : 0.4
         });
     }
 
