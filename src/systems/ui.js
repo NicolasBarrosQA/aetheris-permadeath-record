@@ -139,7 +139,9 @@ export function updateUI() {
 
     state.uiDist.innerText = `${distM}m`;
     state.uiCoins.innerText = String(storage.totalCoins);
-    state.uiBest.innerText = `${Math.floor(storage.highScore / 10)}m`;
+    state.uiBest.innerText = storage.bestInfinity
+        ? '∞'
+        : `${Math.floor(storage.highScore / 10)}m`;
 
     if (state.player) {
         const hpVal = Math.max(0, Math.min(state.player.hp, 100));
