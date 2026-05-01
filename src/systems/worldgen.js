@@ -31,7 +31,8 @@ export function resetWorldParams() {
  */
 export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
     const patterns = ['grid', 'stripes', 'bars', 'slits'];
-    const skylineClasses = ['block', 'stacked', 'spire'];
+    // Distribuição ponderada: 50% rect simples, 25% degrau, 25% chanfrado.
+    const skylineClasses = ['block', 'block', 'stacked', 'spire'];
     const windowPalettes = ['cyan', 'magenta', 'mixed'];
     const viewH = Math.max(600, state.view?.worldHeight || 600);
     const minWidth = Math.max(90, wMin);
@@ -43,6 +44,48 @@ export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
     for (let idx = 0; idx < neonStripCount; idx++) {
         neonStrips.push(0.12 + (Math.random() * 0.76));
     }
+    // Antenas laterais menores: ~30% dos prédios têm 1 ou 2.
+    let extraAntennas = null;
+    if (Math.random() < 0.3) {
+        const count = 1 + Math.floor(Math.random() * 2);
+        extraAntennas = [];
+        for (let k = 0; k < count; k++) {
+            extraAntennas.push({
+                offset: 0.15 + Math.random() * 0.7,
+                height: 14 + Math.random() * 26
+            });
+        }
+    }
+
+    // Letreiro vertical: ~30% dos prédios têm um letreiro lateral piscante.
+    const signColors = ['rgba(255, 60, 110, 0.9)', 'rgba(80, 220, 255, 0.9)', 'rgba(255, 200, 80, 0.9)', 'rgba(180, 110, 255, 0.9)'];
+    let sign = null;
+    if (Math.random() < 0.3) {
+        sign = {
+            offsetX: Math.random() < 0.5 ? (0.06 + Math.random() * 0.12) : (0.82 - Math.random() * 0.12),
+            offsetTop: 0.18 + Math.random() * 0.4,
+            heightFraction: 0.28 + Math.random() * 0.32,
+            width: 7 + Math.random() * 4,
+            color: signColors[Math.floor(Math.random() * signColors.length)],
+            seed: Math.floor(Math.random() * 10000),
+            blinkSpeed: 0.018 + Math.random() * 0.025
+        };
+    }
+
+    // Billboard cyberpunk: ~22% dos prédios da camada próxima recebem um
+    // outdoor grande de "marca", posicionado bem alto no prédio. O design
+    // real é resolvido em background.js a partir do `eggId`.
+    let billboard = null;
+    if (parallax > 0.3 && Math.random() < 0.22 && width >= 130) {
+        billboard = {
+            eggId: Math.floor(Math.random() * 8),
+            offsetTop: 0.06 + Math.random() * 0.18,
+            offsetX: 0.12 + Math.random() * 0.18,
+            scale: 0.95 + Math.random() * 0.2,
+            phaseSeed: Math.random() * 1000
+        };
+    }
+
     return {
         x: i * spacing,
         y: yMin + Math.random() * (yMax - yMin),
@@ -55,16 +98,19 @@ export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
         accentShift: -16 + Math.random() * 32,
         windowPhase: Math.random() * Math.PI * 2,
         windowDensity: 0.86 + Math.random() * 0.28,
-        beacon: Math.random() < 0.35,
+        beacon: Math.random() < 0.55,
         beaconOffset: 0.18 + Math.random() * 0.64,
-        antennaHeight: 14 + Math.random() * 22,
+        antennaHeight: 38 + Math.random() * 50,
         facadeBands: 2 + Math.floor(Math.random() * 3),
         skylineClass: skylineClasses[Math.floor(Math.random() * skylineClasses.length)],
         skylineInset: 0.16 + Math.random() * 0.24,
         skylineHeight: 0.12 + Math.random() * 0.2,
         windowPalette: windowPalettes[Math.floor(Math.random() * windowPalettes.length)],
         antennaCount: 1 + Math.floor(Math.random() * 3),
-        neonStrips
+        neonStrips,
+        extraAntennas,
+        sign,
+        billboard
     };
 }
 

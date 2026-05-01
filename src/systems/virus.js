@@ -73,14 +73,20 @@ export function drawVirus(ctx, viewH) {
     const virus = state.virusWall;
     if (!virus.active) return;
 
-    const topY = state.camera.y - 300;
-    const wallH = viewH + 600;
+    // Culling vertical: desenha só o que está perto da viewport (margem de
+    // 80px em cima e embaixo) em vez de viewH+600. Reduz o loop nested
+    // proporcionalmente à altura da tela.
+    const topY = state.camera.y - 80;
+    const wallH = viewH + 160;
     const frontX = virus.x;
     const frames = state.game.frames;
     const pulse = 0.55 + Math.sin(virus.pulse) * 0.25;
+    // Respeita a qualidade adaptativa (0.62..1) que o engine ajusta com
+    // base no frame time. Reduz proporcionalmente as contagens dos loops.
+    const quality = state.performance?.quality || 1;
 
     ctx.save();
-    
+
     const getHash = (seed) => {
         const x = Math.sin(seed) * 43758.5453123;
         return x - Math.floor(x);
@@ -94,11 +100,12 @@ export function drawVirus(ctx, viewH) {
     ctx.fillStyle = voidGrad;
     ctx.fillRect(frontX - 2500, topY, 2450, wallH);
 
-    for (let i = 0; i < 450; i++) {
+    const debrisCount = Math.max(120, Math.floor(450 * quality));
+    for (let i = 0; i < debrisCount; i++) {
         const seed = i * 71 + Math.floor(frames / 6);
         const ih1 = getHash(seed);
         const ih2 = getHash(seed + 1);
-        const voidX = frontX - 100 - (Math.pow(ih1, 1.2) * 1200); 
+        const voidX = frontX - 100 - (Math.pow(ih1, 1.2) * 1200);
         const voidY = topY + (ih2 * wallH);
         const snipX = Math.floor(voidX / blockSize) * blockSize;
         const snipY = Math.floor(voidY / blockSize) * blockSize;
@@ -161,8 +168,9 @@ export function drawVirus(ctx, viewH) {
         }
     }
 
+    const dodgeCount = Math.max(48, Math.floor(150 * quality));
     ctx.globalCompositeOperation = 'color-dodge';
-    for (let i = 0; i < 150; i++) {
+    for (let i = 0; i < dodgeCount; i++) {
         const seed = i * 29 + Math.floor(frames / 2);
         const ih1 = getHash(seed);
         const ih2 = getHash(seed + 1);
@@ -177,8 +185,9 @@ export function drawVirus(ctx, viewH) {
         ctx.fillRect(snipX, snipY, biteW, biteH);
     }
 
+    const biteCount = Math.max(96, Math.floor(300 * quality));
     ctx.globalCompositeOperation = 'destination-out';
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < biteCount; i++) {
         const seed = i * 41 + Math.floor(frames / 1.5);
         const ih1 = getHash(seed);
         const ih2 = getHash(seed + 1);
@@ -193,8 +202,9 @@ export function drawVirus(ctx, viewH) {
         ctx.fillRect(snipX, snipY, biteW, biteH);
     }
 
+    const sparkCount = Math.max(28, Math.floor(80 * quality));
     ctx.globalCompositeOperation = 'screen';
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < sparkCount; i++) {
         const seed = i * 53 + Math.floor(frames / 2);
         const ih1 = getHash(seed);
         const ih2 = getHash(seed + 1);

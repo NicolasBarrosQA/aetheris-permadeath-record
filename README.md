@@ -51,10 +51,12 @@ O jogo possui três modos de dificuldade, progressão contínua de velocidade, g
 - Física de plataforma com coyote time e jump buffer
 - Ciclo dinâmico de dia e noite
 - Background com parallax em múltiplas camadas
+- Skyline cyberpunk com silhuetas variadas, antenas de transmissão, letreiros verticais e outdoors easter egg em homenagem ao gênero (Blade Runner / Cloudpunk)
+- Janelas com paleta cyan/magenta/âmbar e iluminação determinística (sem flicker em massa)
 - Qualidade gráfica adaptativa com ajuste automático por desempenho
 - SFX gerados em tempo real com Web Audio API
 - Persistência local de recorde, moedas, skins e preferências
-- Sistema visual de corrupção digital no modo difícil
+- Sistema visual de corrupção digital no modo difícil, com renderização adaptativa (culling vertical + escala de qualidade dinâmica) para manter fluidez
 - Pause inteligente com tela dedicada e suspensão completa da simulação
 
 ---

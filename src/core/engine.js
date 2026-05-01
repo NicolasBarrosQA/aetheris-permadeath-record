@@ -324,7 +324,8 @@ function updateGame() {
     if (shouldUpdateBuildingFlash) {
         [state.bgLayer1, state.bgLayer2, state.bgLayer3].forEach(layer => {
             layer.forEach(b => {
-                if (Math.random() < 0.008) b.flashTimer = 10;
+                // (Flash em massa removido — causava piscação visual indesejada.
+                // Mantemos só o decremento por segurança caso algo o setasse.)
                 if (b.flashTimer > 0) b.flashTimer--;
             });
         });

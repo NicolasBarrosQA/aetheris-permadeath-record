@@ -196,6 +196,8 @@ function drawBuildingRoof(ctx, building, roofX, roofY, roofW, accent, glow, qual
     const mainW = roofW;
 
     ctx.save();
+
+    // Linha brilhante no topo do prédio.
     ctx.strokeStyle = accent;
     ctx.lineWidth = 1;
     ctx.shadowBlur = quality >= 0.9 ? 5 : 0;
@@ -204,102 +206,397 @@ function drawBuildingRoof(ctx, building, roofX, roofY, roofW, accent, glow, qual
     ctx.moveTo(roofX + 3, topY + 0.5);
     ctx.lineTo(roofX + mainW - 3, topY + 0.5);
     ctx.stroke();
+    ctx.shadowBlur = 0;
 
-    ctx.globalAlpha = 0.12;
-    ctx.fillStyle = accent;
-    ctx.fillRect(roofX + 6, topY + 2, Math.max(24, mainW * 0.22), 2);
-    ctx.fillRect(roofX + mainW - Math.max(20, mainW * 0.16) - 6, topY + 2, Math.max(20, mainW * 0.16), 2);
-    ctx.globalAlpha = 1;
+    // Antena principal: mastro fino, mais alto, com 2-3 cross-beams.
+    if (quality >= 0.72) {
+        const beaconX = roofX + (mainW * (building.beaconOffset || 0.5));
+        const antennaH = building.antennaHeight || 50;
+        const beaconY = topY - antennaH;
 
-    if (building.beacon && quality >= 0.78) {
-        const beaconX = roofX + (mainW * building.beaconOffset);
-        const beaconY = topY - (building.antennaHeight || 18);
-        const beaconPulse = 0.45 + (Math.sin((state.game.frames * 0.05) + building.windowPhase) * 0.5);
-        ctx.globalAlpha = 0.35 + (beaconPulse * 0.35);
-        ctx.strokeStyle = 'rgba(255, 146, 176, 0.72)';
+        ctx.strokeStyle = 'rgba(150, 180, 220, 0.6)';
+        ctx.lineWidth = 1.1;
         ctx.beginPath();
         ctx.moveTo(beaconX, topY + 1);
         ctx.lineTo(beaconX, beaconY);
         ctx.stroke();
-        ctx.fillStyle = 'rgba(255, 120, 160, 0.95)';
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = 'rgba(255, 120, 160, 0.7)';
+
+        // Cross-beams horizontais (2 níveis na parte superior do mastro).
+        const beam1Y = beaconY + antennaH * 0.18;
+        const beam2Y = beaconY + antennaH * 0.36;
+        ctx.strokeStyle = 'rgba(150, 180, 220, 0.42)';
+        ctx.lineWidth = 0.9;
         ctx.beginPath();
-        ctx.arc(beaconX, beaconY, 2.2 + (beaconPulse * 0.9), 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(beaconX - 4, beam1Y);
+        ctx.lineTo(beaconX + 4, beam1Y);
+        ctx.moveTo(beaconX - 6, beam2Y);
+        ctx.lineTo(beaconX + 6, beam2Y);
+        ctx.stroke();
+
+        // Beacon piscante (vermelho aviação) — só em ~55% dos prédios.
+        if (building.beacon) {
+            const beaconPulse = 0.45 + (Math.sin((state.game.frames * 0.05) + building.windowPhase) * 0.5);
+            ctx.fillStyle = 'rgba(255, 80, 110, 0.95)';
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = 'rgba(255, 80, 110, 0.75)';
+            ctx.beginPath();
+            ctx.arc(beaconX, beaconY, 1.8 + (beaconPulse * 1.2), 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        } else {
+            // Pontinho cyan inerte no topo (sem piscar).
+            ctx.fillStyle = 'rgba(170, 220, 255, 0.7)';
+            ctx.fillRect(beaconX - 0.6, beaconY - 0.6, 1.6, 1.6);
+        }
+    }
+
+    // Antenas laterais menores (presentes em ~30% dos prédios).
+    if (quality >= 0.78 && Array.isArray(building.extraAntennas)) {
+        ctx.strokeStyle = 'rgba(120, 150, 190, 0.45)';
+        ctx.lineWidth = 0.9;
+        for (let k = 0; k < building.extraAntennas.length; k++) {
+            const ant = building.extraAntennas[k];
+            const antX = roofX + (mainW * ant.offset);
+            const antTop = topY - ant.height;
+            ctx.beginPath();
+            ctx.moveTo(antX, topY + 1);
+            ctx.lineTo(antX, antTop);
+            ctx.stroke();
+            // Mini-luz cyan no topo
+            ctx.fillStyle = 'rgba(140, 220, 255, 0.7)';
+            ctx.fillRect(antX - 0.6, antTop - 0.6, 1.4, 1.4);
+        }
     }
 
     ctx.restore();
 }
 
-function drawBuildingSkylineCap(ctx, building, x, accent, buildingAlpha) {
-    const skylineClass = building.skylineClass || 'block';
-    const skylineInset = building.skylineInset || 0.2;
-    const skylineHeight = building.skylineHeight || 0.16;
-    const capHeight = Math.max(24, building.h * skylineHeight);
-    const capInsetPx = Math.max(10, building.w * skylineInset);
-    let roofX = x;
-    let roofY = building.y;
-    let roofW = building.w;
+// Tabela de outdoors cyberpunk — paródias glitched de marcas reais.
+// Mantidas como homage estilo Blade Runner (não usam o nome literal nem
+// reproduzem logos para evitar problemas de marca registrada).
+const BILLBOARD_EGGS = [
+    {
+        name: 'KOKA·NOVA',
+        tagline: 'TASTE THE FUTURE',
+        primary: '#ff2438',
+        secondary: '#ffffff',
+        bg: 'rgba(20, 4, 6, 0.94)',
+        border: 'rgba(255, 60, 90, 0.95)',
+        scanline: true
+    },
+    {
+        name: 'ATARI·X',
+        tagline: 'PLAY HARD',
+        primary: '#ff6bd6',
+        secondary: '#ffe066',
+        bg: 'rgba(20, 6, 24, 0.94)',
+        border: 'rgba(255, 110, 220, 0.92)',
+        scanline: true
+    },
+    {
+        name: 'N3O·SONY',
+        tagline: 'BE NO OTHER',
+        primary: '#7be3ff',
+        secondary: '#dff6ff',
+        bg: 'rgba(4, 12, 22, 0.94)',
+        border: 'rgba(123, 224, 255, 0.95)',
+        scanline: false
+    },
+    {
+        name: 'PAN·AM 2099',
+        tagline: 'INTERSTELLAR',
+        primary: '#5b9dff',
+        secondary: '#e8f0ff',
+        bg: 'rgba(4, 8, 22, 0.94)',
+        border: 'rgba(91, 157, 255, 0.92)',
+        scanline: false
+    },
+    {
+        name: 'NINT3NDO',
+        tagline: 'GAME ETERNAL',
+        primary: '#ff3b3b',
+        secondary: '#ffe6d8',
+        bg: 'rgba(20, 4, 4, 0.96)',
+        border: 'rgba(255, 70, 70, 0.95)',
+        scanline: true
+    },
+    {
+        name: 'MΣTA·VERSE',
+        tagline: 'CONNECT ALL',
+        primary: '#4f8aff',
+        secondary: '#cfe0ff',
+        bg: 'rgba(6, 10, 28, 0.94)',
+        border: 'rgba(96, 156, 255, 0.92)',
+        scanline: false
+    },
+    {
+        name: 'AR4SAKA',
+        tagline: '荒坂 // CORP',
+        primary: '#d8d8de',
+        secondary: '#ff5555',
+        bg: 'rgba(10, 10, 14, 0.96)',
+        border: 'rgba(216, 216, 222, 0.85)',
+        scanline: true
+    },
+    {
+        name: 'N3TFL3X',
+        tagline: 'STREAM FOREVER',
+        primary: '#ff1f3d',
+        secondary: '#ffffff',
+        bg: 'rgba(8, 4, 6, 0.96)',
+        border: 'rgba(255, 31, 61, 0.95)',
+        scanline: true
+    }
+];
+
+function drawBuildingBillboard(ctx, building, x, quality) {
+    if (quality < 0.78 || !building.billboard) return;
+    const bb = building.billboard;
+    const egg = BILLBOARD_EGGS[bb.eggId % BILLBOARD_EGGS.length];
+
+    const baseW = Math.min(building.w * 0.78, 150);
+    const w = baseW * bb.scale;
+    const h = w * 0.5;
+    const bbX = x + (building.w - w) * bb.offsetX * 1.2;
+    const bbY = building.y + building.h * bb.offsetTop;
+
+    const frames = state.game.frames;
+    // Pulso sutil da borda — quase imperceptível.
+    const borderPulse = 0.78 + 0.22 * Math.sin((frames * 0.04) + bb.phaseSeed);
 
     ctx.save();
-    ctx.globalAlpha = Math.min(0.9, buildingAlpha + 0.14);
-    ctx.fillStyle = 'rgba(7, 8, 20, 0.94)';
+    ctx.globalAlpha = Math.min(1, 0.78 + (building.opacity * 0.22));
 
-    if (skylineClass === 'stacked') {
-        roofW = Math.max(26, building.w - (capInsetPx * 2));
-        roofX = x + ((building.w - roofW) * 0.5);
-        roofY = building.y - (capHeight * 0.55);
-        ctx.fillRect(roofX, roofY, roofW, capHeight);
+    // Painel de fundo + borda
+    ctx.fillStyle = egg.bg;
+    ctx.fillRect(bbX, bbY, w, h);
 
-        const sideW = Math.max(12, roofW * 0.18);
-        const sideH = capHeight * 0.64;
-        ctx.fillRect(roofX - sideW * 0.55, roofY + (capHeight * 0.22), sideW, sideH);
-        ctx.fillRect(roofX + roofW - sideW * 0.45, roofY + (capHeight * 0.22), sideW, sideH);
-    } else if (skylineClass === 'spire') {
-        const coreW = Math.max(18, building.w * 0.26);
-        roofW = coreW;
-        roofX = x + ((building.w - coreW) * 0.5);
-        roofY = building.y - (capHeight * 0.92);
-        ctx.fillRect(roofX, roofY, roofW, capHeight * 1.2);
+    ctx.strokeStyle = egg.border;
+    ctx.lineWidth = 1.4;
+    ctx.shadowBlur = quality >= 0.88 ? 10 * borderPulse : 4;
+    ctx.shadowColor = egg.border;
+    ctx.strokeRect(bbX + 0.5, bbY + 0.5, w - 1, h - 1);
+    ctx.shadowBlur = 0;
 
-        const shoulderW = Math.max(20, building.w * 0.5);
-        const shoulderX = x + ((building.w - shoulderW) * 0.5);
-        const shoulderY = building.y - (capHeight * 0.28);
-        ctx.fillRect(shoulderX, shoulderY, shoulderW, capHeight * 0.48);
-    } else {
-        const towerW = Math.max(22, building.w * 0.34);
-        const gap = Math.max(6, building.w * 0.07);
-        roofY = building.y - (capHeight * 0.46);
-        ctx.fillRect(x + gap, roofY, towerW, capHeight * 0.92);
-        ctx.fillRect(x + building.w - towerW - gap, roofY, towerW, capHeight * 0.92);
-        roofX = x + gap;
-        roofW = building.w - (gap * 2);
+    // Scanlines horizontais sutis (efeito CRT) — só nas placas marcadas.
+    if (egg.scanline && quality >= 0.84) {
+        ctx.globalAlpha *= 0.32;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        for (let sy = bbY + 2; sy < bbY + h - 1; sy += 3) {
+            ctx.fillRect(bbX + 1, sy, w - 2, 1);
+        }
+        ctx.globalAlpha = Math.min(1, 0.78 + (building.opacity * 0.22));
     }
 
-    ctx.globalAlpha = 0.2;
-    ctx.fillStyle = accent;
-    ctx.fillRect(roofX + 2, roofY + 2, Math.max(6, roofW - 4), 2);
-    ctx.restore();
+    // Texto principal (nome da marca).
+    const titleSize = Math.max(10, Math.min(15, h * 0.36));
+    ctx.font = `700 ${titleSize}px 'Rajdhani', 'Arial', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = egg.primary;
+    ctx.shadowBlur = quality >= 0.88 ? 8 : 0;
+    ctx.shadowColor = egg.primary;
+    ctx.fillText(egg.name, bbX + w / 2, bbY + h * 0.38);
+    ctx.shadowBlur = 0;
 
-    return { roofX, roofY, roofW };
+    // Tagline (texto secundário, menor).
+    const tagSize = Math.max(7, Math.min(9, h * 0.2));
+    ctx.font = `600 ${tagSize}px 'Rajdhani', 'Arial', sans-serif`;
+    ctx.fillStyle = egg.secondary;
+    ctx.globalAlpha *= 0.78;
+    ctx.fillText(egg.tagline, bbX + w / 2, bbY + h * 0.74);
+
+    ctx.restore();
+}
+
+/**
+ * Desenha um letreiro vertical lateral no prédio (estilo anúncio de néon
+ * em fachada de Hong Kong / Blade Runner). Os "caracteres" são blocos
+ * coloridos com flicker leve — sugerem texto sem desenhar texto real.
+ */
+function drawBuildingSigns(ctx, building, x, quality) {
+    if (quality < 0.78 || !building.sign) return;
+    const sign = building.sign;
+    const signX = x + building.w * sign.offsetX;
+    const signTop = building.y + building.h * sign.offsetTop;
+    const signH = building.h * sign.heightFraction;
+    const signW = sign.width;
+
+    ctx.save();
+
+    // Painel escuro de fundo da placa.
+    ctx.fillStyle = 'rgba(8, 12, 26, 0.86)';
+    ctx.fillRect(signX, signTop, signW, signH);
+
+    // Borda neon brilhante.
+    ctx.strokeStyle = sign.color;
+    ctx.lineWidth = 0.9;
+    ctx.shadowBlur = quality >= 0.88 ? 8 : 4;
+    ctx.shadowColor = sign.color;
+    ctx.strokeRect(signX, signTop, signW, signH);
+    ctx.shadowBlur = 0;
+
+    // "Caracteres" — barras horizontais coloridas com flicker leve.
+    const charH = 4;
+    const charSpacing = 6;
+    const totalChars = Math.floor((signH - 6) / charSpacing);
+    const frames = state.game.frames;
+
+    for (let i = 0; i < totalChars; i++) {
+        const charY = signTop + 4 + (i * charSpacing);
+        if (charY + charH > signTop + signH - 3) break;
+        // Hash determinístico por caractere — alguns ficam fixos, outros piscam.
+        const charSeed = ((sign.seed * 31) + i * 137) | 0;
+        const slot = ((charSeed % 10) + 10) % 10;
+        // ~70% dos chars sempre visíveis, ~30% piscam suavemente
+        let alpha = 0.85;
+        if (slot < 3) {
+            const flickerPhase = frames * sign.blinkSpeed + (charSeed * 0.07);
+            alpha = 0.4 + 0.55 * (Math.sin(flickerPhase) * 0.5 + 0.5);
+        }
+        ctx.fillStyle = sign.color;
+        ctx.globalAlpha = alpha;
+        ctx.fillRect(signX + 1.5, charY, signW - 3, charH);
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
+}
+
+/**
+ * Constrói o path da silhueta do prédio. No estilo Blade Runner / Cloudpunk
+ * a forma é simples (retângulo alto) — a personalidade vem das texturas,
+ * janelas e antenas, não da silhueta exótica.
+ *
+ * Retorna { roofX, roofY, roofW, topMost } pra `drawBuildingRoof` saber
+ * onde fixar a linha luminosa e a antena beacon.
+ */
+function buildBuildingSilhouette(ctx, building, x) {
+    const skylineClass = building.skylineClass || 'block';
+    const bodyTop = building.y;
+    const bodyBottom = building.y + building.h;
+    const bodyLeft = x;
+    const bodyRight = x + building.w;
+
+    ctx.beginPath();
+
+    if (skylineClass === 'stacked') {
+        // Degrau central pequeno acima do body — como um terraço/heliporto
+        // baixinho. Discreto, sem virar "cubo flutuante".
+        const stepW = Math.max(40, Math.min(building.w * 0.5, building.w - 32));
+        const stepH = Math.max(12, Math.min(28, building.h * 0.05));
+        const stepLeft = bodyLeft + (building.w - stepW) * 0.5;
+        const stepRight = stepLeft + stepW;
+        const stepTop = bodyTop - stepH;
+
+        ctx.moveTo(bodyLeft, bodyBottom);
+        ctx.lineTo(bodyLeft, bodyTop);
+        ctx.lineTo(stepLeft, bodyTop);
+        ctx.lineTo(stepLeft, stepTop);
+        ctx.lineTo(stepRight, stepTop);
+        ctx.lineTo(stepRight, bodyTop);
+        ctx.lineTo(bodyRight, bodyTop);
+        ctx.lineTo(bodyRight, bodyBottom);
+        ctx.closePath();
+
+        return {
+            roofX: stepLeft,
+            roofY: stepTop,
+            roofW: stepW,
+            topMost: stepTop
+        };
+    }
+
+    if (skylineClass === 'spire') {
+        // Cantos superiores chanfrados em diagonal — silhueta de torre
+        // brutalista. Sem topo acrescido, só uma "mordida" nos cantos.
+        const chamfer = Math.max(10, Math.min(28, building.w * 0.16));
+
+        ctx.moveTo(bodyLeft, bodyBottom);
+        ctx.lineTo(bodyLeft, bodyTop + chamfer);
+        ctx.lineTo(bodyLeft + chamfer, bodyTop);
+        ctx.lineTo(bodyRight - chamfer, bodyTop);
+        ctx.lineTo(bodyRight, bodyTop + chamfer);
+        ctx.lineTo(bodyRight, bodyBottom);
+        ctx.closePath();
+
+        return {
+            roofX: bodyLeft + chamfer,
+            roofY: bodyTop,
+            roofW: building.w - (chamfer * 2),
+            topMost: bodyTop
+        };
+    }
+
+    // 'block' — retângulo simples (50% dos prédios).
+    ctx.rect(bodyLeft, bodyTop, building.w, building.h);
+
+    return {
+        roofX: bodyLeft,
+        roofY: bodyTop,
+        roofW: building.w,
+        topMost: bodyTop
+    };
+}
+
+// Paleta de cores de janelas no estilo Blade Runner. Algumas janelas
+// "raras" pegam o âmbar quente (apartamentos / interiores iluminados),
+// dando vida e variação cromática à fachada.
+const WINDOW_AMBER_CORE = 'rgba(255, 196, 110, 0.7)';
+const WINDOW_AMBER_HOT = 'rgba(255, 232, 178, 0.95)';
+const WINDOW_DIM = 'rgba(28, 36, 60, 0.5)';
+
+// Hash determinístico (32-bit fnv-ish) por janela: cor e estado on/off
+// não mudam ao longo do tempo, eliminando o "blink em massa".
+function windowHash(buildingX, wx, wy) {
+    let h = (buildingX * 1009) ^ (wx * 73) ^ (wy * 131);
+    h = ((h | 0) ^ ((h >>> 13) * 1597)) | 0;
+    return ((h % 1000) + 1000) % 1000;
+}
+
+function pickWindowPalette(hash, defaultCore, defaultHot) {
+    // ~12% das janelas viram âmbar.
+    const slot = hash % 16;
+    if (slot === 0 || slot === 7) return { core: WINDOW_AMBER_CORE, hot: WINDOW_AMBER_HOT, isAmber: true };
+    return { core: defaultCore, hot: defaultHot, isAmber: false };
+}
+
+// Brilho que respira lentamente (período ~9s). Variação minúscula (±8%)
+// para movimento quase imperceptível.
+function softBreathe(hash, frames) {
+    const phase = hash * 0.0063;
+    return 0.92 + 0.08 * Math.sin((frames * 0.012) + phase);
 }
 
 function drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost, windowCore, windowHot) {
-    const densityBias = Math.max(0, 1.06 - (building.windowDensity || 1));
+    const densityRatio = Math.min(1, Math.max(0.5, building.windowDensity || 1));
+    // Fração de janelas acesas (estática por janela). Densidade do prédio
+    // empurra entre 38% e 55% — cidade noturna real, com prédios meio
+    // vazios. Ignora flashBoost para evitar "piscadão em massa".
+    const litFraction = 38 + Math.floor(densityRatio * 17);  // 38..55
+    const frames = state.game.frames;
 
     if (building.pattern === 'grid') {
-        for (let wy = building.y + 16; wy < building.y + building.h - 22; wy += 18) {
-            for (let wx = 8; wx < building.w - 12; wx += 15) {
-                const pulse = (Math.sin(building.windowPhase + ((building.x + (wx * 7) + (wy * 9) + (frameBucket * 19)) * 0.03)) + 1) * 0.5;
-                if (pulse < 0.44 + densityBias && flashBoost < 0.05) continue;
-                ctx.fillStyle = windowCore;
-                ctx.globalAlpha = Math.min(0.9, (0.17 * building.opacity) + 0.16 + flashBoost + (pulse * 0.16));
-                ctx.fillRect(x + wx, wy, 6, 8);
-                if (quality >= 0.92 && pulse > 0.78) {
-                    ctx.fillStyle = windowHot;
-                    ctx.globalAlpha *= 0.55;
-                    ctx.fillRect(x + wx, wy, 6, 2);
+        // Passo maior → janelas espaçadas, sem virar parede de luz.
+        for (let wy = building.y + 14; wy < building.y + building.h - 18; wy += 16) {
+            for (let wx = 8; wx < building.w - 12; wx += 13) {
+                const hash = windowHash(building.x, wx, wy);
+                const isLit = (hash % 100) < litFraction;
+                if (!isLit) {
+                    ctx.fillStyle = WINDOW_DIM;
+                    ctx.globalAlpha = 0.32 * building.opacity;
+                    ctx.fillRect(x + wx, wy, 5, 7);
+                    continue;
+                }
+                const palette = pickWindowPalette(hash, windowCore, windowHot);
+                const breathe = softBreathe(hash, frames);
+                ctx.fillStyle = palette.core;
+                ctx.globalAlpha = Math.min(0.92, ((0.32 * building.opacity) + 0.34) * breathe);
+                ctx.fillRect(x + wx, wy, 5, 7);
+                if (palette.isAmber) {
+                    ctx.fillStyle = palette.hot;
+                    ctx.globalAlpha *= 0.65;
+                    ctx.fillRect(x + wx, wy, 5, 2);
                 }
             }
         }
@@ -307,50 +604,71 @@ function drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost,
     }
 
     if (building.pattern === 'stripes') {
-        const leftW = Math.max(24, building.w * 0.28);
-        const rightW = Math.max(20, building.w * 0.2);
-        for (let wy = building.y + 18; wy < building.y + building.h - 26; wy += 24) {
-            const pulse = (Math.sin(building.windowPhase + ((building.x + (wy * 5) + (frameBucket * 17)) * 0.035)) + 1) * 0.5;
-            if (pulse < 0.46 + densityBias && flashBoost < 0.05) continue;
-            ctx.fillStyle = windowCore;
-            ctx.globalAlpha = Math.min(0.84, (0.15 * building.opacity) + 0.16 + flashBoost + (pulse * 0.18));
-            ctx.fillRect(x + 8, wy, leftW, 3);
-            ctx.fillRect(x + building.w - rightW - 8, wy, rightW, 3);
-            if (quality >= 0.92 && pulse > 0.76) {
-                ctx.fillStyle = windowHot;
-                ctx.globalAlpha *= 0.5;
-                ctx.fillRect(x + 8, wy, leftW * 0.45, 1.5);
+        for (let wy = building.y + 16; wy < building.y + building.h - 22; wy += 18) {
+            for (let wx = 10; wx < building.w - 14; wx += 16) {
+                const hash = windowHash(building.x, wx, wy);
+                const isLit = (hash % 100) < litFraction;
+                if (!isLit) {
+                    ctx.fillStyle = WINDOW_DIM;
+                    ctx.globalAlpha = 0.3 * building.opacity;
+                    ctx.fillRect(x + wx, wy, 10, 4);
+                    continue;
+                }
+                const palette = pickWindowPalette(hash, windowCore, windowHot);
+                const breathe = softBreathe(hash, frames);
+                ctx.fillStyle = palette.core;
+                ctx.globalAlpha = Math.min(0.9, ((0.3 * building.opacity) + 0.32) * breathe);
+                ctx.fillRect(x + wx, wy, 10, 4);
             }
         }
         return;
     }
 
     if (building.pattern === 'bars') {
-        for (let wx = 10; wx < building.w - 12; wx += 20) {
-            const pulse = (Math.sin(building.windowPhase + ((building.x + (wx * 11) + (frameBucket * 13)) * 0.026)) + 1) * 0.5;
-            if (pulse < 0.42 + densityBias && flashBoost < 0.05) continue;
-            ctx.fillStyle = windowCore;
-            ctx.globalAlpha = Math.min(0.8, (0.16 * building.opacity) + 0.14 + flashBoost + (pulse * 0.16));
-            ctx.fillRect(x + wx, building.y + 12, 6, building.h - 24);
-            if (quality >= 0.9 && pulse > 0.82) {
-                ctx.fillStyle = windowHot;
-                ctx.globalAlpha *= 0.42;
-                ctx.fillRect(x + wx, building.y + 12, 2, building.h - 24);
+        for (let wx = 10; wx < building.w - 14; wx += 16) {
+            for (let wy = building.y + 16; wy < building.y + building.h - 22; wy += 18) {
+                const hash = windowHash(building.x, wx, wy);
+                const isLit = (hash % 100) < litFraction;
+                if (!isLit) {
+                    ctx.fillStyle = WINDOW_DIM;
+                    ctx.globalAlpha = 0.3 * building.opacity;
+                    ctx.fillRect(x + wx, wy, 6, 8);
+                    continue;
+                }
+                const palette = pickWindowPalette(hash, windowCore, windowHot);
+                const breathe = softBreathe(hash, frames);
+                ctx.fillStyle = palette.core;
+                ctx.globalAlpha = Math.min(0.9, ((0.3 * building.opacity) + 0.32) * breathe);
+                ctx.fillRect(x + wx, wy, 6, 8);
+                if (palette.isAmber) {
+                    ctx.fillStyle = palette.hot;
+                    ctx.globalAlpha *= 0.6;
+                    ctx.fillRect(x + wx, wy, 6, 2);
+                }
             }
         }
         return;
     }
 
-    for (let wy = building.y + 14; wy < building.y + building.h - 18; wy += 26) {
-        const pulse = (Math.sin(building.windowPhase + ((building.x + (wy * 13) + (frameBucket * 29)) * 0.024)) + 1) * 0.5;
-        if (pulse < 0.48 + densityBias && flashBoost < 0.05) continue;
-        ctx.fillStyle = windowCore;
-        ctx.globalAlpha = Math.min(0.8, (0.15 * building.opacity) + 0.14 + flashBoost + (pulse * 0.15));
-        const inset = Math.max(12, building.w * 0.12);
+    // 'slits' — fendas horizontais largas.
+    const inset = Math.max(10, building.w * 0.1);
+    for (let wy = building.y + 14; wy < building.y + building.h - 18; wy += 18) {
+        const hash = windowHash(building.x, 0, wy);
+        const isLit = (hash % 100) < litFraction;
+        if (!isLit) {
+            ctx.fillStyle = WINDOW_DIM;
+            ctx.globalAlpha = 0.3 * building.opacity;
+            ctx.fillRect(x + inset, wy, building.w - (inset * 2), 3);
+            continue;
+        }
+        const palette = pickWindowPalette(hash, windowCore, windowHot);
+        const breathe = softBreathe(hash, frames);
+        ctx.fillStyle = palette.core;
+        ctx.globalAlpha = Math.min(0.88, ((0.3 * building.opacity) + 0.3) * breathe);
         ctx.fillRect(x + inset, wy, building.w - (inset * 2), 3);
-        if (quality >= 0.92 && pulse > 0.74) {
-            ctx.fillStyle = windowHot;
-            ctx.globalAlpha *= 0.46;
+        if (palette.isAmber) {
+            ctx.fillStyle = palette.hot;
+            ctx.globalAlpha *= 0.55;
             ctx.fillRect(x + inset, wy, (building.w - (inset * 2)) * 0.3, 1.5);
         }
     }
@@ -384,13 +702,19 @@ export function drawLayer(layer, camX) {
         ctx.save();
         ctx.globalAlpha = buildingAlpha;
 
-        const bodyGrad = ctx.createLinearGradient(x, building.y, x, building.y + building.h);
-        bodyGrad.addColorStop(0, '#0f1330');
-        bodyGrad.addColorStop(0.24, '#0a0e24');
-        bodyGrad.addColorStop(0.48, BUILDING_BASE.body);
+        // Constrói a silhueta completa (body + topo) como um único path.
+        // Fill e stroke aplicados no mesmo path = sem efeito de "blocos colados".
+        const { roofX, roofY, roofW, topMost } = buildBuildingSilhouette(ctx, building, x);
+
+        // Estende o início do gradient pra cobrir o topo da silhueta com
+        // suavidade, sem clarear demais a parte mais alta da torre.
+        const bodyGrad = ctx.createLinearGradient(x, topMost - 20, x, building.y + building.h);
+        bodyGrad.addColorStop(0, '#161b3a');
+        bodyGrad.addColorStop(0.18, '#0f1330');
+        bodyGrad.addColorStop(0.42, BUILDING_BASE.body);
         bodyGrad.addColorStop(1, 'rgba(1, 1, 7, 0.98)');
         ctx.fillStyle = bodyGrad;
-        ctx.fillRect(x, building.y, building.w, building.h);
+        ctx.fill();
 
         const sideGloss = ctx.createLinearGradient(x, 0, x + building.w, 0);
         sideGloss.addColorStop(0, 'rgba(120, 226, 255, 0.14)');
@@ -398,15 +722,32 @@ export function drawLayer(layer, camX) {
         sideGloss.addColorStop(0.48, 'rgba(0, 0, 0, 0)');
         sideGloss.addColorStop(1, 'rgba(0, 0, 0, 0.24)');
         ctx.fillStyle = sideGloss;
-        ctx.fillRect(x, building.y, building.w, building.h);
+        ctx.fill();
 
-        const { roofX, roofY, roofW } = drawBuildingSkylineCap(ctx, building, x, accent, buildingAlpha);
+        // Rim light: borda esquerda iluminada (luz neon ambiente refletindo
+        // na fachada). Usa clip pelo path da silhueta pra respeitar chanfros.
+        if (quality >= 0.82 && building.parallax > 0.25) {
+            const rimColor = building.windowPalette === 'magenta'
+                ? 'rgba(255, 130, 200, 0.55)'
+                : 'rgba(140, 230, 255, 0.55)';
+            const rimGrad = ctx.createLinearGradient(x, 0, x + 7, 0);
+            rimGrad.addColorStop(0, rimColor);
+            rimGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.save();
+            ctx.clip();
+            ctx.globalAlpha = 0.32;
+            ctx.fillStyle = rimGrad;
+            ctx.fillRect(x, building.y - 60, 7, building.h + 80);
+            ctx.restore();
+            ctx.globalAlpha = buildingAlpha;
+        }
 
+        // Contorno único cyan ao redor da silhueta inteira (corpo + topo).
         ctx.strokeStyle = accent;
         ctx.lineWidth = 1;
         ctx.shadowBlur = 4;
         ctx.shadowColor = glow;
-        ctx.strokeRect(x + 1, building.y + 0.5, building.w - 2, building.h - 1);
+        ctx.stroke();
         ctx.shadowBlur = 0;
 
         if (quality >= 0.82) {
@@ -423,14 +764,16 @@ export function drawLayer(layer, camX) {
             ctx.globalAlpha = buildingAlpha;
         }
 
-        if (quality >= 0.76) {
-            const bandCount = building.facadeBands || 3;
-            const step = building.h / (bandCount + 2);
-            ctx.fillStyle = accent;
-            ctx.globalAlpha = 0.08;
-            for (let band = 1; band <= bandCount; band++) {
-                const bandY = building.y + (step * band);
-                ctx.fillRect(x + 6, bandY, building.w - 12, 1.6);
+        // Faixas horizontais sutis a cada 32px — sugerem divisão de andares
+        // sem competir visualmente com janelas. Só nas camadas próximas
+        // (parallax > 0.3) pra não poluir o fundo distante.
+        if (quality >= 0.78 && building.parallax > 0.3) {
+            ctx.fillStyle = 'rgba(80, 130, 180, 0.5)';
+            ctx.globalAlpha = 0.07;
+            const floorStep = 32;
+            const floorEnd = building.y + building.h - 12;
+            for (let fy = building.y + 22; fy < floorEnd; fy += floorStep) {
+                ctx.fillRect(x + 4, fy, building.w - 8, 1);
             }
             ctx.globalAlpha = buildingAlpha;
         }
@@ -448,6 +791,14 @@ export function drawLayer(layer, camX) {
                 drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost, windowCore, windowHot);
             }
         }
+
+        // Outdoors cyberpunk (paródias estilo Blade Runner).
+        ctx.globalAlpha = 1;
+        drawBuildingBillboard(ctx, building, x, quality);
+
+        // Letreiro vertical lateral (anúncio de néon em fachada).
+        drawBuildingSigns(ctx, building, x, quality);
+        ctx.globalAlpha = buildingAlpha;
 
         if (quality >= 0.78 && Array.isArray(building.neonStrips)) {
             ctx.globalAlpha = 0.22;
