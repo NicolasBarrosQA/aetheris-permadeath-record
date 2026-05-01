@@ -38,7 +38,7 @@
                 </button>
             </div>
             <div id="difficulty-shortcuts">[1] FACIL  [2] MEDIO  [3] DIFICIL</div>
-            [ Q ] MENU | [ S ] LOJA<br><br>
+            [ Q ] MENU | [ S ] LOJA | [ P ] PAUSE<br><br>
             [ SETAS / A D ] MOVER PARA INICIAR<br>
             [ ESPACO ] PULAR | [ C ] DASH+ATAQUE
         </div>
@@ -97,6 +97,14 @@
             <h1 id="overlay-title">SISTEMA CRÍTICO</h1>
             <p id="overlay-msg" style="color:#ccc; font-size: 14px;">CONEXÃO PERDIDA</p>
             <button class="btn" onclick="resetGame()">REINICIAR</button>
+        </div>
+
+        <!-- Tela de pause -->
+        <div id="pause-screen">
+            <div id="pause-eyebrow">// SISTEMA SUSPENSO</div>
+            <h1 id="pause-title">PAUSE</h1>
+            <p id="pause-msg">Pressione [ P ] ou [ ESC ] para continuar.</p>
+            <button class="btn" id="pause-resume-btn" type="button">CONTINUAR</button>
         </div>
     </div>
 

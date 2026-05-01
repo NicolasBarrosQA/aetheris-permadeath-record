@@ -4,7 +4,7 @@
  */
 
 import state from './core/state.js';
-import { initGame, loopGame, resetGame } from './core/engine.js';
+import { initGame, loopGame, resetGame, togglePause } from './core/engine.js';
 import { VIRTUAL_WIDTH, VIRTUAL_HEIGHT, VIEWPORT } from './config.js';
 import { toggleShop, setDifficultyMode, syncDifficultyUI } from './systems/ui.js';
 import { resumeAudioContext, tryStartAudio } from './core/audio.js';
@@ -25,6 +25,7 @@ const ACTION_KEYS = new Set([
     'd',
     'f',
     'k',
+    'p',
     'r',
     's',
     't',
@@ -140,6 +141,16 @@ function bootstrap() {
     state.uiBoostName = getRequiredElement('boost-name');
     state.uiBoostTime = getRequiredElement('boost-time');
     state.uiBoostFill = getRequiredElement('boost-fill');
+    state.pauseScreen = document.getElementById('pause-screen');
+    const pauseResumeBtn = document.getElementById('pause-resume-btn');
+    if (pauseResumeBtn) {
+        pauseResumeBtn.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            togglePause();
+            window.focus();
+        });
+    }
     state.difficultyButtons = [...document.querySelectorAll('[data-difficulty]')];
 
     state.difficultyButtons.forEach(button => {
@@ -239,8 +250,16 @@ function setupInput() {
                 if (state.difficultyShortcuts) state.difficultyShortcuts.style.display = 'block';
             }
 
-            if (key === 'escape' && state.game.shopOpen) {
-                toggleShop();
+            if (key === 'p' && state.game.started && !state.game.isGameOver && !state.game.shopOpen) {
+                togglePause();
+            }
+
+            if (key === 'escape') {
+                if (state.game.shopOpen) {
+                    toggleShop();
+                } else if (state.game.started && !state.game.isGameOver) {
+                    togglePause();
+                }
             }
 
             if (ACTION_KEYS.has(key) || event.code === 'Space') {

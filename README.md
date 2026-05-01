@@ -36,6 +36,7 @@ O jogo possui três modos de dificuldade, progressão contínua de velocidade, g
 - `A` / `D` ou `←` / `→`: mover
 - `W` / `↑` / `Espaço`: pular
 - `C`: dash / ataque
+- `P` ou `Esc`: pause / continuar
 - `S`: abrir loja de skins
 - `1`, `2`, `3`: trocar dificuldade
 
@@ -54,6 +55,7 @@ O jogo possui três modos de dificuldade, progressão contínua de velocidade, g
 - SFX gerados em tempo real com Web Audio API
 - Persistência local de recorde, moedas, skins e preferências
 - Sistema visual de corrupção digital no modo difícil
+- Pause inteligente com tela dedicada e suspensão completa da simulação
 
 ---
 

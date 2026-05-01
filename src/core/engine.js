@@ -91,6 +91,7 @@ export function initGame() {
     state.game.modeId = DIFFICULTY_MODES[storage.difficultyMode] ? storage.difficultyMode : 'medium';
     state.game.running = true;
     state.game.started = false;
+    state.game.paused = false;
     state.game.shopOpen = false;
     state.game.isGameOver = false;
     state.game.time = 0;
@@ -122,6 +123,7 @@ export function initGame() {
     state.overlayTitle.innerText = 'SISTEMA CRITICO';
     state.overlayMsg.innerText = 'CONEXAO PERDIDA';
     state.shopModal.style.display = 'none';
+    if (state.pauseScreen) state.pauseScreen.style.display = 'none';
     if (state.startHint) state.startHint.style.display = 'block';
     // associa callbacks para uso em outras partes do jogo
     state.startGameRun = startGameRun;
@@ -144,6 +146,41 @@ function startGameRun() {
     if (state.startHint) state.startHint.style.display = 'none';
     tryStartAudio();
     if (state.game.shopOpen) toggleShop();
+}
+
+/**
+ * Alterna o estado de pause. Só pausa se a corrida está em andamento e
+ * não está em game over nem com a loja aberta. Mantém o canvas sendo
+ * desenhado (frame congelado) e suspende a simulação.
+ */
+export function togglePause() {
+    // Se está pausado, sempre permite despausar.
+    if (!state.game.paused) {
+        if (!state.game.started || state.game.isGameOver || state.game.shopOpen) return;
+    }
+
+    state.game.paused = !state.game.paused;
+
+    if (state.pauseScreen) {
+        state.pauseScreen.style.display = state.game.paused ? 'flex' : 'none';
+    }
+
+    if (state.bgm) {
+        if (state.game.paused) {
+            state.bgm.pause();
+        } else if (state.game.audioStarted) {
+            const playAttempt = state.bgm.play();
+            if (playAttempt && typeof playAttempt.then === 'function') {
+                playAttempt.catch(() => {});
+            }
+        }
+    }
+
+    if (!state.game.paused) {
+        // Evita salto de delta-time gigante após sair do pause.
+        state.performance.lastTs = 0;
+        state.game.simAccumulator = 0;
+    }
 }
 
 /**
@@ -608,7 +645,7 @@ export function loopGame(ts = performance.now()) {
     state.game.frames++;
     // incrementa frames de corrida apenas quando a corrida está ativa
     // (jogo iniciado, não em game over e loja fechada)
-    if (state.game.started && state.game.running && !state.game.isGameOver && !state.game.shopOpen) {
+    if (state.game.started && state.game.running && !state.game.isGameOver && !state.game.shopOpen && !state.game.paused) {
         state.game.runFrames++;
     }
     // TEMP MOD (screenshot): respeita override de camera lenta quando ativo.
@@ -617,11 +654,13 @@ export function loopGame(ts = performance.now()) {
     const timeScaleSource = hasScreenshotSlowMo ? screenshotSlowMo : (state.game.timeScale || 1);
     const minTimeScale = hasScreenshotSlowMo ? 0.05 : 0.35;
     const timeScale = Math.max(minTimeScale, Math.min(timeScaleSource, 1));
-    state.game.simAccumulator += timeScale;
     let shake = { sx: 0, sy: 0 };
-    while (state.game.simAccumulator >= 1) {
-        shake = updateGame();
-        state.game.simAccumulator -= 1;
+    if (!state.game.paused) {
+        state.game.simAccumulator += timeScale;
+        while (state.game.simAccumulator >= 1) {
+            shake = updateGame();
+            state.game.simAccumulator -= 1;
+        }
     }
     drawGame(shake);
     if (state.game.running) {

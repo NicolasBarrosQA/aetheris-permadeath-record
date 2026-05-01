@@ -38,6 +38,7 @@ const state = {
     game: {
         running: true,
         started: false,
+        paused: false,
         shopOpen: false,
         frames: 0,
         // Contador de frames corridos. É incrementado apenas quando
