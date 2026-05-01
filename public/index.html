@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>AETHERIS: PERMADEATH RECORD (V11.2)</title>
     <!-- Carrega o estilo principal -->
-    <link rel="stylesheet" href="../styles/main.css" />
+    <link rel="icon" type="image/svg+xml" href="../assets/img/boosts/airdash.svg" />
+    <link rel="stylesheet" href="../styles/main.css?v=mobile-touch-1" />
 </head>
 <body>
 
@@ -89,6 +90,7 @@
             <div id="skins-grid"></div>
             <div style="margin-top: 20px; text-align: center; color: #888; font-size: 10px; text-transform: uppercase;">
                 ESCOLHA SEU VISUAL - [ESC] PARA SAIR
+                <button class="mobile-shop-close" id="shop-close-btn" type="button">FECHAR</button>
             </div>
         </div>
 
@@ -106,9 +108,25 @@
             <p id="pause-msg">Pressione [ P ] ou [ ESC ] para continuar.</p>
             <button class="btn" id="pause-resume-btn" type="button">CONTINUAR</button>
         </div>
+
+        <!-- Controles touch para celular -->
+        <div id="mobile-controls" aria-label="Controles touch">
+            <div class="mobile-cluster mobile-left">
+                <button class="touch-btn touch-move" type="button" data-mobile-key="arrowleft" aria-label="Mover para esquerda">←</button>
+                <button class="touch-btn touch-move" type="button" data-mobile-key="arrowright" aria-label="Mover para direita">→</button>
+            </div>
+            <div class="mobile-cluster mobile-menu">
+                <button class="touch-btn touch-small" type="button" data-mobile-action="shop" aria-label="Abrir loja">LOJA</button>
+                <button class="touch-btn touch-small" type="button" data-mobile-action="pause" aria-label="Pausar">PAUSE</button>
+            </div>
+            <div class="mobile-cluster mobile-right">
+                <button class="touch-btn touch-action jump" type="button" data-mobile-action="jump" aria-label="Pular">PULAR</button>
+                <button class="touch-btn touch-action dash" type="button" data-mobile-key="c" aria-label="Dash e ataque">DASH</button>
+            </div>
+        </div>
     </div>
 
     <!-- Carrega o bootstrap do jogo como módulo -->
-    <script type="module" src="../src/main.js"></script>
+    <script type="module" src="../src/main.js?v=mobile-touch-1"></script>
 </body>
 </html>

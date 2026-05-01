@@ -32,6 +32,9 @@ const ACTION_KEYS = new Set([
     'w'
 ]);
 
+const MOBILE_QUERY = '(hover: none), (pointer: coarse), (max-width: 820px), (max-height: 520px)';
+const mobileInputPointers = new Map();
+
 window.resetGame = resetGame;
 
 validateGameConfig();
@@ -109,6 +112,107 @@ function resizeCanvas() {
     state.container.style.transform = 'none';
 }
 
+function isMobileViewport() {
+    return window.matchMedia(MOBILE_QUERY).matches;
+}
+
+function syncMobileMode() {
+    document.documentElement.classList.toggle('is-mobile', isMobileViewport());
+}
+
+function releaseMobilePointer(pointerId) {
+    const entry = mobileInputPointers.get(pointerId);
+    if (!entry) return;
+    state.keys[entry.key] = false;
+    entry.button.classList.remove('pressed');
+    mobileInputPointers.delete(pointerId);
+}
+
+function releaseAllMobileInputs() {
+    mobileInputPointers.forEach(entry => {
+        state.keys[entry.key] = false;
+        entry.button.classList.remove('pressed');
+    });
+    mobileInputPointers.clear();
+}
+
+function wakeGameAudio() {
+    resumeAudioContext();
+    if (state.game.running || !state.game.started) {
+        tryStartAudio();
+    }
+}
+
+function triggerMobileJump(button) {
+    state.keys.arrowup = true;
+    state.keys.spacepress = true;
+    button.classList.add('pressed');
+    wakeGameAudio();
+
+    window.setTimeout(() => {
+        state.keys.arrowup = false;
+        button.classList.remove('pressed');
+    }, 120);
+}
+
+function runMobileAction(action, button) {
+    switch (action) {
+        case 'jump':
+            triggerMobileJump(button);
+            break;
+        case 'pause':
+            togglePause();
+            wakeGameAudio();
+            break;
+        case 'shop':
+            toggleShop();
+            wakeGameAudio();
+            break;
+        default:
+            break;
+    }
+}
+
+function setupMobileControls() {
+    const controls = document.getElementById('mobile-controls');
+    if (!controls) return;
+
+    controls.addEventListener('contextmenu', event => event.preventDefault());
+
+    controls.querySelectorAll('[data-mobile-key]').forEach(button => {
+        const key = button.dataset.mobileKey;
+        if (!key) return;
+
+        button.addEventListener('pointerdown', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            button.setPointerCapture?.(event.pointerId);
+            state.keys[key] = true;
+            button.classList.add('pressed');
+            mobileInputPointers.set(event.pointerId, { key, button });
+            wakeGameAudio();
+            window.focus();
+        });
+    });
+
+    controls.querySelectorAll('[data-mobile-action]').forEach(button => {
+        const action = button.dataset.mobileAction;
+        button.addEventListener('pointerdown', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            runMobileAction(action, button);
+            window.focus();
+        });
+    });
+
+    window.addEventListener('pointerup', event => releaseMobilePointer(event.pointerId));
+    window.addEventListener('pointercancel', event => releaseMobilePointer(event.pointerId));
+    window.addEventListener('blur', releaseAllMobileInputs);
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) releaseAllMobileInputs();
+    });
+}
+
 function bootstrap() {
     state.container = getRequiredElement('game-container');
     state.canvas = getRequiredElement('gameCanvas');
@@ -151,6 +255,15 @@ function bootstrap() {
             window.focus();
         });
     }
+    const shopCloseBtn = document.getElementById('shop-close-btn');
+    if (shopCloseBtn) {
+        shopCloseBtn.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (state.game.shopOpen) toggleShop();
+            window.focus();
+        });
+    }
     state.difficultyButtons = [...document.querySelectorAll('[data-difficulty]')];
 
     state.difficultyButtons.forEach(button => {
@@ -173,10 +286,18 @@ function bootstrap() {
         window.focus();
     });
 
+    syncMobileMode();
+    setupMobileControls();
     resizeCanvas();
 
-    window.addEventListener('resize', resizeCanvas);
-    window.addEventListener('orientationchange', resizeCanvas);
+    window.addEventListener('resize', () => {
+        syncMobileMode();
+        resizeCanvas();
+    });
+    window.addEventListener('orientationchange', () => {
+        syncMobileMode();
+        resizeCanvas();
+    });
 
     initGame();
     syncDifficultyUI();

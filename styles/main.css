@@ -82,6 +82,119 @@ button {
     font: inherit;
 }
 
+.mobile-shop-close {
+    display: none;
+}
+
+#mobile-controls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    z-index: 18;
+    display: none;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+.mobile-cluster {
+    position: absolute;
+    display: flex;
+    gap: 10px;
+    pointer-events: auto;
+}
+
+.mobile-left {
+    left: calc(14px + env(safe-area-inset-left, 0px));
+    bottom: 0;
+}
+
+.mobile-right {
+    right: calc(14px + env(safe-area-inset-right, 0px));
+    bottom: 0;
+    align-items: flex-end;
+}
+
+.mobile-menu {
+    left: 50%;
+    bottom: 6px;
+    transform: translateX(-50%);
+    gap: 8px;
+}
+
+.touch-btn {
+    border: 1px solid rgba(160, 214, 255, 0.36);
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)),
+        rgba(6, 14, 34, 0.78);
+    color: #eaf7ff;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    box-shadow:
+        0 12px 24px rgba(0, 0, 0, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 0 18px rgba(72, 222, 255, 0.12);
+    backdrop-filter: blur(12px);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+}
+
+.touch-btn.pressed,
+.touch-btn:active {
+    transform: translateY(2px) scale(0.97);
+    border-color: rgba(125, 235, 255, 0.78);
+    background:
+        linear-gradient(145deg, rgba(91, 215, 255, 0.28), rgba(255, 91, 157, 0.16)),
+        rgba(8, 20, 44, 0.9);
+    box-shadow:
+        0 6px 16px rgba(0, 0, 0, 0.5),
+        0 0 22px rgba(91, 215, 255, 0.26);
+}
+
+.touch-move {
+    width: 68px;
+    height: 68px;
+    border-radius: 18px;
+    font-size: 30px;
+}
+
+.touch-action {
+    width: 82px;
+    height: 82px;
+    border-radius: 50%;
+    font-size: 15px;
+}
+
+.touch-action.jump {
+    border-color: rgba(102, 242, 164, 0.44);
+}
+
+.touch-action.dash {
+    border-color: rgba(255, 217, 95, 0.46);
+}
+
+.touch-small {
+    min-width: 58px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #bcd5ed;
+}
+
+html.is-mobile #mobile-controls {
+    display: block;
+}
+
+html.is-mobile body {
+    touch-action: none;
+    overscroll-behavior: none;
+}
+
 #frame-glow {
     position: absolute;
     inset: -1px;
@@ -734,7 +847,7 @@ h1 {
 
     #start-hint {
         width: min(94vw, 620px);
-        bottom: 16px;
+        bottom: calc(128px + env(safe-area-inset-bottom, 0px));
         padding: 12px;
         font-size: 12px;
     }
@@ -769,6 +882,20 @@ h1 {
         padding: 16px;
     }
 
+    .mobile-shop-close {
+        display: block;
+        margin: 10px auto 0;
+        padding: 7px 18px;
+        border-radius: 8px;
+        border: 1px solid rgba(160, 214, 255, 0.34);
+        background: rgba(8, 18, 40, 0.86);
+        color: #eaf5ff;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 1px;
+    }
+
     #status-rack {
         left: 10px;
         right: 10px;
@@ -785,9 +912,86 @@ h1 {
     }
 
     #start-hint {
-        bottom: 72px;
+        bottom: calc(128px + env(safe-area-inset-bottom, 0px));
         width: min(92vw, 760px);
         font-size: 11px;
         letter-spacing: 1px;
+    }
+}
+
+@media (hover: none), (pointer: coarse), (max-width: 820px), (max-height: 520px) {
+    #mobile-controls {
+        display: block;
+    }
+}
+
+@media (max-width: 520px) {
+    .mobile-left {
+        left: calc(10px + env(safe-area-inset-left, 0px));
+    }
+
+    .mobile-right {
+        right: calc(10px + env(safe-area-inset-right, 0px));
+    }
+
+    .mobile-menu {
+        bottom: 80px;
+    }
+
+    .touch-move {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        font-size: 26px;
+    }
+
+    .touch-action {
+        width: 72px;
+        height: 72px;
+        font-size: 13px;
+    }
+
+    .touch-small {
+        min-width: 54px;
+        height: 34px;
+        padding: 0 10px;
+        font-size: 11px;
+    }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+    #start-hint {
+        left: 50%;
+        bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+        width: min(58vw, 680px);
+        font-size: 10px;
+        padding: 10px 12px;
+    }
+
+    #difficulty-picker {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .difficulty-btn {
+        min-height: 54px;
+        padding: 7px 9px;
+    }
+
+    .difficulty-desc {
+        display: none;
+    }
+
+    .mobile-menu {
+        bottom: 2px;
+    }
+
+    .touch-move {
+        width: 58px;
+        height: 58px;
+    }
+
+    .touch-action {
+        width: 66px;
+        height: 66px;
     }
 }
