@@ -72,20 +72,6 @@ export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
         };
     }
 
-    // Billboard cyberpunk: ~22% dos prédios da camada próxima recebem um
-    // outdoor grande de "marca", posicionado bem alto no prédio. O design
-    // real é resolvido em background.js a partir do `eggId`.
-    let billboard = null;
-    if (parallax > 0.3 && Math.random() < 0.22 && width >= 130) {
-        billboard = {
-            eggId: Math.floor(Math.random() * 8),
-            offsetTop: 0.06 + Math.random() * 0.18,
-            offsetX: 0.12 + Math.random() * 0.18,
-            scale: 0.95 + Math.random() * 0.2,
-            phaseSeed: Math.random() * 1000
-        };
-    }
-
     return {
         x: i * spacing,
         y: yMin + Math.random() * (yMax - yMin),
@@ -109,8 +95,7 @@ export function createBuilding(i, parallax, yMin, yMax, wMin, wMax, opacity) {
         antennaCount: 1 + Math.floor(Math.random() * 3),
         neonStrips,
         extraAntennas,
-        sign,
-        billboard
+        sign
     };
 }
 

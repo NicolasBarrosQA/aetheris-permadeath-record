@@ -271,143 +271,6 @@ function drawBuildingRoof(ctx, building, roofX, roofY, roofW, accent, glow, qual
     ctx.restore();
 }
 
-// Tabela de outdoors cyberpunk — paródias glitched de marcas reais.
-// Mantidas como homage estilo Blade Runner (não usam o nome literal nem
-// reproduzem logos para evitar problemas de marca registrada).
-const BILLBOARD_EGGS = [
-    {
-        name: 'KOKA·NOVA',
-        tagline: 'TASTE THE FUTURE',
-        primary: '#ff2438',
-        secondary: '#ffffff',
-        bg: 'rgba(20, 4, 6, 0.94)',
-        border: 'rgba(255, 60, 90, 0.95)',
-        scanline: true
-    },
-    {
-        name: 'ATARI·X',
-        tagline: 'PLAY HARD',
-        primary: '#ff6bd6',
-        secondary: '#ffe066',
-        bg: 'rgba(20, 6, 24, 0.94)',
-        border: 'rgba(255, 110, 220, 0.92)',
-        scanline: true
-    },
-    {
-        name: 'N3O·SONY',
-        tagline: 'BE NO OTHER',
-        primary: '#7be3ff',
-        secondary: '#dff6ff',
-        bg: 'rgba(4, 12, 22, 0.94)',
-        border: 'rgba(123, 224, 255, 0.95)',
-        scanline: false
-    },
-    {
-        name: 'PAN·AM 2099',
-        tagline: 'INTERSTELLAR',
-        primary: '#5b9dff',
-        secondary: '#e8f0ff',
-        bg: 'rgba(4, 8, 22, 0.94)',
-        border: 'rgba(91, 157, 255, 0.92)',
-        scanline: false
-    },
-    {
-        name: 'NINT3NDO',
-        tagline: 'GAME ETERNAL',
-        primary: '#ff3b3b',
-        secondary: '#ffe6d8',
-        bg: 'rgba(20, 4, 4, 0.96)',
-        border: 'rgba(255, 70, 70, 0.95)',
-        scanline: true
-    },
-    {
-        name: 'MΣTA·VERSE',
-        tagline: 'CONNECT ALL',
-        primary: '#4f8aff',
-        secondary: '#cfe0ff',
-        bg: 'rgba(6, 10, 28, 0.94)',
-        border: 'rgba(96, 156, 255, 0.92)',
-        scanline: false
-    },
-    {
-        name: 'AR4SAKA',
-        tagline: '荒坂 // CORP',
-        primary: '#d8d8de',
-        secondary: '#ff5555',
-        bg: 'rgba(10, 10, 14, 0.96)',
-        border: 'rgba(216, 216, 222, 0.85)',
-        scanline: true
-    },
-    {
-        name: 'N3TFL3X',
-        tagline: 'STREAM FOREVER',
-        primary: '#ff1f3d',
-        secondary: '#ffffff',
-        bg: 'rgba(8, 4, 6, 0.96)',
-        border: 'rgba(255, 31, 61, 0.95)',
-        scanline: true
-    }
-];
-
-function drawBuildingBillboard(ctx, building, x, quality) {
-    if (quality < 0.78 || !building.billboard) return;
-    const bb = building.billboard;
-    const egg = BILLBOARD_EGGS[bb.eggId % BILLBOARD_EGGS.length];
-
-    const baseW = Math.min(building.w * 0.78, 150);
-    const w = baseW * bb.scale;
-    const h = w * 0.5;
-    const bbX = x + (building.w - w) * bb.offsetX * 1.2;
-    const bbY = building.y + building.h * bb.offsetTop;
-
-    const frames = state.game.frames;
-    // Pulso sutil da borda — quase imperceptível.
-    const borderPulse = 0.78 + 0.22 * Math.sin((frames * 0.04) + bb.phaseSeed);
-
-    ctx.save();
-    ctx.globalAlpha = Math.min(1, 0.78 + (building.opacity * 0.22));
-
-    // Painel de fundo + borda
-    ctx.fillStyle = egg.bg;
-    ctx.fillRect(bbX, bbY, w, h);
-
-    ctx.strokeStyle = egg.border;
-    ctx.lineWidth = 1.4;
-    ctx.shadowBlur = quality >= 0.88 ? 10 * borderPulse : 4;
-    ctx.shadowColor = egg.border;
-    ctx.strokeRect(bbX + 0.5, bbY + 0.5, w - 1, h - 1);
-    ctx.shadowBlur = 0;
-
-    // Scanlines horizontais sutis (efeito CRT) — só nas placas marcadas.
-    if (egg.scanline && quality >= 0.84) {
-        ctx.globalAlpha *= 0.32;
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
-        for (let sy = bbY + 2; sy < bbY + h - 1; sy += 3) {
-            ctx.fillRect(bbX + 1, sy, w - 2, 1);
-        }
-        ctx.globalAlpha = Math.min(1, 0.78 + (building.opacity * 0.22));
-    }
-
-    // Texto principal (nome da marca).
-    const titleSize = Math.max(10, Math.min(15, h * 0.36));
-    ctx.font = `700 ${titleSize}px 'Rajdhani', 'Arial', sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = egg.primary;
-    ctx.shadowBlur = quality >= 0.88 ? 8 : 0;
-    ctx.shadowColor = egg.primary;
-    ctx.fillText(egg.name, bbX + w / 2, bbY + h * 0.38);
-    ctx.shadowBlur = 0;
-
-    // Tagline (texto secundário, menor).
-    const tagSize = Math.max(7, Math.min(9, h * 0.2));
-    ctx.font = `600 ${tagSize}px 'Rajdhani', 'Arial', sans-serif`;
-    ctx.fillStyle = egg.secondary;
-    ctx.globalAlpha *= 0.78;
-    ctx.fillText(egg.tagline, bbX + w / 2, bbY + h * 0.74);
-
-    ctx.restore();
-}
 
 /**
  * Desenha um letreiro vertical lateral no prédio (estilo anúncio de néon
@@ -792,11 +655,8 @@ export function drawLayer(layer, camX) {
             }
         }
 
-        // Outdoors cyberpunk (paródias estilo Blade Runner).
-        ctx.globalAlpha = 1;
-        drawBuildingBillboard(ctx, building, x, quality);
-
         // Letreiro vertical lateral (anúncio de néon em fachada).
+        ctx.globalAlpha = 1;
         drawBuildingSigns(ctx, building, x, quality);
         ctx.globalAlpha = buildingAlpha;
 
