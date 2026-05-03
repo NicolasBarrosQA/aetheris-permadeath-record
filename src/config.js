@@ -180,7 +180,7 @@ export const SKINS_DB = [
     { 
         id: 1, 
         name: 'Crimson Ronin',  
-        cost: 250, 
+        cost: 0, 
         c1: '#ff3333', 
         c2: '#880000', 
         glow: '#ff0000' 
@@ -188,7 +188,7 @@ export const SKINS_DB = [
     { 
         id: 2, 
         name: 'Bio-Hazard',     
-        cost: 400, 
+        cost: 0, 
         c1: '#33ff33', 
         c2: '#005500', 
         glow: '#00ff00' 
@@ -196,7 +196,7 @@ export const SKINS_DB = [
     { 
         id: 3, 
         name: 'Golden Glitch',  
-        cost: 650, 
+        cost: 0, 
         c1: '#ffd700', 
         c2: '#ffaa00', 
         glow: '#ffff00' 
@@ -204,7 +204,7 @@ export const SKINS_DB = [
     { 
         id: 4, 
         name: 'Void Specter',   
-        cost: 950, 
+        cost: 0, 
         c1: '#220033', 
         c2: '#110011', 
         glow: '#aa00ff' 
@@ -212,7 +212,7 @@ export const SKINS_DB = [
     {
         id: 5,
         name: 'Rainbow',
-        cost: 1200,
+        cost: 0,
         c1: '#ff4df2',
         c2: '#4de9ff',
         glow: '#ffffff'
@@ -222,7 +222,7 @@ export const SKINS_DB = [
     {
         id: 6,
         name: 'Shinobi Storm',
-        cost: 1400,
+        cost: 0,
         c1: "#fce45c",
         c2: "#fca53c",
         glow: "#ff7700ff",
@@ -232,7 +232,7 @@ export const SKINS_DB = [
     {
         id: 7,
         name: 'Scarlet Corsair',
-        cost: 1650,
+        cost: 0,
         c1: '#850505ff',
         c2: '#d62828',
         glow: '#ff0000ff',
@@ -242,7 +242,7 @@ export const SKINS_DB = [
     {
         id: 8,
         name: 'Celestial Striker',
-        cost: 1900,
+        cost: 0,
         c1: '#01cffdff',
         c2: '#28b0d6ff',
         glow: '#01cffdff',
@@ -251,10 +251,19 @@ export const SKINS_DB = [
     {
         id: 9,
         name: 'Shadow Sage',
-        cost: 2200,
+        cost: 0,
         c1: '#ffcf3a',
         c2: '#ff941e',
         glow: '#ffc84a',
         sprite: 'naruto_shipuden.png'
+    },
+    {
+        id: 10,
+        name: 'Karateca',
+        cost: 0,
+        c1: '#ff1530',
+        c2: '#a3001a',
+        glow: '#ff2040',
+        sprite: 'karateca.png'
     }
 ];
