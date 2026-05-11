@@ -1,8 +1,3 @@
-/*
- * Painel pre-corrida: ranking global, convidado e conta opcional.
- * Durante gameplay ele fica oculto para preservar foco e performance.
- */
-
 import state from '../core/state.js';
 import { DIFFICULTY_MODES } from '../config.js';
 import { storage } from '../core/storage.js';
@@ -12,6 +7,11 @@ const SESSION_URL = '/api/leaderboard/session';
 const ACCOUNT_URL = '/api/account';
 const PLAYER_NAME_KEY = 'aetheris_leaderboard_name_v1';
 const MODE_IDS = Object.keys(DIFFICULTY_MODES);
+const MODE_LABELS = {
+    easy: 'FACIL',
+    medium: 'MEDIO',
+    hard: 'DIFICIL'
+};
 
 const leaderboardState = {
     modeId: storage.difficultyMode || 'medium',
@@ -21,7 +21,9 @@ const leaderboardState = {
     entries: [],
     authMode: 'login',
     account: null,
-    accountPanelOpen: false
+    authReady: false,
+    authGateOpen: false,
+    leaderboardOpen: false
 };
 
 let elements = null;
@@ -38,7 +40,7 @@ function writeLocalValue(key, value) {
     try {
         localStorage.setItem(key, value);
     } catch {
-        // Storage privado ou bloqueado: o convidado segue funcionando nesta sessao.
+        // Navegadores em modo privado podem bloquear storage; convidado segue na sessao.
     }
 }
 
@@ -70,6 +72,13 @@ function formatDuration(ms) {
     const min = Math.floor(seconds / 60);
     const sec = String(seconds % 60).padStart(2, '0');
     return `${min}:${sec}`;
+}
+
+function updateBodyModalState() {
+    document.body.classList.toggle(
+        'modal-open',
+        leaderboardState.authGateOpen || leaderboardState.leaderboardOpen
+    );
 }
 
 function setStatus(text, tone = 'idle') {
@@ -112,10 +121,62 @@ function getCurrentPlayerName() {
     return normalizeName(elements?.nameInput?.value || readLocalValue(PLAYER_NAME_KEY, 'RUNNER'));
 }
 
-function syncPanelVisibility() {
-    if (!elements?.panel) return;
-    const shouldShow = !state.game.started && !state.game.isGameOver;
-    elements.panel.classList.toggle('hidden-during-run', !shouldShow);
+function syncDialogVisibility() {
+    if (elements?.authGate) {
+        elements.authGate.classList.toggle('hidden', !leaderboardState.authGateOpen);
+    }
+    if (elements?.leaderboardModal) {
+        elements.leaderboardModal.classList.toggle('hidden', !leaderboardState.leaderboardOpen);
+    }
+    updateBodyModalState();
+}
+
+function closeAuthGate() {
+    leaderboardState.authGateOpen = false;
+    syncDialogVisibility();
+    window.focus();
+}
+
+function showAuthGate() {
+    leaderboardState.authGateOpen = true;
+    syncDialogVisibility();
+    window.setTimeout(() => elements?.accountUsername?.focus(), 0);
+}
+
+export function openAccountDialog() {
+    if (!elements) return;
+    leaderboardState.authGateOpen = true;
+    leaderboardState.leaderboardOpen = false;
+    syncDialogVisibility();
+    window.setTimeout(() => {
+        if (leaderboardState.account) {
+            elements.guestContinue?.focus();
+        } else {
+            elements.accountUsername?.focus();
+        }
+    }, 0);
+}
+
+export function openLeaderboardDialog() {
+    if (!elements || state.game.started || state.game.isGameOver) return;
+    leaderboardState.leaderboardOpen = true;
+    leaderboardState.authGateOpen = false;
+    syncDialogVisibility();
+    refreshLeaderboard(leaderboardState.modeId);
+    window.setTimeout(() => elements.leaderboardClose?.focus(), 0);
+}
+
+export function closeSystemDialogs() {
+    const hadOpenDialog = leaderboardState.authGateOpen || leaderboardState.leaderboardOpen;
+    leaderboardState.authGateOpen = false;
+    leaderboardState.leaderboardOpen = false;
+    syncDialogVisibility();
+    if (hadOpenDialog) window.focus();
+    return hadOpenDialog;
+}
+
+export function isInterfaceBlockingGame() {
+    return leaderboardState.authGateOpen || leaderboardState.leaderboardOpen;
 }
 
 function syncTabs() {
@@ -125,6 +186,9 @@ function syncTabs() {
         button.classList.toggle('selected', selected);
         button.setAttribute('aria-selected', selected ? 'true' : 'false');
     });
+    if (elements.modeLabel) {
+        elements.modeLabel.innerText = MODE_LABELS[leaderboardState.modeId] || 'MEDIO';
+    }
 }
 
 function syncAuthMode() {
@@ -133,6 +197,7 @@ function syncAuthMode() {
     elements.authModeButtons.forEach(button => {
         const selected = button.dataset.authMode === leaderboardState.authMode;
         button.classList.toggle('selected', selected);
+        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
 
     const isSignup = leaderboardState.authMode === 'signup';
@@ -157,16 +222,17 @@ function syncAccountUI() {
 
     if (elements.accountMode) elements.accountMode.innerText = isLogged ? 'CONTA' : 'CONVIDADO';
     if (elements.accountName) elements.accountName.innerText = displayName;
+    if (elements.pilotMode) elements.pilotMode.innerText = isLogged ? 'CONTA' : 'CONVIDADO';
+    if (elements.pilotName) elements.pilotName.innerText = displayName;
+    if (elements.playerLabel) elements.playerLabel.innerText = displayName;
+    if (elements.accountOpen) elements.accountOpen.innerText = isLogged ? 'PERFIL' : 'CONTA';
+    if (elements.authClose) elements.authClose.style.display = isLogged ? 'block' : 'none';
+    if (elements.guestContinue) {
+        elements.guestContinue.innerText = isLogged ? 'FECHAR' : 'JOGAR COMO CONVIDADO';
+    }
     if (elements.nameInput) {
         elements.nameInput.value = displayName;
         elements.nameInput.disabled = isLogged;
-    }
-    if (elements.accountForm) {
-        elements.accountForm.classList.toggle('account-collapsed', !leaderboardState.accountPanelOpen);
-        elements.accountForm.classList.toggle('logged-in', isLogged);
-    }
-    if (elements.accountToggle) {
-        elements.accountToggle.innerText = leaderboardState.accountPanelOpen ? 'FECHAR' : (isLogged ? 'PERFIL' : 'CONTA');
     }
     if (elements.logoutButton) {
         elements.logoutButton.style.display = isLogged ? 'block' : 'none';
@@ -195,7 +261,9 @@ function renderEntries() {
     if (!leaderboardState.entries.length) {
         const item = document.createElement('li');
         item.className = 'leaderboard-empty';
-        item.innerText = leaderboardState.loading ? 'SINCRONIZANDO...' : 'SEM REGISTROS';
+        item.innerText = leaderboardState.loading
+            ? 'SINCRONIZANDO RANKING...'
+            : 'SEM PONTUACOES VERIFICADAS NESTE MODO';
         elements.list.appendChild(item);
         return;
     }
@@ -260,11 +328,11 @@ export function syncLeaderboardMode(modeId) {
 export function resetLeaderboardRun() {
     leaderboardState.activeRun = null;
     leaderboardState.lastSubmittedRunId = null;
-    if (elements?.panel) elements.panel.classList.remove('running');
-    syncPanelVisibility();
+    closeSystemDialogs();
 }
 
 export async function startLeaderboardRun(modeId) {
+    closeSystemDialogs();
     const safeMode = normalizeMode(modeId);
     const clientRunId = globalThis.crypto?.randomUUID
         ? globalThis.crypto.randomUUID()
@@ -277,8 +345,6 @@ export async function startLeaderboardRun(modeId) {
         sessionToken: null
     };
     leaderboardState.lastSubmittedRunId = null;
-    if (elements?.panel) elements.panel.classList.add('running');
-    syncPanelVisibility();
     setStatus('ARMADO', 'idle');
 
     try {
@@ -303,7 +369,6 @@ export async function submitLeaderboardScore() {
     if (!run || leaderboardState.lastSubmittedRunId === run.clientRunId) return;
 
     leaderboardState.lastSubmittedRunId = run.clientRunId;
-    if (elements?.panel) elements.panel.classList.remove('running');
 
     const distancePx = Math.floor(state.game.dist || 0);
     const distanceM = Math.floor(distancePx / 10);
@@ -348,13 +413,19 @@ async function hydrateAccount() {
     try {
         const result = await fetchJson(ACCOUNT_URL);
         leaderboardState.account = result.account || null;
+        leaderboardState.authReady = true;
         setAccountMessage(
-            leaderboardState.account ? 'Conta conectada. Seus scores usam este callsign.' : 'Conta opcional. Convidado usa cache do navegador.',
+            leaderboardState.account
+                ? 'Conta conectada. Seus scores usam este callsign.'
+                : 'Entre para salvar sua identidade global ou jogue como convidado.',
             leaderboardState.account ? 'ready' : 'idle'
         );
+        if (!leaderboardState.account) showAuthGate();
     } catch {
         leaderboardState.account = null;
-        setAccountMessage('Login offline agora. Convidado segue disponivel.', 'warn');
+        leaderboardState.authReady = true;
+        setAccountMessage('Login indisponivel agora. Modo convidado segue liberado.', 'warn');
+        showAuthGate();
     } finally {
         syncAccountUI();
     }
@@ -379,7 +450,7 @@ async function submitAccountForm(event) {
         return;
     }
 
-    setAccountMessage('Validando...', 'idle');
+    setAccountMessage('Validando credenciais...', 'idle');
 
     try {
         const result = await fetchJson(endpoint, {
@@ -388,17 +459,19 @@ async function submitAccountForm(event) {
         });
 
         leaderboardState.account = result.account || null;
-        leaderboardState.accountPanelOpen = false;
         if (elements.accountPassword) elements.accountPassword.value = '';
         setAccountMessage('Conta conectada.', 'ready');
         syncAccountUI();
+        closeAuthGate();
     } catch (error) {
         const code = error.payload?.error;
         const messages = {
             username_taken: 'Esse usuario ja existe.',
+            username_too_short: 'Usuario precisa ter pelo menos 3 caracteres.',
             invalid_credentials: 'Usuario ou senha invalidos.',
             password_needs_letter_and_number: 'Use senha com letras e numeros.',
             password_too_short: 'Senha precisa ter 10+ caracteres.',
+            password_too_long: 'Senha longa demais.',
             rate_limited: 'Muitas tentativas. Tente em instantes.'
         };
         setAccountMessage(messages[code] || 'Nao foi possivel conectar.', 'warn');
@@ -409,37 +482,31 @@ async function logout() {
     try {
         await fetchJson(`${ACCOUNT_URL}/logout`, { method: 'POST', body: '{}' });
     } catch {
-        // Se a rede falhar, ao menos volta a UI para convidado.
+        // Se a rede falhar, ao menos a UI volta para convidado.
     }
 
     leaderboardState.account = null;
-    leaderboardState.accountPanelOpen = false;
     setAccountMessage('Voce esta jogando como convidado.', 'idle');
     syncAccountUI();
+    showAuthGate();
 }
 
-export function initLeaderboardUI() {
-    const panel = document.getElementById('leaderboard-panel');
-    if (!panel) return;
+function continueAsGuest() {
+    if (!leaderboardState.account) {
+        const guestName = normalizeName(elements?.nameInput?.value || readLocalValue(PLAYER_NAME_KEY, 'RUNNER'));
+        writeLocalValue(PLAYER_NAME_KEY, guestName);
+    }
+    closeAuthGate();
+}
 
-    elements = {
-        panel,
-        status: document.getElementById('leaderboard-status'),
-        nameInput: document.getElementById('leaderboard-name-input'),
-        list: document.getElementById('leaderboard-list'),
-        tabs: [...document.querySelectorAll('[data-leaderboard-mode]')],
-        accountMode: document.getElementById('account-mode'),
-        accountName: document.getElementById('account-name'),
-        accountToggle: document.getElementById('account-toggle-btn'),
-        accountForm: document.getElementById('account-form'),
-        authModeButtons: [...document.querySelectorAll('[data-auth-mode]')],
-        accountUsername: document.getElementById('account-username'),
-        accountDisplay: document.getElementById('account-display'),
-        accountPassword: document.getElementById('account-password'),
-        accountSubmit: document.getElementById('account-submit-btn'),
-        logoutButton: document.getElementById('account-logout-btn'),
-        accountMessage: document.getElementById('account-message')
-    };
+function wireEvents() {
+    elements.leaderboardOpen?.addEventListener('click', openLeaderboardDialog);
+    elements.leaderboardClose?.addEventListener('click', closeSystemDialogs);
+    elements.accountOpen?.addEventListener('click', openAccountDialog);
+    elements.authClose?.addEventListener('click', closeAuthGate);
+    elements.guestContinue?.addEventListener('click', continueAsGuest);
+    elements.accountForm?.addEventListener('submit', submitAccountForm);
+    elements.logoutButton?.addEventListener('click', logout);
 
     if (elements.nameInput) {
         elements.nameInput.value = normalizeName(readLocalValue(PLAYER_NAME_KEY, 'RUNNER'));
@@ -456,7 +523,6 @@ export function initLeaderboardUI() {
             event.preventDefault();
             syncLeaderboardMode(button.dataset.leaderboardMode);
             button.blur();
-            window.focus();
         });
     });
 
@@ -467,16 +533,45 @@ export function initLeaderboardUI() {
             syncAuthMode();
         });
     });
+}
 
-    elements.accountToggle?.addEventListener('click', () => {
-        leaderboardState.accountPanelOpen = !leaderboardState.accountPanelOpen;
-        syncAccountUI();
-    });
-    elements.accountForm?.addEventListener('submit', submitAccountForm);
-    elements.logoutButton?.addEventListener('click', logout);
+export function initLeaderboardUI() {
+    const leaderboardModal = document.getElementById('leaderboard-modal');
+    const authGate = document.getElementById('auth-gate');
+    if (!leaderboardModal || !authGate) return;
 
-    syncPanelVisibility();
+    elements = {
+        authGate,
+        leaderboardModal,
+        status: document.getElementById('leaderboard-status'),
+        nameInput: document.getElementById('leaderboard-name-input'),
+        list: document.getElementById('leaderboard-list'),
+        tabs: [...document.querySelectorAll('[data-leaderboard-mode]')],
+        leaderboardOpen: document.getElementById('leaderboard-open-btn'),
+        leaderboardClose: document.getElementById('leaderboard-close-btn'),
+        accountOpen: document.getElementById('account-open-btn'),
+        authClose: document.getElementById('auth-close-btn'),
+        guestContinue: document.getElementById('guest-continue-btn'),
+        accountMode: document.getElementById('account-mode'),
+        accountName: document.getElementById('account-name'),
+        pilotMode: document.getElementById('pilot-mode'),
+        pilotName: document.getElementById('pilot-name'),
+        playerLabel: document.getElementById('leaderboard-player-label'),
+        modeLabel: document.getElementById('leaderboard-mode-label'),
+        accountForm: document.getElementById('account-form'),
+        authModeButtons: [...document.querySelectorAll('[data-auth-mode]')],
+        accountUsername: document.getElementById('account-username'),
+        accountDisplay: document.getElementById('account-display'),
+        accountPassword: document.getElementById('account-password'),
+        accountSubmit: document.getElementById('account-submit-btn'),
+        logoutButton: document.getElementById('account-logout-btn'),
+        accountMessage: document.getElementById('account-message')
+    };
+
+    wireEvents();
+    syncTabs();
     syncAccountUI();
+    syncDialogVisibility();
     hydrateAccount();
     refreshLeaderboard(leaderboardState.modeId);
 }

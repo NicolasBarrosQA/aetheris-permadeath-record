@@ -3,6 +3,10 @@ node_modules/
 .netlify/
 .playwright-mcp/
 scripts/
+e2e/
+.github/
+test-results/
+playwright-report/
 *.log
 _*.png
 _*.html

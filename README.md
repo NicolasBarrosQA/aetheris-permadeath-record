@@ -62,7 +62,8 @@ O jogo possui três modos de dificuldade, progressão contínua de velocidade, g
 - Persistência local de recorde, moedas, skins e preferências
 - Sistema visual de corrupção digital no modo difícil, com renderização adaptativa (culling vertical + escala de qualidade dinâmica) para manter fluidez
 - Pause inteligente com tela dedicada e suspensão completa da simulação
-- Leaderboard global por dificuldade, visível no pré-jogo e oculto durante gameplay
+- Tela de login inicial quando não há sessão ativa, com opção de conta ou convidado
+- Placar global por dificuldade aberto por botão/atalho antes da corrida e oculto durante gameplay
 - Contas opcionais com modo convidado preservado, sessão segura em cookie HttpOnly e senha com hash `scrypt`
 - Pirâmide de testes com checagem estática, unitários, integração e E2E
 
@@ -81,25 +82,26 @@ O projeto começou como um protótipo monolítico e foi evoluído para uma estru
 
 Esse refactor reduziu acoplamento, melhorou manutenção e facilitou expansão de features.
 
-### Leaderboard, contas e anti-cheat
+### Login, placar e anti-cheat
 
-O ranking global roda em Netlify Functions e persiste um arquivo SQLite em Netlify Blobs, evitando dependência de serviços externos como Supabase. Cada corrida abre uma sessão curta no servidor e a submissão do score valida modo, duração, velocidade plausível, token de uso único, duplicidade de corrida e rate limit por origem antes de entrar no ranking verificado.
+O placar global roda em Netlify Functions e persiste um arquivo SQLite em Netlify Blobs, evitando dependência de serviços externos como Supabase. Cada corrida abre uma sessão curta no servidor e a submissão da pontuação valida modo, duração, velocidade plausível, token de uso único, duplicidade de corrida e rate limit por origem antes de entrar no ranking verificado.
 
-As contas são opcionais. Quem não quiser login continua jogando como convidado, com callsign salvo no navegador. Quem cria conta passa a ter um perfil salvo no banco; a sessão usa cookie HttpOnly/Secure/SameSite e as senhas são armazenadas com hash `scrypt` e salt individual. Quando a Netlify não fornece um segredo via ambiente, a API gera um segredo interno persistido no SQLite/Blobs, evitando depender de configuração manual para proteger hashes operacionais.
+Ao abrir o jogo sem sessão, o usuário recebe uma tela central de login/criação de conta com alternativa explícita para jogar como convidado. Quem cria conta passa a ter um perfil salvo no banco; a sessão usa cookie HttpOnly/Secure/SameSite e as senhas são armazenadas com hash `scrypt` e salt individual. Quando a Netlify não fornece um segredo via ambiente, a API gera um segredo interno persistido no SQLite/Blobs, evitando depender de configuração manual para proteger hashes operacionais.
 
 ### Qualidade e CI
 
 O projeto possui uma pirâmide de testes executada localmente e no GitHub Actions:
 
 ```bash
-npm run test:static       # sintaxe JS/MJS/MTS
+npm run test:static       # sintaxe + contratos de UI/CI
 npm run test:unit         # regras de auth/normalizacao/sessao
 npm run test:integration  # banco + ranking + conta/convidado
-npm run test:e2e          # smoke de UI pre-corrida desktop/mobile
+npm run test:e2e          # login, convidado, placar central e bloqueio em gameplay
 npm test                  # piramide completa
+npm run ci:verify         # gate completo: piramide + smoke + audit
 ```
 
-O workflow `.github/workflows/qa.yml` roda a pirâmide em push e pull request para `main`. O deploy continua pelo fluxo GitHub -> Netlify já vinculado ao projeto.
+O workflow `.github/workflows/qa.yml` separa contratos estáticos, unitários/integração, E2E e audit para facilitar diagnóstico de QA. A Netlify também executa `npm run ci:netlify` antes de publicar, então a produção não recebe build novo se o gate falhar.
 
 ### 2. Física responsiva
 

@@ -15,7 +15,7 @@
     <link rel="icon" type="image/svg+xml" href="/assets/img/app/aetheris-icon.svg?v=pwa-1" />
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/app/favicon-32.png?v=pwa-1" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/app/apple-touch-icon.png?v=pwa-1" />
-    <link rel="stylesheet" href="../styles/main.css?v=mobile-touch-1" />
+    <link rel="stylesheet" href="../styles/main.css?v=auth-ranking-2" />
 </head>
 <body>
 
@@ -47,8 +47,19 @@
                     <span class="difficulty-desc">Virus consome tudo atras.</span>
                 </button>
             </div>
+            <div id="pilot-strip">
+                <div>
+                    <span id="pilot-mode">CONVIDADO</span>
+                    <strong id="pilot-name">RUNNER</strong>
+                </div>
+                <button type="button" id="account-open-btn">CONTA</button>
+            </div>
+            <div id="pre-run-actions">
+                <button type="button" id="leaderboard-open-btn">RANKING</button>
+                <button type="button" id="quick-shop-btn">LOJA</button>
+            </div>
             <div id="difficulty-shortcuts">[1] FACIL  [2] MEDIO  [3] DIFICIL</div>
-            [ Q ] MENU | [ S ] LOJA | [ P ] PAUSE<br><br>
+            [ Q ] MENU | [ L ] RANKING | [ S ] LOJA | [ P ] PAUSE<br><br>
             [ SETAS / A D ] MOVER PARA INICIAR<br>
             [ ESPACO ] PULAR | [ C ] DASH+ATAQUE
         </div>
@@ -90,41 +101,66 @@
             </div>
         </div>
 
-        <aside id="leaderboard-panel" aria-label="Painel pre-corrida">
-            <div id="leaderboard-topline">
-                <span>RANKING GLOBAL</span>
-                <span id="leaderboard-status" data-tone="idle">SYNC</span>
-            </div>
-            <div id="account-strip">
-                <div>
+        <section id="auth-gate" class="system-modal hidden" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+            <div class="system-dialog auth-dialog">
+                <div class="modal-topline">
+                    <span>AETHERIS ID</span>
+                    <button type="button" id="auth-close-btn" class="icon-close" aria-label="Fechar">FECHAR</button>
+                </div>
+                <div id="account-summary">
                     <span id="account-mode">CONVIDADO</span>
                     <strong id="account-name">RUNNER</strong>
                 </div>
-                <button type="button" id="account-toggle-btn">CONTA</button>
+                <h1 id="auth-title">Entrar no AETHERIS</h1>
+                <p class="modal-copy">Use sua conta para salvar identidade e pontuacao global, ou continue como convidado nesta sessao.</p>
+                <form id="account-form" autocomplete="on">
+                    <div id="account-form-tabs">
+                        <button type="button" class="selected" data-auth-mode="login">ENTRAR</button>
+                        <button type="button" data-auth-mode="signup">CRIAR</button>
+                    </div>
+                    <input id="account-username" name="username" type="text" maxlength="20" autocomplete="username" placeholder="usuario" />
+                    <input id="account-display" name="nickname" type="text" maxlength="16" autocomplete="nickname" placeholder="callsign" />
+                    <input id="account-password" name="password" type="password" maxlength="128" autocomplete="current-password" placeholder="senha" />
+                    <button type="submit" id="account-submit-btn">ENTRAR</button>
+                    <button type="button" id="account-logout-btn">SAIR DA CONTA</button>
+                    <p id="account-message">Validando sessao...</p>
+                </form>
+                <button type="button" id="guest-continue-btn">JOGAR COMO CONVIDADO</button>
             </div>
-            <form id="account-form" class="account-collapsed" autocomplete="on">
-                <div id="account-form-tabs">
-                    <button type="button" class="selected" data-auth-mode="login">ENTRAR</button>
-                    <button type="button" data-auth-mode="signup">CRIAR</button>
+        </section>
+
+        <section id="leaderboard-modal" class="system-modal hidden" role="dialog" aria-modal="true" aria-labelledby="leaderboard-title">
+            <div class="system-dialog leaderboard-dialog">
+                <div class="modal-topline">
+                    <span>RANKING GLOBAL</span>
+                    <div>
+                        <span id="leaderboard-status" data-tone="idle">SYNC</span>
+                        <button type="button" id="leaderboard-close-btn" class="icon-close" aria-label="Fechar ranking">FECHAR</button>
+                    </div>
                 </div>
-                <input id="account-username" name="username" type="text" maxlength="20" autocomplete="username" placeholder="usuario" />
-                <input id="account-display" name="nickname" type="text" maxlength="16" autocomplete="nickname" placeholder="callsign" />
-                <input id="account-password" name="password" type="password" maxlength="128" autocomplete="current-password" placeholder="senha" />
-                <button type="submit" id="account-submit-btn">ENTRAR</button>
-                <button type="button" id="account-logout-btn">SAIR</button>
-                <p id="account-message">Conta opcional. Como convidado, seu nome fica neste navegador.</p>
-            </form>
-            <label id="leaderboard-name">
-                <span>CALLSIGN</span>
-                <input id="leaderboard-name-input" type="text" maxlength="16" autocomplete="nickname" spellcheck="false" value="RUNNER" />
-            </label>
-            <div id="leaderboard-tabs" role="tablist" aria-label="Modos do ranking">
-                <button type="button" data-leaderboard-mode="easy" role="tab">FACIL</button>
-                <button type="button" data-leaderboard-mode="medium" role="tab">MEDIO</button>
-                <button type="button" data-leaderboard-mode="hard" role="tab">DIFICIL</button>
+                <h1 id="leaderboard-title">Placar Global</h1>
+                <div id="leaderboard-context">
+                    <div>
+                        <span>MODO</span>
+                        <strong id="leaderboard-mode-label">MEDIO</strong>
+                    </div>
+                    <div>
+                        <span>PILOTO</span>
+                        <strong id="leaderboard-player-label">RUNNER</strong>
+                    </div>
+                </div>
+                <label id="leaderboard-name">
+                    <span>CALLSIGN</span>
+                    <input id="leaderboard-name-input" type="text" maxlength="16" autocomplete="nickname" spellcheck="false" value="RUNNER" />
+                </label>
+                <div id="leaderboard-tabs" role="tablist" aria-label="Modos do ranking">
+                    <button type="button" data-leaderboard-mode="easy" role="tab">FACIL</button>
+                    <button type="button" data-leaderboard-mode="medium" role="tab">MEDIO</button>
+                    <button type="button" data-leaderboard-mode="hard" role="tab">DIFICIL</button>
+                </div>
+                <ol id="leaderboard-list"></ol>
             </div>
-            <ol id="leaderboard-list"></ol>
-        </aside>
+        </section>
 
         <!-- Modal da loja de skins -->
         <div id="shop-modal">
@@ -161,6 +197,7 @@
                 <button class="touch-btn touch-move" type="button" data-mobile-key="arrowright" aria-label="Mover para direita">→</button>
             </div>
             <div class="mobile-cluster mobile-menu">
+                <button class="touch-btn touch-small" type="button" data-mobile-action="ranking" aria-label="Abrir ranking">RANKING</button>
                 <button class="touch-btn touch-small" type="button" data-mobile-action="shop" aria-label="Abrir loja">LOJA</button>
                 <button class="touch-btn touch-small" type="button" data-mobile-action="pause" aria-label="Pausar">PAUSE</button>
             </div>
@@ -172,6 +209,6 @@
     </div>
 
     <!-- Carrega o bootstrap do jogo como módulo -->
-    <script type="module" src="../src/main.js?v=mobile-touch-1"></script>
+    <script type="module" src="../src/main.js?v=auth-ranking-2"></script>
 </body>
 </html>

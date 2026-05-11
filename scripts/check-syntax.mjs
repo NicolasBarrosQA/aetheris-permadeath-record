@@ -2,7 +2,7 @@ import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-const roots = ['src', 'netlify/functions', 'scripts'];
+const roots = ['src', 'netlify/functions', 'scripts', 'e2e'];
 const allowed = new Set(['.js', '.mjs', '.mts']);
 const files = [];
 
@@ -22,6 +22,8 @@ async function collect(dir) {
 for (const root of roots) {
     await collect(root);
 }
+
+files.push('playwright.config.mjs');
 
 for (const file of files) {
     const result = spawnSync(process.execPath, ['--check', file], {

@@ -364,70 +364,113 @@ html.is-mobile body {
     pointer-events: none;
 }
 
-#leaderboard-panel {
+.system-modal {
     position: absolute;
-    top: 126px;
-    right: 16px;
-    z-index: 9;
-    width: 328px;
-    max-height: calc(100vh - 156px);
-    padding: 12px;
-    border: 1px solid rgba(142, 224, 255, 0.22);
-    border-radius: 8px;
+    inset: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
     background:
-        linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0)),
-        rgba(5, 11, 28, 0.72);
-    box-shadow:
-        0 16px 34px rgba(0, 0, 0, 0.34),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    color: #eaf5ff;
-    backdrop-filter: blur(12px);
-    pointer-events: auto;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+        radial-gradient(circle at 50% 44%, rgba(8, 19, 46, 0.42), rgba(2, 5, 14, 0.82) 62%),
+        rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
 }
 
-#leaderboard-panel.hidden-during-run {
+.system-modal.hidden {
     display: none;
 }
 
-#leaderboard-panel.running {
-    opacity: 0;
-    pointer-events: none;
+.system-dialog {
+    width: min(94vw, 560px);
+    max-height: min(86vh, 720px);
+    overflow: hidden;
+    padding: 20px;
+    border: 1px solid rgba(142, 224, 255, 0.28);
+    border-radius: 8px;
+    background:
+        linear-gradient(150deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 42%),
+        rgba(4, 10, 25, 0.92);
+    box-shadow:
+        0 28px 90px rgba(0, 0, 0, 0.82),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    color: #eaf5ff;
 }
 
-#leaderboard-panel.running:focus-within,
-#leaderboard-panel:hover {
-    opacity: 1;
-    transform: translateX(0);
+.leaderboard-dialog {
+    width: min(94vw, 660px);
 }
 
-#leaderboard-topline {
+.modal-topline {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 12px;
+    margin-bottom: 16px;
+    color: #5bd7ff;
     font-family: 'Rajdhani', sans-serif;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 1px;
-    color: #5bd7ff;
     text-transform: uppercase;
 }
 
-#account-strip {
+.modal-topline > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.icon-close,
+#account-open-btn,
+#leaderboard-open-btn,
+#quick-shop-btn,
+#guest-continue-btn,
+#account-submit-btn,
+#account-logout-btn,
+#account-form-tabs button,
+#leaderboard-tabs button {
+    min-width: 0;
+    border: 1px solid rgba(146, 216, 255, 0.24);
+    border-radius: 6px;
+    background: rgba(8, 18, 40, 0.76);
+    color: #d8edff;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.icon-close {
+    height: 30px;
+    padding: 0 10px;
+    color: #aecaec;
+}
+
+#account-summary,
+#pilot-strip,
+#leaderboard-context {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-    padding: 9px 10px;
-    border: 1px solid rgba(160, 214, 255, 0.14);
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid rgba(160, 214, 255, 0.16);
     border-radius: 7px;
-    background: rgba(2, 8, 22, 0.44);
+    background: rgba(2, 8, 22, 0.5);
 }
 
-#account-strip span,
+#leaderboard-context {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#account-summary span,
+#pilot-strip span,
+#leaderboard-context span,
 #account-message {
     display: block;
     color: #95abc9;
@@ -438,97 +481,119 @@ html.is-mobile body {
     text-transform: uppercase;
 }
 
-#account-strip strong {
+#account-summary strong,
+#pilot-strip strong,
+#leaderboard-context strong {
     display: block;
     min-width: 0;
     overflow: hidden;
     color: #eef8ff;
     font-family: 'Rajdhani', sans-serif;
-    font-size: 16px;
+    font-size: 17px;
     line-height: 1.1;
     text-overflow: ellipsis;
     text-transform: uppercase;
     white-space: nowrap;
 }
 
-#account-toggle-btn,
-#account-submit-btn,
-#account-logout-btn,
-#account-form-tabs button {
-    min-width: 0;
-    border: 1px solid rgba(146, 216, 255, 0.2);
-    border-radius: 6px;
-    background: rgba(8, 18, 40, 0.72);
-    color: #cde8ff;
-    cursor: pointer;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
+#pilot-strip {
+    width: min(420px, 100%);
+    margin: 0 auto 10px;
+    text-align: left;
 }
 
-#account-toggle-btn {
-    height: 30px;
-    padding: 0 10px;
+#account-open-btn {
+    height: 32px;
+    padding: 0 12px;
+}
+
+.modal-copy {
+    margin: -4px 0 16px;
+    color: #a9bdd4;
+    font-size: 13px;
+    line-height: 1.45;
 }
 
 #account-form {
     display: grid;
-    gap: 7px;
+    gap: 9px;
     margin-bottom: 10px;
-    padding: 10px;
-    border: 1px solid rgba(160, 214, 255, 0.14);
-    border-radius: 7px;
-    background: rgba(2, 8, 22, 0.5);
 }
 
-#account-form.account-collapsed {
-    display: none;
-}
-
-#account-form-tabs {
+#account-form-tabs,
+#leaderboard-tabs,
+#pre-run-actions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 6px;
+    gap: 8px;
+}
+
+#leaderboard-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    margin-bottom: 12px;
+}
+
+#pre-run-actions {
+    width: min(420px, 100%);
+    margin: 0 auto 10px;
 }
 
 #account-form-tabs button,
+#leaderboard-tabs button,
 #account-submit-btn,
-#account-logout-btn {
-    height: 30px;
+#account-logout-btn,
+#guest-continue-btn,
+#leaderboard-open-btn,
+#quick-shop-btn {
+    height: 36px;
 }
 
 #account-form-tabs button.selected,
+#leaderboard-tabs button:hover,
+#leaderboard-tabs button.selected,
+#leaderboard-open-btn,
 #account-submit-btn {
-    border-color: rgba(102, 242, 164, 0.42);
+    border-color: rgba(102, 242, 164, 0.48);
     color: #d8ffe5;
-    background: rgba(61, 192, 132, 0.18);
+    background: rgba(61, 192, 132, 0.2);
+}
+
+#quick-shop-btn,
+#guest-continue-btn {
+    border-color: rgba(122, 226, 255, 0.38);
+    color: #e2f6ff;
+}
+
+#guest-continue-btn {
+    width: 100%;
+    margin-top: 4px;
 }
 
 #account-logout-btn {
     display: none;
-    border-color: rgba(255, 109, 157, 0.34);
+    border-color: rgba(255, 109, 157, 0.38);
     color: #ffc2d3;
 }
 
 #account-username,
 #account-display,
-#account-password {
+#account-password,
+#leaderboard-name-input {
     width: 100%;
     min-width: 0;
-    height: 30px;
-    border: 1px solid rgba(160, 214, 255, 0.24);
+    height: 38px;
+    border: 1px solid rgba(160, 214, 255, 0.26);
     border-radius: 6px;
-    background: rgba(2, 8, 22, 0.78);
+    background: rgba(2, 8, 22, 0.84);
     color: #eaf5ff;
-    padding: 0 9px;
-    font: 700 13px 'Rajdhani', sans-serif;
+    padding: 0 10px;
+    font: 700 14px 'Rajdhani', sans-serif;
     letter-spacing: 1px;
     outline: none;
 }
 
 #account-message {
+    min-height: 16px;
     margin: 0;
     color: #95abc9;
     line-height: 1.25;
@@ -544,7 +609,7 @@ html.is-mobile body {
 }
 
 #leaderboard-status {
-    padding: 3px 7px;
+    padding: 4px 8px;
     border: 1px solid rgba(160, 214, 255, 0.22);
     border-radius: 6px;
     color: #cfeaff;
@@ -564,30 +629,20 @@ html.is-mobile body {
 
 #leaderboard-name {
     display: grid;
-    grid-template-columns: 74px 1fr;
+    grid-template-columns: 84px 1fr;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: 10px;
+    margin-bottom: 12px;
     color: #95abc9;
     font-family: 'Rajdhani', sans-serif;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
 }
 
 #leaderboard-name-input {
-    min-width: 0;
-    height: 30px;
-    border: 1px solid rgba(160, 214, 255, 0.24);
-    border-radius: 6px;
-    background: rgba(2, 8, 22, 0.78);
-    color: #eaf5ff;
-    padding: 0 9px;
-    font: 700 13px 'Rajdhani', sans-serif;
-    letter-spacing: 1px;
     text-transform: uppercase;
-    outline: none;
 }
 
 #leaderboard-name-input:disabled {
@@ -596,44 +651,18 @@ html.is-mobile body {
     opacity: 0.72;
 }
 
+#account-username:focus,
+#account-display:focus,
+#account-password:focus,
 #leaderboard-name-input:focus {
-    border-color: rgba(91, 215, 255, 0.62);
+    border-color: rgba(91, 215, 255, 0.64);
     box-shadow: 0 0 16px rgba(91, 215, 255, 0.14);
-}
-
-#leaderboard-tabs {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-    margin-bottom: 10px;
-}
-
-#leaderboard-tabs button {
-    min-width: 0;
-    height: 30px;
-    border: 1px solid rgba(146, 216, 255, 0.18);
-    border-radius: 6px;
-    background: rgba(8, 18, 40, 0.68);
-    color: #bcd5ed;
-    cursor: pointer;
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-}
-
-#leaderboard-tabs button:hover,
-#leaderboard-tabs button.selected {
-    border-color: rgba(122, 226, 255, 0.56);
-    color: #eaf8ff;
-    background: linear-gradient(180deg, rgba(88, 214, 255, 0.16), rgba(255, 255, 255, 0.03));
 }
 
 #leaderboard-list {
     display: grid;
-    gap: 6px;
-    max-height: 270px;
+    gap: 8px;
+    max-height: min(46vh, 360px);
     margin: 0;
     padding: 0;
     overflow-y: auto;
@@ -644,18 +673,18 @@ html.is-mobile body {
 
 .leaderboard-row,
 .leaderboard-empty {
-    min-height: 34px;
+    min-height: 42px;
     border-radius: 6px;
-    background: rgba(2, 8, 22, 0.46);
-    border: 1px solid rgba(160, 214, 255, 0.12);
+    background: rgba(2, 8, 22, 0.56);
+    border: 1px solid rgba(160, 214, 255, 0.14);
 }
 
 .leaderboard-row {
     display: grid;
-    grid-template-columns: 40px minmax(0, 1fr) 58px 44px;
+    grid-template-columns: 54px minmax(0, 1fr) 80px 58px;
     align-items: center;
-    gap: 7px;
-    padding: 7px 8px;
+    gap: 10px;
+    padding: 8px 10px;
     font-family: 'Rajdhani', sans-serif;
 }
 
@@ -663,11 +692,13 @@ html.is-mobile body {
     display: flex;
     align-items: center;
     justify-content: center;
+    min-height: 88px;
     color: #95abc9;
     font-family: 'Rajdhani', sans-serif;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 1px;
+    text-align: center;
 }
 
 .leaderboard-rank {
@@ -1048,7 +1079,6 @@ h1 {
     font-size: 13px;
     letter-spacing: 2px;
     text-shadow: 0 0 12px rgba(0, 0, 0, 0.8);
-    animation: pulse-hint 2.4s ease-in-out infinite;
     backdrop-filter: blur(10px);
     pointer-events: auto;
 }
@@ -1196,16 +1226,12 @@ h1 {
         min-width: 0;
     }
 
-    #leaderboard-panel {
-        top: 86px;
-        right: 10px;
-        width: min(292px, calc(100vw - 20px));
-        max-height: 220px;
-        padding: 10px;
+    .system-dialog {
+        padding: 16px;
     }
 
     #leaderboard-list {
-        max-height: 96px;
+        max-height: min(40vh, 260px);
     }
 
     #leaderboard-name {
@@ -1275,21 +1301,19 @@ h1 {
 }
 
 @media (max-width: 520px) {
-    #leaderboard-panel {
-        left: 10px;
-        right: 10px;
-        top: 82px;
-        width: auto;
-        max-height: 42vh;
+    .system-modal {
+        padding: 10px;
+    }
+
+    .system-dialog {
+        width: 100%;
+        max-height: 88vh;
         overflow-y: auto;
     }
 
-    #leaderboard-list {
-        max-height: 84px;
-    }
-
-    #account-strip {
-        grid-template-columns: minmax(0, 1fr) 68px;
+    #leaderboard-context,
+    #pilot-strip {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     #leaderboard-name {
@@ -1330,17 +1354,10 @@ h1 {
 }
 
 @media (max-height: 520px) and (orientation: landscape) {
-    #leaderboard-panel {
-        left: auto;
-        right: 10px;
-        top: 72px;
-        width: min(310px, 36vw);
-        max-height: calc(100vh - 150px);
+    .system-dialog {
+        width: min(92vw, 720px);
+        max-height: 88vh;
         overflow-y: auto;
-    }
-
-    #leaderboard-list {
-        max-height: 72px;
     }
 
     #start-hint {

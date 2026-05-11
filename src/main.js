@@ -12,7 +12,13 @@ import { spawnText } from './systems/particles.js';
 import { loadBoostSprites } from './core/boostSprites.js';
 import { loadSkinSprites } from './core/sprites.js';
 import { validateGameConfig } from './core/validation.js';
-import { initLeaderboardUI, syncLeaderboardMode } from './systems/leaderboard.js';
+import {
+    closeSystemDialogs,
+    initLeaderboardUI,
+    isInterfaceBlockingGame,
+    openLeaderboardDialog,
+    syncLeaderboardMode
+} from './systems/leaderboard.js';
 
 const ACTION_KEYS = new Set([
     ' ',
@@ -26,6 +32,7 @@ const ACTION_KEYS = new Set([
     'd',
     'f',
     'k',
+    'l',
     'p',
     'r',
     's',
@@ -165,6 +172,10 @@ function runMobileAction(action, button) {
             togglePause();
             wakeGameAudio();
             break;
+        case 'ranking':
+            openLeaderboardDialog();
+            wakeGameAudio();
+            break;
         case 'shop':
             toggleShop();
             wakeGameAudio();
@@ -265,6 +276,15 @@ function bootstrap() {
             window.focus();
         });
     }
+    const quickShopBtn = document.getElementById('quick-shop-btn');
+    if (quickShopBtn) {
+        quickShopBtn.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleShop();
+            window.focus();
+        });
+    }
     state.difficultyButtons = [...document.querySelectorAll('[data-difficulty]')];
 
     state.difficultyButtons.forEach(button => {
@@ -316,6 +336,14 @@ function setupInput() {
         const key = event.key.toLowerCase();
         const wasPressed = Boolean(state.keys[key]);
 
+        if (isInterfaceBlockingGame()) {
+            if (key === 'escape') {
+                closeSystemDialogs();
+                event.preventDefault();
+            }
+            return;
+        }
+
         state.keys[key] = true;
 
         if (shouldPreventDefault(key, event.code)) {
@@ -360,6 +388,10 @@ function setupInput() {
 
             if (key === 's') {
                 toggleShop();
+            }
+
+            if (!state.game.started && key === 'l') {
+                openLeaderboardDialog();
             }
 
             if (!state.game.started && (key === '1' || key === '2' || key === '3')) {

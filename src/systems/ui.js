@@ -34,6 +34,7 @@ export function syncDifficultyUI() {
 
 export function toggleShop() {
     if (state.game.started || state.game.isGameOver) return;
+    if (document.body.classList.contains('modal-open')) return;
 
     resumeAudioContext();
 
