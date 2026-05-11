@@ -8,6 +8,16 @@
   included_files = ["node_modules/sql.js/dist/sql-wasm.wasm"]
 
 [[redirects]]
+  from = "/api/leaderboard*"
+  to = "/.netlify/functions/leaderboard:splat"
+  status = 200
+
+[[redirects]]
+  from = "/api/account*"
+  to = "/.netlify/functions/account:splat"
+  status = 200
+
+[[redirects]]
   from = "/"
   to = "/public/index.html"
   status = 200

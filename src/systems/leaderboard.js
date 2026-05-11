@@ -200,9 +200,10 @@ function syncAuthMode() {
         button.setAttribute('aria-pressed', selected ? 'true' : 'false');
     });
 
+    const isLogged = Boolean(leaderboardState.account);
     const isSignup = leaderboardState.authMode === 'signup';
     if (elements.accountDisplay) {
-        elements.accountDisplay.style.display = isSignup ? 'block' : 'none';
+        elements.accountDisplay.style.display = isLogged ? 'none' : (isSignup ? 'block' : 'none');
     }
     if (elements.accountPassword) {
         elements.accountPassword.autocomplete = isSignup ? 'new-password' : 'current-password';
@@ -242,12 +243,21 @@ function syncAccountUI() {
     }
     if (elements.accountUsername) {
         elements.accountUsername.disabled = isLogged;
+        elements.accountUsername.style.display = isLogged ? 'none' : 'block';
     }
     if (elements.accountPassword) {
         elements.accountPassword.disabled = isLogged;
+        elements.accountPassword.style.display = isLogged ? 'none' : 'block';
     }
     if (elements.accountDisplay) {
         elements.accountDisplay.disabled = isLogged;
+        if (isLogged) elements.accountDisplay.style.display = 'none';
+    }
+    if (elements.authTitle) {
+        elements.authTitle.innerText = isLogged ? 'Perfil AETHERIS' : 'Entrar no AETHERIS';
+    }
+    if (elements.accountTabs) {
+        elements.accountTabs.style.display = isLogged ? 'none' : 'flex';
     }
 
     syncAuthMode();
@@ -559,6 +569,8 @@ export function initLeaderboardUI() {
         playerLabel: document.getElementById('leaderboard-player-label'),
         modeLabel: document.getElementById('leaderboard-mode-label'),
         accountForm: document.getElementById('account-form'),
+        accountTabs: document.getElementById('account-form-tabs'),
+        authTitle: document.getElementById('auth-title'),
         authModeButtons: [...document.querySelectorAll('[data-auth-mode]')],
         accountUsername: document.getElementById('account-username'),
         accountDisplay: document.getElementById('account-display'),
