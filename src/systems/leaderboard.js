@@ -1,6 +1,6 @@
 /*
- * Cliente do leaderboard global. A API roda em Netlify Functions e usa
- * sessoes curtas para reduzir submissoes fabricadas pelo cliente.
+ * Painel pre-corrida: ranking global, convidado e conta opcional.
+ * Durante gameplay ele fica oculto para preservar foco e performance.
  */
 
 import state from '../core/state.js';
@@ -9,6 +9,7 @@ import { storage } from '../core/storage.js';
 
 const API_URL = '/api/leaderboard';
 const SESSION_URL = '/api/leaderboard/session';
+const ACCOUNT_URL = '/api/account';
 const PLAYER_NAME_KEY = 'aetheris_leaderboard_name_v1';
 const MODE_IDS = Object.keys(DIFFICULTY_MODES);
 
@@ -17,7 +18,10 @@ const leaderboardState = {
     activeRun: null,
     lastSubmittedRunId: null,
     loading: false,
-    entries: []
+    entries: [],
+    authMode: 'login',
+    account: null,
+    accountPanelOpen: false
 };
 
 let elements = null;
@@ -34,7 +38,7 @@ function writeLocalValue(key, value) {
     try {
         localStorage.setItem(key, value);
     } catch {
-        // Storage privado ou bloqueado: o placar segue funcionando nesta sessao.
+        // Storage privado ou bloqueado: o convidado segue funcionando nesta sessao.
     }
 }
 
@@ -53,6 +57,14 @@ function normalizeName(name) {
     return cleaned || 'RUNNER';
 }
 
+function normalizeUsername(username) {
+    return String(username || '')
+        .normalize('NFKD')
+        .replace(/[^\w-]/g, '')
+        .trim()
+        .slice(0, 20);
+}
+
 function formatDuration(ms) {
     const seconds = Math.max(0, Math.floor(ms / 1000));
     const min = Math.floor(seconds / 60);
@@ -66,9 +78,16 @@ function setStatus(text, tone = 'idle') {
     elements.status.dataset.tone = tone;
 }
 
+function setAccountMessage(text, tone = 'idle') {
+    if (!elements?.accountMessage) return;
+    elements.accountMessage.innerText = text;
+    elements.accountMessage.dataset.tone = tone;
+}
+
 async function fetchJson(url, options = {}) {
     const response = await fetch(url, {
         ...options,
+        credentials: 'same-origin',
         headers: {
             'Content-Type': 'application/json',
             ...(options.headers || {})
@@ -77,12 +96,26 @@ async function fetchJson(url, options = {}) {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-        const error = new Error(data.error || 'leaderboard_request_failed');
+        const error = new Error(data.error || 'request_failed');
         error.payload = data;
         throw error;
     }
 
     return data;
+}
+
+function getCurrentPlayerName() {
+    if (leaderboardState.account) {
+        return normalizeName(leaderboardState.account.displayName || leaderboardState.account.username);
+    }
+
+    return normalizeName(elements?.nameInput?.value || readLocalValue(PLAYER_NAME_KEY, 'RUNNER'));
+}
+
+function syncPanelVisibility() {
+    if (!elements?.panel) return;
+    const shouldShow = !state.game.started && !state.game.isGameOver;
+    elements.panel.classList.toggle('hidden-during-run', !shouldShow);
 }
 
 function syncTabs() {
@@ -92,6 +125,66 @@ function syncTabs() {
         button.classList.toggle('selected', selected);
         button.setAttribute('aria-selected', selected ? 'true' : 'false');
     });
+}
+
+function syncAuthMode() {
+    if (!elements?.authModeButtons?.length) return;
+
+    elements.authModeButtons.forEach(button => {
+        const selected = button.dataset.authMode === leaderboardState.authMode;
+        button.classList.toggle('selected', selected);
+    });
+
+    const isSignup = leaderboardState.authMode === 'signup';
+    if (elements.accountDisplay) {
+        elements.accountDisplay.style.display = isSignup ? 'block' : 'none';
+    }
+    if (elements.accountPassword) {
+        elements.accountPassword.autocomplete = isSignup ? 'new-password' : 'current-password';
+    }
+    if (elements.accountSubmit) {
+        elements.accountSubmit.innerText = isSignup ? 'CRIAR CONTA' : 'ENTRAR';
+    }
+}
+
+function syncAccountUI() {
+    if (!elements) return;
+    const account = leaderboardState.account;
+    const isLogged = Boolean(account);
+    const displayName = account
+        ? normalizeName(account.displayName || account.username)
+        : normalizeName(readLocalValue(PLAYER_NAME_KEY, 'RUNNER'));
+
+    if (elements.accountMode) elements.accountMode.innerText = isLogged ? 'CONTA' : 'CONVIDADO';
+    if (elements.accountName) elements.accountName.innerText = displayName;
+    if (elements.nameInput) {
+        elements.nameInput.value = displayName;
+        elements.nameInput.disabled = isLogged;
+    }
+    if (elements.accountForm) {
+        elements.accountForm.classList.toggle('account-collapsed', !leaderboardState.accountPanelOpen);
+        elements.accountForm.classList.toggle('logged-in', isLogged);
+    }
+    if (elements.accountToggle) {
+        elements.accountToggle.innerText = leaderboardState.accountPanelOpen ? 'FECHAR' : (isLogged ? 'PERFIL' : 'CONTA');
+    }
+    if (elements.logoutButton) {
+        elements.logoutButton.style.display = isLogged ? 'block' : 'none';
+    }
+    if (elements.accountSubmit) {
+        elements.accountSubmit.style.display = isLogged ? 'none' : 'block';
+    }
+    if (elements.accountUsername) {
+        elements.accountUsername.disabled = isLogged;
+    }
+    if (elements.accountPassword) {
+        elements.accountPassword.disabled = isLogged;
+    }
+    if (elements.accountDisplay) {
+        elements.accountDisplay.disabled = isLogged;
+    }
+
+    syncAuthMode();
 }
 
 function renderEntries() {
@@ -168,6 +261,7 @@ export function resetLeaderboardRun() {
     leaderboardState.activeRun = null;
     leaderboardState.lastSubmittedRunId = null;
     if (elements?.panel) elements.panel.classList.remove('running');
+    syncPanelVisibility();
 }
 
 export async function startLeaderboardRun(modeId) {
@@ -184,6 +278,7 @@ export async function startLeaderboardRun(modeId) {
     };
     leaderboardState.lastSubmittedRunId = null;
     if (elements?.panel) elements.panel.classList.add('running');
+    syncPanelVisibility();
     setStatus('ARMADO', 'idle');
 
     try {
@@ -219,9 +314,8 @@ export async function submitLeaderboardScore() {
         return;
     }
 
-    const playerName = normalizeName(elements?.nameInput?.value || readLocalValue(PLAYER_NAME_KEY, 'RUNNER'));
-    if (elements?.nameInput) elements.nameInput.value = playerName;
-    writeLocalValue(PLAYER_NAME_KEY, playerName);
+    const playerName = getCurrentPlayerName();
+    if (!leaderboardState.account) writeLocalValue(PLAYER_NAME_KEY, playerName);
 
     setStatus('ENVIANDO', 'idle');
 
@@ -250,6 +344,80 @@ export async function submitLeaderboardScore() {
     }
 }
 
+async function hydrateAccount() {
+    try {
+        const result = await fetchJson(ACCOUNT_URL);
+        leaderboardState.account = result.account || null;
+        setAccountMessage(
+            leaderboardState.account ? 'Conta conectada. Seus scores usam este callsign.' : 'Conta opcional. Convidado usa cache do navegador.',
+            leaderboardState.account ? 'ready' : 'idle'
+        );
+    } catch {
+        leaderboardState.account = null;
+        setAccountMessage('Login offline agora. Convidado segue disponivel.', 'warn');
+    } finally {
+        syncAccountUI();
+    }
+}
+
+async function submitAccountForm(event) {
+    event.preventDefault();
+    if (leaderboardState.account) return;
+
+    const username = normalizeUsername(elements.accountUsername?.value);
+    const displayName = normalizeName(elements.accountDisplay?.value || username);
+    const password = elements.accountPassword?.value || '';
+    const endpoint = leaderboardState.authMode === 'signup' ? `${ACCOUNT_URL}/signup` : `${ACCOUNT_URL}/login`;
+
+    if (username.length < 3) {
+        setAccountMessage('Usuario precisa ter pelo menos 3 caracteres.', 'warn');
+        return;
+    }
+
+    if (password.length < 10) {
+        setAccountMessage('Senha precisa ter 10+ caracteres com letra e numero.', 'warn');
+        return;
+    }
+
+    setAccountMessage('Validando...', 'idle');
+
+    try {
+        const result = await fetchJson(endpoint, {
+            method: 'POST',
+            body: JSON.stringify({ username, displayName, password })
+        });
+
+        leaderboardState.account = result.account || null;
+        leaderboardState.accountPanelOpen = false;
+        if (elements.accountPassword) elements.accountPassword.value = '';
+        setAccountMessage('Conta conectada.', 'ready');
+        syncAccountUI();
+    } catch (error) {
+        const code = error.payload?.error;
+        const messages = {
+            username_taken: 'Esse usuario ja existe.',
+            invalid_credentials: 'Usuario ou senha invalidos.',
+            password_needs_letter_and_number: 'Use senha com letras e numeros.',
+            password_too_short: 'Senha precisa ter 10+ caracteres.',
+            rate_limited: 'Muitas tentativas. Tente em instantes.'
+        };
+        setAccountMessage(messages[code] || 'Nao foi possivel conectar.', 'warn');
+    }
+}
+
+async function logout() {
+    try {
+        await fetchJson(`${ACCOUNT_URL}/logout`, { method: 'POST', body: '{}' });
+    } catch {
+        // Se a rede falhar, ao menos volta a UI para convidado.
+    }
+
+    leaderboardState.account = null;
+    leaderboardState.accountPanelOpen = false;
+    setAccountMessage('Voce esta jogando como convidado.', 'idle');
+    syncAccountUI();
+}
+
 export function initLeaderboardUI() {
     const panel = document.getElementById('leaderboard-panel');
     if (!panel) return;
@@ -259,7 +427,18 @@ export function initLeaderboardUI() {
         status: document.getElementById('leaderboard-status'),
         nameInput: document.getElementById('leaderboard-name-input'),
         list: document.getElementById('leaderboard-list'),
-        tabs: [...document.querySelectorAll('[data-leaderboard-mode]')]
+        tabs: [...document.querySelectorAll('[data-leaderboard-mode]')],
+        accountMode: document.getElementById('account-mode'),
+        accountName: document.getElementById('account-name'),
+        accountToggle: document.getElementById('account-toggle-btn'),
+        accountForm: document.getElementById('account-form'),
+        authModeButtons: [...document.querySelectorAll('[data-auth-mode]')],
+        accountUsername: document.getElementById('account-username'),
+        accountDisplay: document.getElementById('account-display'),
+        accountPassword: document.getElementById('account-password'),
+        accountSubmit: document.getElementById('account-submit-btn'),
+        logoutButton: document.getElementById('account-logout-btn'),
+        accountMessage: document.getElementById('account-message')
     };
 
     if (elements.nameInput) {
@@ -268,6 +447,7 @@ export function initLeaderboardUI() {
             const safeName = normalizeName(elements.nameInput.value);
             elements.nameInput.value = safeName;
             writeLocalValue(PLAYER_NAME_KEY, safeName);
+            syncAccountUI();
         });
     }
 
@@ -280,5 +460,23 @@ export function initLeaderboardUI() {
         });
     });
 
+    elements.authModeButtons.forEach(button => {
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            leaderboardState.authMode = button.dataset.authMode === 'signup' ? 'signup' : 'login';
+            syncAuthMode();
+        });
+    });
+
+    elements.accountToggle?.addEventListener('click', () => {
+        leaderboardState.accountPanelOpen = !leaderboardState.accountPanelOpen;
+        syncAccountUI();
+    });
+    elements.accountForm?.addEventListener('submit', submitAccountForm);
+    elements.logoutButton?.addEventListener('click', logout);
+
+    syncPanelVisibility();
+    syncAccountUI();
+    hydrateAccount();
     refreshLeaderboard(leaderboardState.modeId);
 }

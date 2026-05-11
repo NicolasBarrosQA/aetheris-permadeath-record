@@ -369,7 +369,7 @@ html.is-mobile body {
     top: 126px;
     right: 16px;
     z-index: 9;
-    width: 304px;
+    width: 328px;
     max-height: calc(100vh - 156px);
     padding: 12px;
     border: 1px solid rgba(142, 224, 255, 0.22);
@@ -386,9 +386,13 @@ html.is-mobile body {
     transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
+#leaderboard-panel.hidden-during-run {
+    display: none;
+}
+
 #leaderboard-panel.running {
-    opacity: 0.62;
-    transform: translateX(6px);
+    opacity: 0;
+    pointer-events: none;
 }
 
 #leaderboard-panel.running:focus-within,
@@ -409,6 +413,134 @@ html.is-mobile body {
     letter-spacing: 1px;
     color: #5bd7ff;
     text-transform: uppercase;
+}
+
+#account-strip {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 9px 10px;
+    border: 1px solid rgba(160, 214, 255, 0.14);
+    border-radius: 7px;
+    background: rgba(2, 8, 22, 0.44);
+}
+
+#account-strip span,
+#account-message {
+    display: block;
+    color: #95abc9;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+#account-strip strong {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    color: #eef8ff;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+#account-toggle-btn,
+#account-submit-btn,
+#account-logout-btn,
+#account-form-tabs button {
+    min-width: 0;
+    border: 1px solid rgba(146, 216, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(8, 18, 40, 0.72);
+    color: #cde8ff;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+#account-toggle-btn {
+    height: 30px;
+    padding: 0 10px;
+}
+
+#account-form {
+    display: grid;
+    gap: 7px;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid rgba(160, 214, 255, 0.14);
+    border-radius: 7px;
+    background: rgba(2, 8, 22, 0.5);
+}
+
+#account-form.account-collapsed {
+    display: none;
+}
+
+#account-form-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+}
+
+#account-form-tabs button,
+#account-submit-btn,
+#account-logout-btn {
+    height: 30px;
+}
+
+#account-form-tabs button.selected,
+#account-submit-btn {
+    border-color: rgba(102, 242, 164, 0.42);
+    color: #d8ffe5;
+    background: rgba(61, 192, 132, 0.18);
+}
+
+#account-logout-btn {
+    display: none;
+    border-color: rgba(255, 109, 157, 0.34);
+    color: #ffc2d3;
+}
+
+#account-username,
+#account-display,
+#account-password {
+    width: 100%;
+    min-width: 0;
+    height: 30px;
+    border: 1px solid rgba(160, 214, 255, 0.24);
+    border-radius: 6px;
+    background: rgba(2, 8, 22, 0.78);
+    color: #eaf5ff;
+    padding: 0 9px;
+    font: 700 13px 'Rajdhani', sans-serif;
+    letter-spacing: 1px;
+    outline: none;
+}
+
+#account-message {
+    margin: 0;
+    color: #95abc9;
+    line-height: 1.25;
+    text-transform: none;
+}
+
+#account-message[data-tone="ready"] {
+    color: #baffd0;
+}
+
+#account-message[data-tone="warn"] {
+    color: #ffd795;
 }
 
 #leaderboard-status {
@@ -456,6 +588,12 @@ html.is-mobile body {
     letter-spacing: 1px;
     text-transform: uppercase;
     outline: none;
+}
+
+#leaderboard-name-input:disabled {
+    color: #9ab0cf;
+    cursor: not-allowed;
+    opacity: 0.72;
 }
 
 #leaderboard-name-input:focus {
@@ -1130,12 +1268,6 @@ h1 {
     }
 }
 
-@media (max-width: 1100px), (max-height: 640px) {
-    #leaderboard-panel {
-        display: none;
-    }
-}
-
 @media (hover: none), (pointer: coarse), (max-width: 820px), (max-height: 520px) {
     #mobile-controls {
         display: block;
@@ -1143,6 +1275,27 @@ h1 {
 }
 
 @media (max-width: 520px) {
+    #leaderboard-panel {
+        left: 10px;
+        right: 10px;
+        top: 82px;
+        width: auto;
+        max-height: 42vh;
+        overflow-y: auto;
+    }
+
+    #leaderboard-list {
+        max-height: 84px;
+    }
+
+    #account-strip {
+        grid-template-columns: minmax(0, 1fr) 68px;
+    }
+
+    #leaderboard-name {
+        grid-template-columns: 66px 1fr;
+    }
+
     .mobile-left {
         left: calc(10px + env(safe-area-inset-left, 0px));
     }
@@ -1177,10 +1330,23 @@ h1 {
 }
 
 @media (max-height: 520px) and (orientation: landscape) {
+    #leaderboard-panel {
+        left: auto;
+        right: 10px;
+        top: 72px;
+        width: min(310px, 36vw);
+        max-height: calc(100vh - 150px);
+        overflow-y: auto;
+    }
+
+    #leaderboard-list {
+        max-height: 72px;
+    }
+
     #start-hint {
         left: 50%;
         bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-        width: min(58vw, 680px);
+        width: min(54vw, 680px);
         font-size: 10px;
         padding: 10px 12px;
     }

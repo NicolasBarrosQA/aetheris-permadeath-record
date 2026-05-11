@@ -100,7 +100,7 @@ export function drawVirus(ctx, viewH) {
     ctx.fillStyle = voidGrad;
     ctx.fillRect(frontX - 2500, topY, 2450, wallH);
 
-    const debrisCount = Math.max(120, Math.floor(450 * quality));
+    const debrisCount = Math.max(70, Math.floor(260 * quality));
     for (let i = 0; i < debrisCount; i++) {
         const seed = i * 71 + Math.floor(frames / 6);
         const ih1 = getHash(seed);
@@ -168,7 +168,7 @@ export function drawVirus(ctx, viewH) {
         }
     }
 
-    const dodgeCount = Math.max(48, Math.floor(150 * quality));
+    const dodgeCount = Math.max(24, Math.floor(80 * quality));
     ctx.globalCompositeOperation = 'color-dodge';
     for (let i = 0; i < dodgeCount; i++) {
         const seed = i * 29 + Math.floor(frames / 2);
@@ -185,7 +185,7 @@ export function drawVirus(ctx, viewH) {
         ctx.fillRect(snipX, snipY, biteW, biteH);
     }
 
-    const biteCount = Math.max(96, Math.floor(300 * quality));
+    const biteCount = Math.max(48, Math.floor(150 * quality));
     ctx.globalCompositeOperation = 'destination-out';
     for (let i = 0; i < biteCount; i++) {
         const seed = i * 41 + Math.floor(frames / 1.5);
@@ -202,7 +202,7 @@ export function drawVirus(ctx, viewH) {
         ctx.fillRect(snipX, snipY, biteW, biteH);
     }
 
-    const sparkCount = Math.max(28, Math.floor(80 * quality));
+    const sparkCount = Math.max(16, Math.floor(42 * quality));
     ctx.globalCompositeOperation = 'screen';
     for (let i = 0; i < sparkCount; i++) {
         const seed = i * 53 + Math.floor(frames / 2);
@@ -218,4 +218,3 @@ export function drawVirus(ctx, viewH) {
     ctx.globalCompositeOperation = 'source-over';
     ctx.restore();
 }
-

@@ -17,7 +17,7 @@ import state from '../core/state.js';
  */
 export function spawnParticles(x, y, n, c, type) {
     const quality = state.performance?.quality || 1;
-    const total = Math.max(1, Math.round(n * (0.72 + quality * 0.28)));
+    const total = Math.max(1, Math.round(n * (0.48 + quality * 0.34)));
     for (let i = 0; i < total; i++) {
         const heavy = type === 2;
         state.particles.push({

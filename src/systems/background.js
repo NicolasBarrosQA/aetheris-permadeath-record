@@ -540,6 +540,7 @@ function drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost,
 export function drawLayer(layer, camX) {
     const ctx = state.ctx;
     const quality = state.performance?.quality || 1;
+    const { viewW } = getViewMetrics();
     const layerTone = Math.round(272 + (Math.sin((state.game.dist * 0.0018) + (layer.length * 0.17)) * 8));
     const lastBuilding = layer[layer.length - 1];
     const layerSpan = lastBuilding
@@ -550,6 +551,7 @@ export function drawLayer(layer, camX) {
         const relativeX = building.x - (camX * building.parallax);
         let x = relativeX % layerSpan;
         if (x < (-building.w - 120)) x += layerSpan;
+        if (x > viewW + 140 || x + building.w < -140) return;
 
         const hue = (layerTone + (building.accentShift || 0) + 360) % 360;
         const accent = `hsla(${(hue + 22) % 360}, 100%, 66%, 0.6)`;

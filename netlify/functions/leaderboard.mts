@@ -3,38 +3,11 @@ import { getStore } from '@netlify/blobs';
 import {
     createBlobStorage,
     createLeaderboardSession,
+    getAccountBySessionToken,
     listLeaderboard,
     submitLeaderboardScore
 } from './_shared/leaderboard-db.mjs';
-
-function jsonResponse(body: unknown, status = 200) {
-    return new Response(JSON.stringify(body), {
-        status,
-        headers: {
-            'Content-Type': 'application/json; charset=utf-8',
-            'Cache-Control': 'no-store'
-        }
-    });
-}
-
-async function readJson(req: Request) {
-    try {
-        return await req.json();
-    } catch {
-        return {};
-    }
-}
-
-function getClient(req: Request, context: Context) {
-    return {
-        ip: context.ip || req.headers.get('x-nf-client-connection-ip') || req.headers.get('x-forwarded-for') || '0.0.0.0',
-        userAgent: req.headers.get('user-agent') || 'unknown'
-    };
-}
-
-function getHashSecret() {
-    return globalThis.Netlify?.env?.get('LEADERBOARD_HASH_SECRET') || 'aetheris-leaderboard-default-secret';
-}
+import { getAccountCookie, getClient, getHashSecret, jsonResponse, readJson } from './_shared/http.mjs';
 
 export default async (req: Request, context: Context) => {
     const url = new URL(req.url);
@@ -68,9 +41,15 @@ export default async (req: Request, context: Context) => {
 
         if (url.pathname === '/api/leaderboard' && req.method === 'POST') {
             const body = await readJson(req);
+            const current = await getAccountBySessionToken({
+                storage,
+                token: getAccountCookie(req),
+                secret
+            });
             const result = await submitLeaderboardScore({
                 storage,
                 payload: body,
+                account: current.account,
                 client,
                 secret
             });

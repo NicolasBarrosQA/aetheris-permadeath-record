@@ -30,6 +30,8 @@ O jogo possui três modos de dificuldade, progressão contínua de velocidade, g
 - localStorage
 - Netlify Functions
 - SQLite (`sql.js`) persistido em Netlify Blobs
+- GitHub Actions
+- Playwright / Node Test Runner
 
 ---
 
@@ -60,7 +62,9 @@ O jogo possui três modos de dificuldade, progressão contínua de velocidade, g
 - Persistência local de recorde, moedas, skins e preferências
 - Sistema visual de corrupção digital no modo difícil, com renderização adaptativa (culling vertical + escala de qualidade dinâmica) para manter fluidez
 - Pause inteligente com tela dedicada e suspensão completa da simulação
-- Leaderboard global por dificuldade, com sessão de corrida, ranking SQL e validações anti-cheat no servidor
+- Leaderboard global por dificuldade, visível no pré-jogo e oculto durante gameplay
+- Contas opcionais com modo convidado preservado, sessão segura em cookie HttpOnly e senha com hash `scrypt`
+- Pirâmide de testes com checagem estática, unitários, integração e E2E
 
 ---
 
@@ -77,9 +81,25 @@ O projeto começou como um protótipo monolítico e foi evoluído para uma estru
 
 Esse refactor reduziu acoplamento, melhorou manutenção e facilitou expansão de features.
 
-### Leaderboard e anti-cheat
+### Leaderboard, contas e anti-cheat
 
-O ranking global roda em uma Netlify Function e persiste um arquivo SQLite em Netlify Blobs, evitando dependência de serviços externos como Supabase. Cada corrida abre uma sessão curta no servidor e a submissão do score valida modo, duração, velocidade plausível, token de uso único, duplicidade de corrida e rate limit por origem antes de entrar no ranking verificado.
+O ranking global roda em Netlify Functions e persiste um arquivo SQLite em Netlify Blobs, evitando dependência de serviços externos como Supabase. Cada corrida abre uma sessão curta no servidor e a submissão do score valida modo, duração, velocidade plausível, token de uso único, duplicidade de corrida e rate limit por origem antes de entrar no ranking verificado.
+
+As contas são opcionais. Quem não quiser login continua jogando como convidado, com callsign salvo no navegador. Quem cria conta passa a ter um perfil salvo no banco; a sessão usa cookie HttpOnly/Secure/SameSite e as senhas são armazenadas com hash `scrypt` e salt individual.
+
+### Qualidade e CI
+
+O projeto possui uma pirâmide de testes executada localmente e no GitHub Actions:
+
+```bash
+npm run test:static       # sintaxe JS/MJS/MTS
+npm run test:unit         # regras de auth/normalizacao/sessao
+npm run test:integration  # banco + ranking + conta/convidado
+npm run test:e2e          # smoke de UI pre-corrida desktop/mobile
+npm test                  # piramide completa
+```
+
+O workflow `.github/workflows/qa.yml` roda a pirâmide em push e pull request para `main`. O deploy continua pelo fluxo GitHub -> Netlify já vinculado ao projeto.
 
 ### 2. Física responsiva
 

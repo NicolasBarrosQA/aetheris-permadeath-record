@@ -16,6 +16,7 @@ export function drawBoostPickup(ctx, boost) {
     const boostDef = BOOST_TYPES[boost.id];
     if (!boostDef) return;
 
+    const quality = state.performance?.quality || 1;
     const bob = Math.sin(boost.bob) * 4;
     const squash = Math.max(0.22, Math.abs(Math.cos(boost.rot)));
     const sprite = getBoostSprite(boost.id);
@@ -29,7 +30,7 @@ export function drawBoostPickup(ctx, boost) {
     halo.addColorStop(0.55, `${boostDef.color}cc`);
     halo.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = halo;
-    ctx.shadowBlur = 22;
+    ctx.shadowBlur = quality >= 0.68 ? 22 : 0;
     ctx.shadowColor = boostDef.color;
     ctx.beginPath();
     ctx.arc(0, 0, 16, 0, Math.PI * 2);

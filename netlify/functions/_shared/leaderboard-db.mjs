@@ -2,7 +2,8 @@ import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createHash, randomUUID } from 'node:crypto';
+import { promisify } from 'node:util';
+import { createHash, randomBytes, randomUUID, scrypt as nodeScrypt, timingSafeEqual } from 'node:crypto';
 import initSqlJs from 'sql.js';
 
 export const LEADERBOARD_MODES = ['easy', 'medium', 'hard'];
@@ -12,7 +13,12 @@ const MAX_NAME_LENGTH = 16;
 const MAX_LIMIT = 25;
 const RATE_WINDOW_MS = 60_000;
 const SESSION_TTL_MS = 45 * 60_000;
+const ACCOUNT_SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
 const MAX_DB_ENTRIES_PER_MODE = 600;
+const PASSWORD_MIN_LENGTH = 10;
+const PASSWORD_MAX_LENGTH = 128;
+const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1, maxmem: 32 * 1024 * 1024 };
+const scryptAsync = promisify(nodeScrypt);
 
 const MODE_LIMITS = {
     easy: { maxMetersPerSecond: 255, softMetersPerSecond: 215 },
@@ -75,6 +81,86 @@ function normalizeName(name) {
     return cleaned || 'RUNNER';
 }
 
+export function normalizeAccountName(name) {
+    const cleaned = String(name || '')
+        .normalize('NFKD')
+        .replace(/[^\w -]/g, '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .slice(0, MAX_NAME_LENGTH);
+
+    return cleaned || 'RUNNER';
+}
+
+export function normalizeUsername(username) {
+    return String(username || '')
+        .normalize('NFKD')
+        .replace(/[^\w-]/g, '')
+        .trim()
+        .slice(0, 20);
+}
+
+function usernameKey(username) {
+    return normalizeUsername(username).toLowerCase();
+}
+
+export function validatePassword(password) {
+    const value = String(password || '');
+    if (value.length < PASSWORD_MIN_LENGTH) return 'password_too_short';
+    if (value.length > PASSWORD_MAX_LENGTH) return 'password_too_long';
+    if (!/[a-zA-Z]/.test(value) || !/[0-9]/.test(value)) return 'password_needs_letter_and_number';
+    return null;
+}
+
+async function hashPassword(password) {
+    const salt = randomBytes(16);
+    const key = await scryptAsync(String(password), salt, 64, SCRYPT_PARAMS);
+    return [
+        'scrypt',
+        'v1',
+        String(SCRYPT_PARAMS.N),
+        String(SCRYPT_PARAMS.r),
+        String(SCRYPT_PARAMS.p),
+        salt.toString('base64url'),
+        Buffer.from(key).toString('base64url')
+    ].join('$');
+}
+
+async function verifyPassword(password, encodedHash) {
+    const parts = String(encodedHash || '').split('$');
+    if (parts.length !== 7 || parts[0] !== 'scrypt') return false;
+
+    const [, , rawN, rawR, rawP, rawSalt, rawHash] = parts;
+    const params = {
+        N: Number(rawN),
+        r: Number(rawR),
+        p: Number(rawP),
+        maxmem: SCRYPT_PARAMS.maxmem
+    };
+    const salt = Buffer.from(rawSalt, 'base64url');
+    const expected = Buffer.from(rawHash, 'base64url');
+    const actual = await scryptAsync(String(password), salt, expected.length, params);
+    const actualBuffer = Buffer.from(actual);
+
+    return actualBuffer.length === expected.length && timingSafeEqual(actualBuffer, expected);
+}
+
+function hashSessionToken(token, secret) {
+    return hashValue(`session:${token}`, secret);
+}
+
+function safeAccount(row) {
+    if (!row) return null;
+
+    return {
+        id: row.id,
+        username: row.username,
+        displayName: row.display_name || row.displayName || row.username,
+        createdAt: row.created_at || row.createdAt || null,
+        lastLoginAt: row.last_login_at || row.lastLoginAt || null
+    };
+}
+
 function normalizePositiveInt(value, fallback = 0) {
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -106,6 +192,7 @@ function migrate(db) {
 
         CREATE TABLE IF NOT EXISTS leaderboard_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            account_id TEXT,
             mode TEXT NOT NULL,
             player_name TEXT NOT NULL,
             distance_m INTEGER NOT NULL,
@@ -140,13 +227,44 @@ function migrate(db) {
             count INTEGER NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS accounts (
+            id TEXT PRIMARY KEY,
+            username TEXT NOT NULL UNIQUE,
+            username_key TEXT NOT NULL UNIQUE,
+            display_name TEXT NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            last_login_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS account_sessions (
+            token_hash TEXT PRIMARY KEY,
+            account_id TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            expires_at INTEGER NOT NULL,
+            revoked INTEGER NOT NULL DEFAULT 0,
+            ip_hash TEXT NOT NULL,
+            ua_hash TEXT NOT NULL,
+            FOREIGN KEY(account_id) REFERENCES accounts(id)
+        );
+
         CREATE INDEX IF NOT EXISTS idx_entries_mode_rank
             ON leaderboard_entries(mode, verified, distance_m DESC, duration_ms ASC, submitted_at ASC);
+        CREATE INDEX IF NOT EXISTS idx_entries_account
+            ON leaderboard_entries(account_id, mode, distance_m DESC);
         CREATE INDEX IF NOT EXISTS idx_sessions_issued_at
             ON leaderboard_sessions(issued_at);
+        CREATE INDEX IF NOT EXISTS idx_account_sessions_account
+            ON account_sessions(account_id, expires_at);
         CREATE INDEX IF NOT EXISTS idx_rejected_submitted_at
             ON rejected_submissions(submitted_at);
     `);
+
+    try {
+        db.run('ALTER TABLE leaderboard_entries ADD COLUMN account_id TEXT');
+    } catch {
+        // Column already exists in databases created by newer versions.
+    }
 }
 
 function selectOne(db, sql, params = []) {
@@ -199,6 +317,7 @@ function checkRateLimit(db, bucket, now, maxCount) {
 
 function pruneDatabase(db, now) {
     db.run('DELETE FROM leaderboard_sessions WHERE used = 1 OR issued_at < ?', [now - SESSION_TTL_MS]);
+    db.run('DELETE FROM account_sessions WHERE revoked = 1 OR expires_at < ?', [now]);
     db.run('DELETE FROM rate_limits WHERE window_start < ?', [now - (RATE_WINDOW_MS * 3)]);
     db.run('DELETE FROM rejected_submissions WHERE submitted_at < ?', [nowIso(now - (14 * 24 * 60 * 60_000))]);
 
@@ -299,6 +418,158 @@ export async function createLeaderboardSession({ storage, mode, client, now = Da
     });
 }
 
+export async function createAccount({ storage, username, password, displayName, client, now = Date.now(), secret }) {
+    const safeUsername = normalizeUsername(username);
+    const safeUsernameKey = usernameKey(safeUsername);
+    const safeDisplayName = normalizeAccountName(displayName || safeUsername);
+    const ipHash = hashValue(client.ip, secret);
+    const uaHash = hashValue(client.userAgent, secret);
+    const passwordError = validatePassword(password);
+
+    if (safeUsername.length < 3) {
+        return { ok: false, error: 'username_too_short' };
+    }
+
+    if (passwordError) {
+        return { ok: false, error: passwordError };
+    }
+
+    return withDatabase(storage, async db => {
+        pruneDatabase(db, now);
+
+        const rate = checkRateLimit(db, `account:create:${ipHash}`, now, 5);
+        if (!rate.allowed) {
+            return { ok: false, error: 'rate_limited', retryAfterMs: RATE_WINDOW_MS };
+        }
+
+        const existing = selectOne(db, 'SELECT id FROM accounts WHERE username_key = ?', [safeUsernameKey]);
+        if (existing) {
+            return { ok: false, error: 'username_taken' };
+        }
+
+        const passwordHash = await hashPassword(password);
+        const accountId = randomUUID();
+        db.run(`
+            INSERT INTO accounts(id, username, username_key, display_name, password_hash, created_at, last_login_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        `, [
+            accountId,
+            safeUsername,
+            safeUsernameKey,
+            safeDisplayName,
+            passwordHash,
+            nowIso(now),
+            nowIso(now)
+        ]);
+
+        const session = createAccountSession(db, accountId, ipHash, uaHash, now, secret);
+
+        return {
+            ok: true,
+            account: {
+                id: accountId,
+                username: safeUsername,
+                displayName: safeDisplayName,
+                createdAt: nowIso(now),
+                lastLoginAt: nowIso(now)
+            },
+            session
+        };
+    });
+}
+
+function createAccountSession(db, accountId, ipHash, uaHash, now, secret) {
+    const token = `${randomUUID()}.${randomBytes(24).toString('base64url')}`;
+    const tokenHash = hashSessionToken(token, secret);
+    const expiresAt = now + ACCOUNT_SESSION_TTL_MS;
+
+    db.run(`
+        INSERT INTO account_sessions(token_hash, account_id, created_at, expires_at, revoked, ip_hash, ua_hash)
+        VALUES (?, ?, ?, ?, 0, ?, ?)
+    `, [tokenHash, accountId, now, expiresAt, ipHash, uaHash]);
+
+    return {
+        token,
+        expiresAt
+    };
+}
+
+export async function loginAccount({ storage, username, password, client, now = Date.now(), secret }) {
+    const safeUsernameKey = usernameKey(username);
+    const ipHash = hashValue(client.ip, secret);
+    const uaHash = hashValue(client.userAgent, secret);
+
+    return withDatabase(storage, async db => {
+        pruneDatabase(db, now);
+
+        const rate = checkRateLimit(db, `account:login:${ipHash}`, now, 8);
+        if (!rate.allowed) {
+            return { ok: false, error: 'rate_limited', retryAfterMs: RATE_WINDOW_MS };
+        }
+
+        const accountRow = selectOne(db, 'SELECT * FROM accounts WHERE username_key = ?', [safeUsernameKey]);
+        const validPassword = accountRow
+            ? await verifyPassword(password, accountRow.password_hash)
+            : false;
+
+        if (!accountRow || !validPassword) {
+            return { ok: false, error: 'invalid_credentials' };
+        }
+
+        db.run('UPDATE accounts SET last_login_at = ? WHERE id = ?', [nowIso(now), accountRow.id]);
+        const session = createAccountSession(db, accountRow.id, ipHash, uaHash, now, secret);
+
+        return {
+            ok: true,
+            account: safeAccount({ ...accountRow, last_login_at: nowIso(now) }),
+            session
+        };
+    });
+}
+
+export async function getAccountBySessionToken({ storage, token, now = Date.now(), secret }) {
+    if (!token) return { ok: true, account: null };
+
+    const tokenHash = hashSessionToken(token, secret);
+
+    return withDatabase(storage, async db => {
+        pruneDatabase(db, now);
+
+        const row = selectOne(db, `
+            SELECT
+                accounts.id,
+                accounts.username,
+                accounts.display_name,
+                accounts.created_at,
+                accounts.last_login_at,
+                account_sessions.expires_at
+            FROM account_sessions
+            JOIN accounts ON accounts.id = account_sessions.account_id
+            WHERE account_sessions.token_hash = ?
+              AND account_sessions.revoked = 0
+              AND account_sessions.expires_at > ?
+        `, [tokenHash, now]);
+
+        return {
+            ok: true,
+            account: safeAccount(row),
+            expiresAt: row ? Number(row.expires_at) : null
+        };
+    });
+}
+
+export async function logoutAccount({ storage, token, now = Date.now(), secret }) {
+    if (!token) return { ok: true };
+
+    const tokenHash = hashSessionToken(token, secret);
+
+    return withDatabase(storage, async db => {
+        pruneDatabase(db, now);
+        db.run('UPDATE account_sessions SET revoked = 1 WHERE token_hash = ?', [tokenHash]);
+        return { ok: true };
+    });
+}
+
 function evaluateSubmission({ payload, session, now }) {
     const flags = [];
     const mode = normalizeMode(payload.mode);
@@ -379,9 +650,9 @@ function evaluateSubmission({ payload, session, now }) {
     };
 }
 
-export async function submitLeaderboardScore({ storage, payload, client, now = Date.now(), secret }) {
+export async function submitLeaderboardScore({ storage, payload, client, account = null, now = Date.now(), secret }) {
     const mode = normalizeMode(payload.mode);
-    const playerName = normalizeName(payload.playerName);
+    const playerName = account ? normalizeName(account.displayName || account.username) : normalizeName(payload.playerName);
     const sessionToken = String(payload.sessionToken || '');
     const clientRunId = String(payload.clientRunId || '').slice(0, 80);
     const ipHash = hashValue(client.ip, secret);
@@ -462,12 +733,13 @@ export async function submitLeaderboardScore({ storage, payload, client, now = D
 
         db.run(`
             INSERT INTO leaderboard_entries(
-                mode, player_name, distance_m, distance_px, duration_ms,
+                account_id, mode, player_name, distance_m, distance_px, duration_ms,
                 submitted_at, client_run_id, session_token, ip_hash,
                 ua_hash, integrity_score, flags, verified
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
+            account?.id || null,
             mode,
             playerName,
             evaluation.distanceM,
@@ -528,6 +800,7 @@ export async function listLeaderboard({ storage, mode, limit = 10, now = Date.no
         const rows = selectAll(db, `
             SELECT
                 player_name AS playerName,
+                account_id AS accountId,
                 distance_m AS distanceM,
                 duration_ms AS durationMs,
                 submitted_at AS submittedAt,
@@ -547,6 +820,7 @@ export async function listLeaderboard({ storage, mode, limit = 10, now = Date.no
             entries: rows.map((row, index) => ({
                 rank: index + 1,
                 playerName: row.playerName,
+                accountId: row.accountId || null,
                 distanceM: Number(row.distanceM),
                 durationMs: Number(row.durationMs),
                 submittedAt: row.submittedAt,

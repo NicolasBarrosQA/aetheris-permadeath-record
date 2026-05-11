@@ -90,11 +90,30 @@
             </div>
         </div>
 
-        <aside id="leaderboard-panel" aria-label="Ranking global">
+        <aside id="leaderboard-panel" aria-label="Painel pre-corrida">
             <div id="leaderboard-topline">
-                <span>RANKING</span>
+                <span>RANKING GLOBAL</span>
                 <span id="leaderboard-status" data-tone="idle">SYNC</span>
             </div>
+            <div id="account-strip">
+                <div>
+                    <span id="account-mode">CONVIDADO</span>
+                    <strong id="account-name">RUNNER</strong>
+                </div>
+                <button type="button" id="account-toggle-btn">CONTA</button>
+            </div>
+            <form id="account-form" class="account-collapsed" autocomplete="on">
+                <div id="account-form-tabs">
+                    <button type="button" class="selected" data-auth-mode="login">ENTRAR</button>
+                    <button type="button" data-auth-mode="signup">CRIAR</button>
+                </div>
+                <input id="account-username" name="username" type="text" maxlength="20" autocomplete="username" placeholder="usuario" />
+                <input id="account-display" name="nickname" type="text" maxlength="16" autocomplete="nickname" placeholder="callsign" />
+                <input id="account-password" name="password" type="password" maxlength="128" autocomplete="current-password" placeholder="senha" />
+                <button type="submit" id="account-submit-btn">ENTRAR</button>
+                <button type="button" id="account-logout-btn">SAIR</button>
+                <p id="account-message">Conta opcional. Como convidado, seu nome fica neste navegador.</p>
+            </form>
             <label id="leaderboard-name">
                 <span>CALLSIGN</span>
                 <input id="leaderboard-name-input" type="text" maxlength="16" autocomplete="nickname" spellcheck="false" value="RUNNER" />

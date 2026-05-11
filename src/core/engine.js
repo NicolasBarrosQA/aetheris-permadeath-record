@@ -74,9 +74,9 @@ export function initGame() {
     state.bgLayer2 = [];
     state.bgLayer3 = [];
     // cria prédios em três camadas com diferentes paralaxes
-    for (let i = 0; i < 20; i++) state.bgLayer1.push(worldgen.createBuilding(i, 0.05, 100, 300, 90, 180, 0.2));
-    for (let i = 0; i < 20; i++) state.bgLayer2.push(worldgen.createBuilding(i, 0.2, 190, 400, 115, 230, 0.4));
-    for (let i = 0; i < 20; i++) state.bgLayer3.push(worldgen.createBuilding(i, 0.5, 260, 500, 140, 290, 0.56));
+    for (let i = 0; i < 14; i++) state.bgLayer1.push(worldgen.createBuilding(i, 0.05, 100, 300, 90, 180, 0.2));
+    for (let i = 0; i < 15; i++) state.bgLayer2.push(worldgen.createBuilding(i, 0.2, 190, 400, 115, 230, 0.4));
+    for (let i = 0; i < 16; i++) state.bgLayer3.push(worldgen.createBuilding(i, 0.5, 260, 500, 140, 290, 0.56));
     // poeira inicial
     for (let i = 0; i < 18; i++) worldgen.spawnDust(true);
     // estrelas
@@ -279,6 +279,15 @@ function updateGame() {
             state.attackEffects.splice(i, 1);
         }
     }
+    if (state.particles.length > 260) {
+        state.particles.splice(0, state.particles.length - 260);
+    }
+    if (state.texts.length > 40) {
+        state.texts.splice(0, state.texts.length - 40);
+    }
+    if (state.ghosts.length > 70) {
+        state.ghosts.splice(0, state.ghosts.length - 70);
+    }
     // Move poeira; repondo quando sai da tela
     state.dustParticles.forEach((d, idx) => {
         d.x += d.vx;
@@ -299,7 +308,7 @@ function updateGame() {
             state.rainState.active = !state.rainState.active;
             worldgen.resetRainTimer();
         }
-        const rainCount = state.rainState.active ? Math.floor(86 + quality * 64) : 0;
+        const rainCount = state.rainState.active ? Math.floor(36 + quality * 56) : 0;
         if (state.rainState.active) {
             const needed = rainCount - state.rainDrops.length;
             const burst = Math.max(3, Math.floor(6 + quality * 5));
@@ -354,7 +363,7 @@ function updateGame() {
 function drawGame({ sx, sy }) {
     const ctx = state.ctx;
     const quality = state.performance?.quality || 1;
-    const { viewH } = getViewMetrics();
+    const { viewW, viewH } = getViewMetrics();
     // Aplica transformação para corrigir resolução em telas de alta
     // densidade. O escalonamento da cena em si é feito via CSS no
     // contêiner; aqui multiplicamos apenas pelo devicePixelRatio.
@@ -387,9 +396,16 @@ function drawGame({ sx, sy }) {
     // mundo (plataformas, moedas, inimigos, player, partículas, textos)
     ctx.save();
     ctx.translate(-state.camera.x + sx, -state.camera.y + sy);
+    const worldLeft = state.camera.x - 160;
+    const worldRight = state.camera.x + viewW + 180;
+    const worldTop = state.camera.y - 180;
+    const worldBottom = state.camera.y + viewH + 200;
+    const isWorldVisible = (x, y, w, h) =>
+        x + w >= worldLeft && x <= worldRight && y + h >= worldTop && y <= worldBottom;
     // plataformas
     const platformDetailStep = quality < 0.74 ? 56 : (quality < 0.9 ? 40 : 28);
     state.platforms.forEach(p => {
+        if (!isWorldVisible(p.x, p.y - 32, p.w, p.h + 80)) return;
         const hue = (p.colorHue + state.game.frames) % 360;
         const neonColor = `hsl(${hue}, 100%, 58%)`;
         const pulse = 0.45 + (Math.sin((state.game.frames * 0.05) + (p.x * 0.02)) * 0.2);
@@ -412,7 +428,7 @@ function drawGame({ sx, sy }) {
 
         ctx.strokeStyle = `hsla(${hue}, 100%, 62%, 0.94)`;
         ctx.lineWidth = 1.9;
-        ctx.shadowBlur = 18;
+        ctx.shadowBlur = quality >= 0.72 ? 18 : 0;
         ctx.shadowColor = `hsla(${hue}, 100%, 62%, 0.72)`;
         ctx.strokeRect(p.x, p.y, p.w, p.h);
         ctx.shadowBlur = 0;
@@ -470,6 +486,7 @@ function drawGame({ sx, sy }) {
     });
     // moedas
     state.coins.forEach(c => {
+        if (!isWorldVisible(c.x - 16, c.y - 16, 32, 32)) return;
         ctx.save();
         ctx.translate(c.x, c.y);
         let scaleX = Math.cos(c.rot);
@@ -479,7 +496,7 @@ function drawGame({ sx, sy }) {
         grad.addColorStop(0.5, '#ffd95f');
         grad.addColorStop(1, '#f0a500');
         ctx.fillStyle = grad;
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = quality >= 0.72 ? 20 : 0;
         ctx.shadowColor = '#ffb347';
         ctx.beginPath();
         ctx.arc(0, 0, 9.2, 0, Math.PI * 2);
@@ -501,10 +518,13 @@ function drawGame({ sx, sy }) {
         ctx.restore();
     });
     state.boosts.forEach(boost => {
+        if (!isWorldVisible(boost.x - 24, boost.y - 24, 48, 48)) return;
         drawBoostPickup(ctx, boost);
     });
     // inimigos e jogador
-    state.enemies.forEach(e => e.draw());
+    state.enemies.forEach(e => {
+        if (isWorldVisible(e.x - 32, e.y - 32, e.w + 64, e.h + 64)) e.draw();
+    });
     state.player.draw();
     state.attackEffects.forEach(effect => {
         ctx.save();
@@ -561,6 +581,7 @@ function drawGame({ sx, sy }) {
     // partículas
     state.particles.forEach(p => {
         if (p.trail) {
+            if (!isWorldVisible(p.x - Math.abs(p.w || 0), p.y - 20, Math.abs(p.w || 0) + 40, (p.h || 0) + 40)) return;
             const dir = p.dir || 1;
             const span = p.w * dir;
             const startX = span >= 0 ? p.x : p.x + span;
@@ -579,6 +600,7 @@ function drawGame({ sx, sy }) {
             ctx.shadowBlur = 0;
             ctx.globalAlpha = 1;
         } else if (p.isWave) {
+            if (!isWorldVisible(p.x - p.radius, p.y - p.radius, p.radius * 2, p.radius * 2)) return;
             ctx.strokeStyle = p.color;
             ctx.lineWidth = p.lineWidth || 3;
             ctx.globalAlpha = p.life / 20;
@@ -590,6 +612,7 @@ function drawGame({ sx, sy }) {
             ctx.shadowBlur = 0;
             ctx.globalAlpha = 1;
         } else {
+            if (!isWorldVisible(p.x - 40, p.y - 40, 80, 80)) return;
             const alpha = p.alpha || 1;
             const radius = Math.max(0.6, p.size || (2 + Math.abs(p.vx) * 0.3));
             const spark = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * 2.4);
@@ -606,6 +629,7 @@ function drawGame({ sx, sy }) {
     });
     // textos flutuantes
     state.texts.forEach(t => {
+        if (!isWorldVisible(t.x - 80, t.y - 30, 160, 60)) return;
         ctx.fillStyle = t.color;
         ctx.font = 'bold 16px Courier New';
         ctx.fillText(t.txt, t.x, t.y);
@@ -634,16 +658,17 @@ export function loopGame(ts = performance.now()) {
     // Ajuste dinâmico para suavizar início e manter estabilidade.
     if (perf.warmupFrames > 0) {
         perf.warmupFrames--;
-        const warmupTarget = perf.warmupFrames > 180 ? 0.66 : (perf.warmupFrames > 80 ? 0.76 : 0.88);
+        const warmupTarget = perf.warmupFrames > 180 ? 0.56 : (perf.warmupFrames > 80 ? 0.66 : 0.78);
         perf.quality += (warmupTarget - perf.quality) * 0.08;
     } else {
         let targetQuality = 1;
-        if (perf.avgFrameMs > 23) targetQuality = 0.66;
-        else if (perf.avgFrameMs > 20) targetQuality = 0.76;
-        else if (perf.avgFrameMs > 17.7) targetQuality = 0.88;
-        perf.quality += (targetQuality - perf.quality) * 0.05;
+        if (perf.avgFrameMs > 28) targetQuality = 0.45;
+        else if (perf.avgFrameMs > 23) targetQuality = 0.56;
+        else if (perf.avgFrameMs > 19) targetQuality = 0.68;
+        else if (perf.avgFrameMs > 16.9) targetQuality = 0.82;
+        perf.quality += (targetQuality - perf.quality) * (targetQuality < perf.quality ? 0.12 : 0.04);
     }
-    if (perf.quality < 0.62) perf.quality = 0.62;
+    if (perf.quality < 0.45) perf.quality = 0.45;
     if (perf.quality > 1) perf.quality = 1;
     // contador de quadros global para animações e efeitos
     state.game.frames++;

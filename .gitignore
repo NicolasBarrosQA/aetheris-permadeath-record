@@ -10,6 +10,8 @@ node_modules/
 *.log
 _*.png
 _*.html
+test-results/
+playwright-report/
 
 
 # Local Netlify folder
