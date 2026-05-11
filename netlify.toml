@@ -8,6 +8,18 @@
   included_files = ["node_modules/sql.js/dist/sql-wasm.wasm"]
 
 [[redirects]]
+  from = "/playwright-report/*"
+  to = "/public/index.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/test-results/*"
+  to = "/public/index.html"
+  status = 404
+  force = true
+
+[[redirects]]
   from = "/"
   to = "/public/index.html"
   status = 200

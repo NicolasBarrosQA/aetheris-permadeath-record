@@ -31,6 +31,10 @@ test('Netlify preserva rotas de API declaradas nas Functions', () => {
 test('Netlify roda E2E sem publicar relatorio HTML no site', () => {
     assert.match(playwrightConfig, /process\.env\.NETLIFY/);
     assert.match(playwrightConfig, /isCi\s*&&\s*!isNetlify/);
+    assert.match(netlifyToml, /from\s*=\s*"\/playwright-report\/\*"/);
+    assert.match(netlifyToml, /from\s*=\s*"\/test-results\/\*"/);
+    assert.match(netlifyToml, /status\s*=\s*404/);
+    assert.match(netlifyToml, /force\s*=\s*true/);
 });
 
 test('GitHub Actions separa checks para diagnostico de QA', () => {
