@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 const packageJson = JSON.parse(await readFile('package.json', 'utf8'));
 const workflow = await readFile('.github/workflows/qa.yml', 'utf8');
 const netlifyToml = await readFile('netlify.toml', 'utf8');
+const playwrightConfig = await readFile('playwright.config.mjs', 'utf8');
 
 test('scripts de qualidade cobrem piramide e gate de release', () => {
     const scripts = packageJson.scripts || {};
@@ -25,6 +26,11 @@ test('Netlify so publica depois do gate de qualidade', () => {
 test('Netlify preserva rotas de API declaradas nas Functions', () => {
     assert.doesNotMatch(netlifyToml, /from\s*=\s*"\/api\/(?:account|leaderboard)\*/);
     assert.doesNotMatch(netlifyToml, /to\s*=\s*"\/\.netlify\/functions\/(?:account|leaderboard)/);
+});
+
+test('Netlify roda E2E sem publicar relatorio HTML no site', () => {
+    assert.match(playwrightConfig, /process\.env\.NETLIFY/);
+    assert.match(playwrightConfig, /isCi\s*&&\s*!isNetlify/);
 });
 
 test('GitHub Actions separa checks para diagnostico de QA', () => {
