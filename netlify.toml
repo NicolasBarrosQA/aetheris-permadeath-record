@@ -1,6 +1,11 @@
 [build]
   publish = "."
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  included_files = ["node_modules/sql.js/dist/sql-wasm.wasm"]
+
 [[redirects]]
   from = "/"
   to = "/public/index.html"

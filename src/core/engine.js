@@ -16,6 +16,7 @@ import * as background from '../systems/background.js';
 import { updateUI, toggleShop } from '../systems/ui.js';
 import { updateVirus, drawVirus } from '../systems/virus.js';
 import { drawBoostPickup, drawScreenPostFX } from '../systems/vfx.js';
+import { resetLeaderboardRun, startLeaderboardRun, submitLeaderboardScore } from '../systems/leaderboard.js';
 
 function getViewMetrics() {
     const viewW = state.view?.worldWidth || VIRTUAL_WIDTH;
@@ -115,6 +116,7 @@ export function initGame() {
     state.performance.avgFrameMs = 16.67;
     state.performance.quality = 0.66;
     state.performance.warmupFrames = 300;
+    resetLeaderboardRun();
     storage.initialHighScore = storage.highScore;
     // oculta overlay e loja, mostra dica inicial
     state.overlay.style.display = 'none';
@@ -145,6 +147,7 @@ function startGameRun() {
     state.virusWall.active = getDifficultyMode().virusPressure;
     if (state.startHint) state.startHint.style.display = 'none';
     tryStartAudio();
+    startLeaderboardRun(state.game.modeId);
     if (state.game.shopOpen) toggleShop();
 }
 
@@ -702,6 +705,7 @@ function gameOver() {
     if (state.overlayMsg) {
         state.overlayMsg.innerText = `Distância: ${Math.floor(state.game.dist / 10)}m | Recorde: ${Math.floor(storage.highScore / 10)}m`;
     }
+    submitLeaderboardScore();
 }
 
 /**

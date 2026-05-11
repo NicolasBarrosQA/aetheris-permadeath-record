@@ -90,6 +90,23 @@
             </div>
         </div>
 
+        <aside id="leaderboard-panel" aria-label="Ranking global">
+            <div id="leaderboard-topline">
+                <span>RANKING</span>
+                <span id="leaderboard-status" data-tone="idle">SYNC</span>
+            </div>
+            <label id="leaderboard-name">
+                <span>CALLSIGN</span>
+                <input id="leaderboard-name-input" type="text" maxlength="16" autocomplete="nickname" spellcheck="false" value="RUNNER" />
+            </label>
+            <div id="leaderboard-tabs" role="tablist" aria-label="Modos do ranking">
+                <button type="button" data-leaderboard-mode="easy" role="tab">FACIL</button>
+                <button type="button" data-leaderboard-mode="medium" role="tab">MEDIO</button>
+                <button type="button" data-leaderboard-mode="hard" role="tab">DIFICIL</button>
+            </div>
+            <ol id="leaderboard-list"></ol>
+        </aside>
+
         <!-- Modal da loja de skins -->
         <div id="shop-modal">
             <div id="shop-header">

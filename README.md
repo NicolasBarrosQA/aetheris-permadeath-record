@@ -28,6 +28,8 @@ O jogo possui três modos de dificuldade, progressão contínua de velocidade, g
 - CSS
 - Web Audio API
 - localStorage
+- Netlify Functions
+- SQLite (`sql.js`) persistido em Netlify Blobs
 
 ---
 
@@ -58,6 +60,7 @@ O jogo possui três modos de dificuldade, progressão contínua de velocidade, g
 - Persistência local de recorde, moedas, skins e preferências
 - Sistema visual de corrupção digital no modo difícil, com renderização adaptativa (culling vertical + escala de qualidade dinâmica) para manter fluidez
 - Pause inteligente com tela dedicada e suspensão completa da simulação
+- Leaderboard global por dificuldade, com sessão de corrida, ranking SQL e validações anti-cheat no servidor
 
 ---
 
@@ -70,8 +73,13 @@ O projeto começou como um protótipo monolítico e foi evoluído para uma estru
 - `core/`: engine, estado global, storage, validação, áudio e utilitários
 - `entities/`: jogador e inimigos
 - `systems/`: geração de mundo, UI, background, partículas, vírus e VFX
+- `netlify/functions/`: API serverless do leaderboard, banco SQLite e válvulas anti-cheat
 
 Esse refactor reduziu acoplamento, melhorou manutenção e facilitou expansão de features.
+
+### Leaderboard e anti-cheat
+
+O ranking global roda em uma Netlify Function e persiste um arquivo SQLite em Netlify Blobs, evitando dependência de serviços externos como Supabase. Cada corrida abre uma sessão curta no servidor e a submissão do score valida modo, duração, velocidade plausível, token de uso único, duplicidade de corrida e rate limit por origem antes de entrar no ranking verificado.
 
 ### 2. Física responsiva
 

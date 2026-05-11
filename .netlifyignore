@@ -1,0 +1,8 @@
+node_modules/
+.git/
+.netlify/
+.playwright-mcp/
+scripts/
+*.log
+_*.png
+_*.html

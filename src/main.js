@@ -12,6 +12,7 @@ import { spawnText } from './systems/particles.js';
 import { loadBoostSprites } from './core/boostSprites.js';
 import { loadSkinSprites } from './core/sprites.js';
 import { validateGameConfig } from './core/validation.js';
+import { initLeaderboardUI, syncLeaderboardMode } from './systems/leaderboard.js';
 
 const ACTION_KEYS = new Set([
     ' ',
@@ -272,6 +273,7 @@ function bootstrap() {
             event.stopPropagation();
             if (!state.game.started) {
                 setDifficultyMode(button.dataset.difficulty);
+                syncLeaderboardMode(button.dataset.difficulty);
                 if (state.difficultyPicker) state.difficultyPicker.style.display = 'none';
                 if (state.difficultyShortcuts) state.difficultyShortcuts.style.display = 'none';
             }
@@ -301,6 +303,7 @@ function bootstrap() {
 
     initGame();
     syncDifficultyUI();
+    initLeaderboardUI();
     loopGame();
 }
 
@@ -362,6 +365,7 @@ function setupInput() {
             if (!state.game.started && (key === '1' || key === '2' || key === '3')) {
                 const nextMode = key === '1' ? 'easy' : (key === '2' ? 'medium' : 'hard');
                 setDifficultyMode(nextMode);
+                syncLeaderboardMode(nextMode);
                 if (state.difficultyPicker) state.difficultyPicker.style.display = 'none';
                 if (state.difficultyShortcuts) state.difficultyShortcuts.style.display = 'none';
             }
