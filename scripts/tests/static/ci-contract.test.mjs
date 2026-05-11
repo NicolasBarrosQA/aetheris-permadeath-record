@@ -22,6 +22,11 @@ test('Netlify so publica depois do gate de qualidade', () => {
     assert.match(netlifyToml, /publish\s*=\s*"\."/);
 });
 
+test('Netlify preserva rotas de API declaradas nas Functions', () => {
+    assert.doesNotMatch(netlifyToml, /from\s*=\s*"\/api\/(?:account|leaderboard)\*/);
+    assert.doesNotMatch(netlifyToml, /to\s*=\s*"\/\.netlify\/functions\/(?:account|leaderboard)/);
+});
+
 test('GitHub Actions separa checks para diagnostico de QA', () => {
     assert.match(workflow, /name: Quality Gate/);
     assert.match(workflow, /static-contracts:/);
