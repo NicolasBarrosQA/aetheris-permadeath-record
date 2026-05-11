@@ -85,7 +85,7 @@ Esse refactor reduziu acoplamento, melhorou manutenção e facilitou expansão d
 
 O ranking global roda em Netlify Functions e persiste um arquivo SQLite em Netlify Blobs, evitando dependência de serviços externos como Supabase. Cada corrida abre uma sessão curta no servidor e a submissão do score valida modo, duração, velocidade plausível, token de uso único, duplicidade de corrida e rate limit por origem antes de entrar no ranking verificado.
 
-As contas são opcionais. Quem não quiser login continua jogando como convidado, com callsign salvo no navegador. Quem cria conta passa a ter um perfil salvo no banco; a sessão usa cookie HttpOnly/Secure/SameSite e as senhas são armazenadas com hash `scrypt` e salt individual.
+As contas são opcionais. Quem não quiser login continua jogando como convidado, com callsign salvo no navegador. Quem cria conta passa a ter um perfil salvo no banco; a sessão usa cookie HttpOnly/Secure/SameSite e as senhas são armazenadas com hash `scrypt` e salt individual. Quando a Netlify não fornece um segredo via ambiente, a API gera um segredo interno persistido no SQLite/Blobs, evitando depender de configuração manual para proteger hashes operacionais.
 
 ### Qualidade e CI
 

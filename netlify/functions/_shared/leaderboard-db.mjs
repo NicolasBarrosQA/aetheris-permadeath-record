@@ -17,6 +17,7 @@ const ACCOUNT_SESSION_TTL_MS = 30 * 24 * 60 * 60_000;
 const MAX_DB_ENTRIES_PER_MODE = 600;
 const PASSWORD_MIN_LENGTH = 10;
 const PASSWORD_MAX_LENGTH = 128;
+const DEFAULT_HASH_SECRET = 'aetheris-dev-secret-change-in-netlify';
 const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1, maxmem: 32 * 1024 * 1024 };
 const scryptAsync = promisify(nodeScrypt);
 
@@ -227,6 +228,12 @@ function migrate(db) {
             count INTEGER NOT NULL
         );
 
+        CREATE TABLE IF NOT EXISTS app_secrets (
+            name TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS accounts (
             id TEXT PRIMARY KEY,
             username TEXT NOT NULL UNIQUE,
@@ -315,6 +322,22 @@ function checkRateLimit(db, bucket, now, maxCount) {
     };
 }
 
+function resolveOperationSecret(db, requestedSecret) {
+    if (requestedSecret && requestedSecret !== DEFAULT_HASH_SECRET) {
+        return requestedSecret;
+    }
+
+    const existing = selectOne(db, 'SELECT value FROM app_secrets WHERE name = ?', ['hash_secret']);
+    if (existing?.value) return String(existing.value);
+
+    const generated = randomBytes(32).toString('base64url');
+    db.run(
+        'INSERT INTO app_secrets(name, value, created_at) VALUES (?, ?, ?)',
+        ['hash_secret', generated, nowIso(Date.now())]
+    );
+    return generated;
+}
+
 function pruneDatabase(db, now) {
     db.run('DELETE FROM leaderboard_sessions WHERE used = 1 OR issued_at < ?', [now - SESSION_TTL_MS]);
     db.run('DELETE FROM account_sessions WHERE revoked = 1 OR expires_at < ?', [now]);
@@ -387,11 +410,12 @@ export function createMemoryStorage(initialBytes = null) {
 
 export async function createLeaderboardSession({ storage, mode, client, now = Date.now(), secret }) {
     const safeMode = normalizeMode(mode);
-    const ipHash = hashValue(client.ip, secret);
-    const uaHash = hashValue(client.userAgent, secret);
 
     return withDatabase(storage, async db => {
         pruneDatabase(db, now);
+        const operationSecret = resolveOperationSecret(db, secret);
+        const ipHash = hashValue(client.ip, operationSecret);
+        const uaHash = hashValue(client.userAgent, operationSecret);
 
         const rate = checkRateLimit(db, `session:${ipHash}`, now, 30);
         if (!rate.allowed) {
@@ -422,8 +446,6 @@ export async function createAccount({ storage, username, password, displayName, 
     const safeUsername = normalizeUsername(username);
     const safeUsernameKey = usernameKey(safeUsername);
     const safeDisplayName = normalizeAccountName(displayName || safeUsername);
-    const ipHash = hashValue(client.ip, secret);
-    const uaHash = hashValue(client.userAgent, secret);
     const passwordError = validatePassword(password);
 
     if (safeUsername.length < 3) {
@@ -436,6 +458,9 @@ export async function createAccount({ storage, username, password, displayName, 
 
     return withDatabase(storage, async db => {
         pruneDatabase(db, now);
+        const operationSecret = resolveOperationSecret(db, secret);
+        const ipHash = hashValue(client.ip, operationSecret);
+        const uaHash = hashValue(client.userAgent, operationSecret);
 
         const rate = checkRateLimit(db, `account:create:${ipHash}`, now, 5);
         if (!rate.allowed) {
@@ -462,7 +487,7 @@ export async function createAccount({ storage, username, password, displayName, 
             nowIso(now)
         ]);
 
-        const session = createAccountSession(db, accountId, ipHash, uaHash, now, secret);
+        const session = createAccountSession(db, accountId, ipHash, uaHash, now, operationSecret);
 
         return {
             ok: true,
@@ -496,11 +521,12 @@ function createAccountSession(db, accountId, ipHash, uaHash, now, secret) {
 
 export async function loginAccount({ storage, username, password, client, now = Date.now(), secret }) {
     const safeUsernameKey = usernameKey(username);
-    const ipHash = hashValue(client.ip, secret);
-    const uaHash = hashValue(client.userAgent, secret);
 
     return withDatabase(storage, async db => {
         pruneDatabase(db, now);
+        const operationSecret = resolveOperationSecret(db, secret);
+        const ipHash = hashValue(client.ip, operationSecret);
+        const uaHash = hashValue(client.userAgent, operationSecret);
 
         const rate = checkRateLimit(db, `account:login:${ipHash}`, now, 8);
         if (!rate.allowed) {
@@ -517,7 +543,7 @@ export async function loginAccount({ storage, username, password, client, now = 
         }
 
         db.run('UPDATE accounts SET last_login_at = ? WHERE id = ?', [nowIso(now), accountRow.id]);
-        const session = createAccountSession(db, accountRow.id, ipHash, uaHash, now, secret);
+        const session = createAccountSession(db, accountRow.id, ipHash, uaHash, now, operationSecret);
 
         return {
             ok: true,
@@ -530,10 +556,10 @@ export async function loginAccount({ storage, username, password, client, now = 
 export async function getAccountBySessionToken({ storage, token, now = Date.now(), secret }) {
     if (!token) return { ok: true, account: null };
 
-    const tokenHash = hashSessionToken(token, secret);
-
     return withDatabase(storage, async db => {
         pruneDatabase(db, now);
+        const operationSecret = resolveOperationSecret(db, secret);
+        const tokenHash = hashSessionToken(token, operationSecret);
 
         const row = selectOne(db, `
             SELECT
@@ -561,10 +587,10 @@ export async function getAccountBySessionToken({ storage, token, now = Date.now(
 export async function logoutAccount({ storage, token, now = Date.now(), secret }) {
     if (!token) return { ok: true };
 
-    const tokenHash = hashSessionToken(token, secret);
-
     return withDatabase(storage, async db => {
         pruneDatabase(db, now);
+        const operationSecret = resolveOperationSecret(db, secret);
+        const tokenHash = hashSessionToken(token, operationSecret);
         db.run('UPDATE account_sessions SET revoked = 1 WHERE token_hash = ?', [tokenHash]);
         return { ok: true };
     });
@@ -655,11 +681,12 @@ export async function submitLeaderboardScore({ storage, payload, client, account
     const playerName = account ? normalizeName(account.displayName || account.username) : normalizeName(payload.playerName);
     const sessionToken = String(payload.sessionToken || '');
     const clientRunId = String(payload.clientRunId || '').slice(0, 80);
-    const ipHash = hashValue(client.ip, secret);
-    const uaHash = hashValue(client.userAgent, secret);
 
     return withDatabase(storage, async db => {
         pruneDatabase(db, now);
+        const operationSecret = resolveOperationSecret(db, secret);
+        const ipHash = hashValue(client.ip, operationSecret);
+        const uaHash = hashValue(client.userAgent, operationSecret);
 
         const rate = checkRateLimit(db, `submit:${ipHash}`, now, 10);
         if (!rate.allowed) {
