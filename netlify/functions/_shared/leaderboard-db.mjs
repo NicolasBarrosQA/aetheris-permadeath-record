@@ -257,8 +257,6 @@ function migrate(db) {
 
         CREATE INDEX IF NOT EXISTS idx_entries_mode_rank
             ON leaderboard_entries(mode, verified, distance_m DESC, duration_ms ASC, submitted_at ASC);
-        CREATE INDEX IF NOT EXISTS idx_entries_account
-            ON leaderboard_entries(account_id, mode, distance_m DESC);
         CREATE INDEX IF NOT EXISTS idx_sessions_issued_at
             ON leaderboard_sessions(issued_at);
         CREATE INDEX IF NOT EXISTS idx_account_sessions_account
@@ -272,6 +270,11 @@ function migrate(db) {
     } catch {
         // Column already exists in databases created by newer versions.
     }
+
+    db.run(`
+        CREATE INDEX IF NOT EXISTS idx_entries_account
+            ON leaderboard_entries(account_id, mode, distance_m DESC);
+    `);
 }
 
 function selectOne(db, sql, params = []) {
