@@ -2,7 +2,7 @@ export const ACCOUNT_COOKIE = 'aetheris_account';
 export const LEADERBOARD_CORS_HEADERS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Max-Age': '86400'
 };
 
@@ -67,6 +67,16 @@ export function parseCookies(req) {
 
 export function getAccountCookie(req) {
     return parseCookies(req)[ACCOUNT_COOKIE] || '';
+}
+
+export function getBearerToken(req) {
+    const header = req.headers.get('authorization') || '';
+    const match = header.match(/^Bearer\s+(.+)$/i);
+    return match ? match[1].trim() : '';
+}
+
+export function getAccountToken(req) {
+    return getBearerToken(req) || getAccountCookie(req);
 }
 
 export function accountCookie(token, expiresAt) {

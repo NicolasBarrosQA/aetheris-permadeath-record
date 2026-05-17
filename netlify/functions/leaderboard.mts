@@ -9,7 +9,7 @@ import {
 } from './_shared/leaderboard-db.mjs';
 import {
     emptyResponse,
-    getAccountCookie,
+    getAccountToken,
     getClient,
     getHashSecret,
     LEADERBOARD_CORS_HEADERS,
@@ -56,7 +56,7 @@ export default async (req: Request, context: Context) => {
             const body = await readJson(req);
             const current = await getAccountBySessionToken({
                 storage,
-                token: getAccountCookie(req),
+                token: getAccountToken(req),
                 secret
             });
             const result = await submitLeaderboardScore({

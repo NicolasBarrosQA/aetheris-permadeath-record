@@ -55,17 +55,19 @@
                 <button type="button" id="leaderboard-open-btn" data-i18n="leaderboard.action">LEADERBOARD</button>
                 <button type="button" id="quick-shop-btn" data-i18n="shop.short">SHOP</button>
             </div>
-            <div id="difficulty-shortcuts" data-i18n="start.shortcuts">[1] EASY  [2] MEDIUM  [3] HARD</div>
-            <div class="start-control-line" data-i18n="start.menu">[ Q ] MENU | [ L ] LEADERBOARD | [ S ] SHOP | [ P ] PAUSE</div>
-            <div class="start-control-line start-control-gap" data-i18n="start.move">[ ARROWS / A D ] MOVE TO START</div>
-            <div class="start-control-line" data-i18n="start.jump">[ SPACE ] JUMP | [ C ] DASH+STRIKE</div>
+            <div id="start-controls">
+                <div id="difficulty-shortcuts" data-i18n="start.shortcuts">[1] EASY  [2] MEDIUM  [3] HARD</div>
+                <div class="start-control-line" data-i18n="start.menu">[ Q ] MENU | [ L ] LEADERBOARD | [ S ] SHOP | [ P ] PAUSE</div>
+                <div class="start-control-line start-control-gap" data-i18n="start.move">[ ARROWS / A D ] MOVE TO START</div>
+                <div class="start-control-line" data-i18n="start.jump">[ SPACE ] JUMP | [ C ] DASH+STRIKE</div>
+            </div>
         </div>
 
         <div id="ui-layer">
             <div class="stat-box c-cyan">
                 <span class="stat-label" data-i18n="hud.distance">DISTANCE</span>
                 <span id="ui-dist" class="stat-val">0m</span>
-                <div style="font-size:10px; color:#888; margin-top:2px;"><span data-i18n="hud.best">BEST:</span> <span id="ui-best" style="color:#ffd700">0m</span></div>
+                <div class="stat-subline"><span data-i18n="hud.best">BEST:</span> <span id="ui-best">0m</span></div>
             </div>
             <div class="stat-box c-red">
                 <span class="stat-label" data-i18n="hud.integrity">INTEGRITY</span>
@@ -108,7 +110,7 @@
                     <strong id="account-name">RUNNER</strong>
                 </div>
                 <h1 id="auth-title">Enter AETHERIS</h1>
-                <p class="modal-copy" data-i18n="account.copy">Use your account to save identity and global scores, or continue as a guest for this session.</p>
+                <p class="modal-copy" data-i18n="account.copy">Keep one callsign and one leaderboard identity across itch and Netlify, or play as guest.</p>
                 <form id="account-form" autocomplete="on">
                     <div id="account-form-tabs">
                         <button type="button" class="selected" data-auth-mode="login" data-i18n="account.tab.login">LOG IN</button>
@@ -164,7 +166,7 @@
                 <span id="shop-balance">0 CR</span>
             </div>
             <div id="skins-grid"></div>
-            <div style="margin-top: 20px; text-align: center; color: #888; font-size: 10px; text-transform: uppercase;">
+            <div class="shop-footer">
                 <span data-i18n="shop.choose">CHOOSE YOUR LOOK - [ESC] TO LEAVE</span>
                 <button class="mobile-shop-close" id="shop-close-btn" type="button" data-i18n="shop.close">CLOSE</button>
             </div>

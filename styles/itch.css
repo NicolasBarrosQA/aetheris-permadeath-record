@@ -46,6 +46,11 @@ body.is-fullscreen #itch-fullscreen-btn {
     opacity: 0.5;
 }
 
+#shop-modal {
+    z-index: 60;
+    max-height: calc(100vh - 28px);
+}
+
 @media (max-width: 700px), (max-height: 430px) {
     #mobile-controls,
     html.is-mobile #mobile-controls {
@@ -106,6 +111,28 @@ body.is-fullscreen #itch-fullscreen-btn {
         font-size: 10px;
     }
 
+    #start-controls {
+        gap: 4px;
+    }
+
+    .start-control-line,
+    #difficulty-shortcuts {
+        min-height: 18px;
+        padding: 0 5px;
+        font-size: 9px;
+    }
+
+    #shop-modal {
+        width: calc(100vw - 16px);
+        max-height: calc(100vh - 16px);
+        padding: 12px;
+    }
+
+    .skin-card {
+        min-width: 122px;
+        min-height: 176px;
+    }
+
     #ui-layer {
         top: 8px;
         left: 8px;
@@ -150,8 +177,8 @@ body.is-fullscreen #itch-fullscreen-btn {
     }
 
     #language-toggle {
-        top: 8px;
-        right: 118px;
+        top: 96px;
+        right: 8px;
         bottom: auto;
     }
 }

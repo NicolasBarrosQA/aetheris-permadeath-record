@@ -297,7 +297,7 @@ html.is-mobile body {
     position: relative;
     min-height: 90px;
     padding: 12px 18px;
-    border-radius: 12px;
+    border-radius: 8px;
     border: 1px solid var(--panel-border);
     background:
         linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 45%),
@@ -346,6 +346,20 @@ html.is-mobile body {
     font-weight: 700;
     letter-spacing: 0;
     text-shadow: 0 0 18px currentColor;
+}
+
+.stat-subline {
+    margin-top: 4px;
+    color: #8ca2bf;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+#ui-best {
+    color: #ffd95f;
 }
 
 .c-cyan {
@@ -440,21 +454,23 @@ html.is-mobile body {
 .system-dialog {
     width: min(94vw, 560px);
     max-height: min(86vh, 720px);
-    overflow: hidden;
-    padding: 20px;
-    border: 1px solid rgba(142, 224, 255, 0.28);
+    overflow-y: auto;
+    padding: 22px;
+    border: 1px solid rgba(142, 224, 255, 0.32);
     border-radius: 8px;
     background:
-        linear-gradient(150deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 42%),
-        rgba(4, 10, 25, 0.92);
+        linear-gradient(180deg, rgba(10, 22, 48, 0.96), rgba(3, 9, 24, 0.96)),
+        rgba(4, 10, 25, 0.96);
     box-shadow:
         0 28px 90px rgba(0, 0, 0, 0.82),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
     color: #eaf5ff;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(115, 229, 255, 0.66) rgba(11, 18, 38, 0.9);
 }
 
 .leaderboard-dialog {
-    width: min(94vw, 660px);
+    width: min(94vw, 700px);
 }
 
 .modal-topline {
@@ -462,7 +478,9 @@ html.is-mobile body {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(160, 214, 255, 0.16);
     color: #5bd7ff;
     font-family: 'Rajdhani', sans-serif;
     font-size: 12px;
@@ -497,6 +515,31 @@ html.is-mobile body {
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
+    transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+
+.icon-close:hover,
+#account-open-btn:hover,
+#leaderboard-open-btn:hover,
+#quick-shop-btn:hover,
+#guest-continue-btn:hover,
+#account-submit-btn:hover,
+#account-logout-btn:hover,
+#account-form-tabs button:hover,
+#leaderboard-tabs button:hover,
+.icon-close:focus-visible,
+#account-open-btn:focus-visible,
+#leaderboard-open-btn:focus-visible,
+#quick-shop-btn:focus-visible,
+#guest-continue-btn:focus-visible,
+#account-submit-btn:focus-visible,
+#account-logout-btn:focus-visible,
+#account-form-tabs button:focus-visible,
+#leaderboard-tabs button:focus-visible {
+    outline: none;
+    transform: translateY(-1px);
+    border-color: rgba(122, 226, 255, 0.54);
+    color: #ffffff;
 }
 
 .icon-close {
@@ -512,11 +555,11 @@ html.is-mobile body {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 12px;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
     padding: 10px 12px;
-    border: 1px solid rgba(160, 214, 255, 0.16);
+    border: 1px solid rgba(160, 214, 255, 0.18);
     border-radius: 7px;
-    background: rgba(2, 8, 22, 0.5);
+    background: rgba(2, 8, 22, 0.62);
 }
 
 #leaderboard-context {
@@ -552,18 +595,18 @@ html.is-mobile body {
 }
 
 #pilot-strip {
-    width: min(420px, 100%);
-    margin: 0 auto 10px;
+    width: min(470px, 100%);
+    margin: 0 auto 8px;
     text-align: left;
 }
 
 #account-open-btn {
-    height: 32px;
+    height: 34px;
     padding: 0 12px;
 }
 
 .modal-copy {
-    margin: -4px 0 16px;
+    margin: -2px 0 16px;
     color: #a9bdd4;
     font-size: 13px;
     line-height: 1.45;
@@ -571,8 +614,8 @@ html.is-mobile body {
 
 #account-form {
     display: grid;
-    gap: 9px;
-    margin-bottom: 10px;
+    gap: 10px;
+    margin-bottom: 12px;
 }
 
 #account-form-tabs,
@@ -589,7 +632,7 @@ html.is-mobile body {
 }
 
 #pre-run-actions {
-    width: min(420px, 100%);
+    width: min(470px, 100%);
     margin: 0 auto 10px;
 }
 
@@ -600,7 +643,7 @@ html.is-mobile body {
 #guest-continue-btn,
 #leaderboard-open-btn,
 #quick-shop-btn {
-    height: 36px;
+    height: 38px;
 }
 
 #account-form-tabs button.selected,
@@ -636,19 +679,19 @@ html.is-mobile body {
 #leaderboard-name-input {
     width: 100%;
     min-width: 0;
-    height: 38px;
-    border: 1px solid rgba(160, 214, 255, 0.26);
+    height: 42px;
+    border: 1px solid rgba(160, 214, 255, 0.28);
     border-radius: 6px;
-    background: rgba(2, 8, 22, 0.84);
+    background: rgba(1, 6, 18, 0.86);
     color: #eaf5ff;
-    padding: 0 10px;
+    padding: 0 12px;
     font: 700 14px 'Rajdhani', sans-serif;
     letter-spacing: 1px;
     outline: none;
 }
 
 #account-message {
-    min-height: 16px;
+    min-height: 18px;
     margin: 0;
     color: #95abc9;
     line-height: 1.25;
@@ -684,7 +727,7 @@ html.is-mobile body {
 
 #leaderboard-name {
     display: grid;
-    grid-template-columns: 84px 1fr;
+    grid-template-columns: 92px 1fr;
     align-items: center;
     gap: 10px;
     margin-bottom: 12px;
@@ -728,9 +771,9 @@ html.is-mobile body {
 
 .leaderboard-row,
 .leaderboard-empty {
-    min-height: 42px;
+    min-height: 44px;
     border-radius: 6px;
-    background: rgba(2, 8, 22, 0.56);
+    background: rgba(2, 8, 22, 0.64);
     border: 1px solid rgba(160, 214, 255, 0.14);
 }
 
@@ -990,30 +1033,32 @@ h1 {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 700px;
-    height: 400px;
+    width: min(92vw, 760px);
+    max-height: min(82vh, 480px);
     z-index: 30;
     display: none;
     flex-direction: column;
     transform: translate(-50%, -50%);
-    border-radius: 12px;
+    border-radius: 8px;
     border: 1px solid rgba(122, 224, 255, 0.4);
     background:
-        linear-gradient(165deg, rgba(8, 16, 36, 0.94), rgba(15, 28, 54, 0.9));
+        linear-gradient(180deg, rgba(10, 22, 48, 0.96), rgba(3, 9, 24, 0.96));
     box-shadow:
         0 24px 90px rgba(0, 0, 0, 0.86),
         inset 0 0 40px rgba(74, 203, 255, 0.09);
     backdrop-filter: blur(18px);
-    padding: 24px;
+    padding: 22px;
+    overflow: hidden;
 }
 
 #shop-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex: 0 0 auto;
     padding-bottom: 12px;
-    margin-bottom: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(160, 214, 255, 0.16);
 }
 
 #shop-header h2 {
@@ -1026,7 +1071,7 @@ h1 {
 
 #shop-balance {
     font-family: 'Rajdhani', sans-serif;
-    font-size: 30px;
+    font-size: 26px;
     color: #ffd95f;
     text-shadow: 0 0 14px rgba(255, 201, 88, 0.45);
 }
@@ -1034,7 +1079,10 @@ h1 {
 #skins-grid {
     display: flex;
     gap: 14px;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-x: auto;
+    overflow-y: hidden;
     padding: 8px 4px;
     scrollbar-width: thin;
     scrollbar-color: rgba(115, 229, 255, 0.66) rgba(11, 18, 38, 0.9);
@@ -1042,7 +1090,8 @@ h1 {
 
 .skin-card {
     min-width: 136px;
-    height: 206px;
+    min-height: 204px;
+    height: auto;
     padding: 10px;
     display: flex;
     align-items: center;
@@ -1095,7 +1144,7 @@ h1 {
 
 .btn-buy {
     padding: 6px 11px;
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid rgba(170, 214, 255, 0.4);
     background: rgba(10, 18, 34, 0.9);
     color: #def3ff;
@@ -1117,40 +1166,74 @@ h1 {
     color: #d8ffe5;
 }
 
+.shop-footer {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(160, 214, 255, 0.14);
+    color: #8fa6c5;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
 #start-hint {
     position: absolute;
     left: 50%;
-    bottom: 34px;
+    bottom: 28px;
     z-index: 8;
     transform: translateX(-50%);
-    width: min(760px, calc(100vw - 32px));
-    padding: 14px 18px 12px;
+    width: min(720px, calc(100vw - 32px));
+    padding: 14px 16px 12px;
     border-radius: 8px;
-    border: 1px solid rgba(177, 222, 255, 0.24);
-    background: rgba(3, 9, 26, 0.58);
+    border: 1px solid rgba(177, 222, 255, 0.26);
+    background:
+        linear-gradient(180deg, rgba(8, 20, 46, 0.82), rgba(3, 9, 24, 0.68));
     color: rgba(224, 243, 255, 0.9);
     text-align: center;
     text-transform: uppercase;
-    font-size: 13px;
-    letter-spacing: 2px;
+    font-size: 12px;
+    letter-spacing: 1px;
     text-shadow: 0 0 12px rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(10px);
+    box-shadow:
+        0 18px 50px rgba(0, 0, 0, 0.54),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    isolation: isolate;
     pointer-events: auto;
+}
+
+#start-hint::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2px;
+    border-radius: 8px 8px 0 0;
+    background: linear-gradient(90deg, rgba(91, 215, 255, 0), rgba(91, 215, 255, 0.76), rgba(255, 217, 95, 0.46), rgba(91, 215, 255, 0));
+    opacity: 0.82;
 }
 
 #difficulty-picker {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 8px;
+    margin-bottom: 8px;
 }
 
 .difficulty-btn {
-    min-height: 74px;
-    padding: 10px 12px;
+    min-height: 64px;
+    padding: 9px 10px;
     border-radius: 8px;
-    border: 1px solid rgba(146, 216, 255, 0.18);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
+    border: 1px solid rgba(146, 216, 255, 0.2);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0)),
+        rgba(3, 9, 24, 0.42);
     color: #deefff;
     cursor: pointer;
     pointer-events: auto;
@@ -1163,9 +1246,11 @@ h1 {
 }
 
 .difficulty-btn.selected {
-    border-color: rgba(122, 226, 255, 0.56);
-    box-shadow: 0 0 24px rgba(88, 213, 255, 0.18);
-    background: linear-gradient(180deg, rgba(88, 214, 255, 0.14), rgba(255, 255, 255, 0.03));
+    border-color: rgba(102, 242, 164, 0.58);
+    box-shadow: 0 0 24px rgba(102, 242, 164, 0.16);
+    background:
+        linear-gradient(180deg, rgba(86, 230, 155, 0.17), rgba(255, 255, 255, 0.02)),
+        rgba(3, 11, 25, 0.74);
 }
 
 .difficulty-name,
@@ -1174,26 +1259,44 @@ h1 {
 }
 
 .difficulty-name {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
 }
 
 .difficulty-desc {
-    margin-top: 6px;
+    margin-top: 5px;
     color: #a9c0d9;
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.2;
     text-transform: none;
 }
 
+#start-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
 #difficulty-shortcuts {
-    margin-bottom: 10px;
-    color: #98b7d4;
-    font-size: 12px;
+    color: #afd0ed;
+    font-size: 11px;
+}
+
+.start-control-line,
+#difficulty-shortcuts {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border: 1px solid rgba(160, 214, 255, 0.14);
+    border-radius: 6px;
+    background: rgba(2, 8, 22, 0.36);
 }
 
 .start-control-gap {
-    margin-top: 12px;
+    margin-top: 0;
 }
 
 @keyframes pulse-hint {
@@ -1313,7 +1416,7 @@ h1 {
 
     #shop-modal {
         width: min(96vw, 700px);
-        height: min(84vh, 400px);
+        max-height: min(84vh, 420px);
         padding: 16px;
     }
 
@@ -1366,8 +1469,9 @@ h1 {
     }
 
     #language-toggle {
+        top: 96px;
         right: 10px;
-        bottom: 10px;
+        bottom: auto;
         min-width: 50px;
         height: 26px;
         padding: 0 8px;
@@ -1376,6 +1480,12 @@ h1 {
 
     #leaderboard-name {
         grid-template-columns: 66px 1fr;
+    }
+
+    .shop-footer {
+        align-items: stretch;
+        flex-direction: column;
+        text-align: center;
     }
 
     .mobile-left {
@@ -1421,7 +1531,7 @@ h1 {
     #start-hint {
         left: 50%;
         bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-        width: min(54vw, 680px);
+        width: min(72vw, 700px);
         font-size: 10px;
         padding: 10px 12px;
     }

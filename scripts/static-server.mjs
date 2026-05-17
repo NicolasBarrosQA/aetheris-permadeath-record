@@ -60,6 +60,16 @@ function parseCookies(req) {
     return cookies;
 }
 
+function getBearerToken(req) {
+    const header = req.headers.authorization || '';
+    const match = header.match(/^Bearer\s+(.+)$/i);
+    return match ? match[1].trim() : '';
+}
+
+function getAccountToken(req) {
+    return getBearerToken(req) || parseCookies(req).aetheris_account;
+}
+
 function accountCookie(token, expiresAt) {
     const maxAge = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
     return `aetheris_account=${encodeURIComponent(token)}; Path=/; Max-Age=${maxAge}; HttpOnly; SameSite=Strict`;
@@ -107,7 +117,7 @@ async function handleApi(req, res, url) {
         const body = await readJson(req);
         const current = await getAccountBySessionToken({
             storage,
-            token: parseCookies(req).aetheris_account,
+            token: getAccountToken(req),
             secret,
             now: Date.now()
         });
@@ -126,7 +136,7 @@ async function handleApi(req, res, url) {
     if (url.pathname === '/api/account' && req.method === 'GET') {
         const current = await getAccountBySessionToken({
             storage,
-            token: parseCookies(req).aetheris_account,
+            token: getAccountToken(req),
             secret,
             now: Date.now()
         });
@@ -147,7 +157,19 @@ async function handleApi(req, res, url) {
         });
         const status = result.ok ? 200 : (result.error === 'rate_limited' ? 429 : 400);
         const headers = result.ok ? { 'Set-Cookie': accountCookie(result.session.token, result.session.expiresAt) } : {};
-        sendJson(res, result.ok ? { ok: true, account: result.account } : result, status, headers);
+        sendJson(
+            res,
+            result.ok
+                ? {
+                    ok: true,
+                    account: result.account,
+                    sessionToken: result.session.token,
+                    sessionExpiresAt: result.session.expiresAt
+                }
+                : result,
+            status,
+            headers
+        );
         return true;
     }
 
@@ -163,14 +185,26 @@ async function handleApi(req, res, url) {
         });
         const status = result.ok ? 200 : (result.error === 'rate_limited' ? 429 : 401);
         const headers = result.ok ? { 'Set-Cookie': accountCookie(result.session.token, result.session.expiresAt) } : {};
-        sendJson(res, result.ok ? { ok: true, account: result.account } : result, status, headers);
+        sendJson(
+            res,
+            result.ok
+                ? {
+                    ok: true,
+                    account: result.account,
+                    sessionToken: result.session.token,
+                    sessionExpiresAt: result.session.expiresAt
+                }
+                : result,
+            status,
+            headers
+        );
         return true;
     }
 
     if (url.pathname === '/api/account/logout' && req.method === 'POST') {
         await logoutAccount({
             storage,
-            token: parseCookies(req).aetheris_account,
+            token: getAccountToken(req),
             secret,
             now: Date.now()
         });

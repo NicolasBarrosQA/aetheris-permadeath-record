@@ -15,7 +15,7 @@ function isItchRuntime(name = hostname()) {
 export const platform = {
     isItch: isItchRuntime(),
     apiOrigin: isItchRuntime() ? NETLIFY_API_ORIGIN : '',
-    accountEnabled: !isItchRuntime()
+    accountEnabled: true
 };
 
 export function apiUrl(path) {

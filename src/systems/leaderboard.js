@@ -6,7 +6,8 @@ import { onLanguageChange, t } from '../i18n.js';
 
 const API_URL = apiUrl('/api/leaderboard');
 const SESSION_URL = apiUrl('/api/leaderboard/session');
-const ACCOUNT_URL = '/api/account';
+const ACCOUNT_URL = apiUrl('/api/account');
+const ACCOUNT_TOKEN_KEY = 'aetheris_account_token_v1';
 const PLAYER_NAME_KEY = 'aetheris_leaderboard_name_v1';
 const MODE_IDS = Object.keys(DIFFICULTY_MODES);
 
@@ -41,6 +42,33 @@ function writeLocalValue(key, value) {
     } catch {
         // Navegadores em modo privado podem bloquear storage; convidado segue na sessao.
     }
+}
+
+function removeLocalValue(key) {
+    try {
+        localStorage.removeItem(key);
+    } catch {
+        // Storage persistente e opcional; a sessao em memoria segue funcionando.
+    }
+}
+
+let accountSessionToken = readLocalValue(ACCOUNT_TOKEN_KEY, '');
+
+function readAccountToken() {
+    return accountSessionToken;
+}
+
+function writeAccountToken(token) {
+    accountSessionToken = String(token || '');
+    if (accountSessionToken) {
+        writeLocalValue(ACCOUNT_TOKEN_KEY, accountSessionToken);
+    } else {
+        removeLocalValue(ACCOUNT_TOKEN_KEY);
+    }
+}
+
+function clearAccountToken() {
+    writeAccountToken('');
 }
 
 function normalizeMode(modeId) {
@@ -115,11 +143,13 @@ function setAccountMessage(key, tone = 'idle', values = null) {
 }
 
 async function fetchJson(url, options = {}) {
+    const accountToken = shouldOmitCredentials(url) ? readAccountToken() : '';
     const response = await fetch(url, {
         ...options,
         credentials: shouldOmitCredentials(url) ? 'omit' : 'same-origin',
         headers: {
             'Content-Type': 'application/json',
+            ...(accountToken ? { Authorization: `Bearer ${accountToken}` } : {}),
             ...(options.headers || {})
         }
     });
@@ -449,17 +479,13 @@ export async function submitLeaderboardScore() {
 }
 
 async function hydrateAccount() {
-    if (!platform.accountEnabled) {
-        leaderboardState.account = null;
-        leaderboardState.authReady = true;
-        setAccountMessage('account.message.itchGuest', 'ready');
-        syncAccountUI();
-        return;
-    }
-
+    const hadAccountToken = Boolean(readAccountToken());
     try {
         const result = await fetchJson(ACCOUNT_URL);
         leaderboardState.account = result.account || null;
+        if (!leaderboardState.account && hadAccountToken && shouldOmitCredentials(ACCOUNT_URL)) {
+            clearAccountToken();
+        }
         leaderboardState.authReady = true;
         setAccountMessage(
             leaderboardState.account
@@ -470,6 +496,7 @@ async function hydrateAccount() {
         if (!leaderboardState.account) showAuthGate();
     } catch {
         leaderboardState.account = null;
+        if (shouldOmitCredentials(ACCOUNT_URL)) clearAccountToken();
         leaderboardState.authReady = true;
         setAccountMessage('account.message.loginUnavailable', 'warn');
         showAuthGate();
@@ -511,6 +538,9 @@ async function submitAccountForm(event) {
         });
 
         leaderboardState.account = result.account || null;
+        if (result.sessionToken && shouldOmitCredentials(endpoint)) {
+            writeAccountToken(result.sessionToken);
+        }
         if (elements.accountPassword) elements.accountPassword.value = '';
         setAccountMessage('account.message.connected', 'ready');
         syncAccountUI();
@@ -538,6 +568,7 @@ async function logout() {
     }
 
     leaderboardState.account = null;
+    clearAccountToken();
     setAccountMessage('account.message.playingGuest', 'idle');
     syncAccountUI();
     showAuthGate();
