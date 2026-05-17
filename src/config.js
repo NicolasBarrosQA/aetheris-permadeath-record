@@ -95,25 +95,31 @@ export const BALANCE = {
 export const DIFFICULTY_MODES = {
     easy: {
         id: 'easy',
-        label: 'FACIL',
+        label: 'EASY',
+        labelKey: 'difficulty.easy.name',
         accent: '#66f2a4',
-        description: 'Ritmo mais leve com drops raros de boost.',
+        description: 'Rare boosts and more breathing room.',
+        descriptionKey: 'difficulty.easy.description',
         boostDrops: true,
         virusPressure: false
     },
     medium: {
         id: 'medium',
-        label: 'MEDIO',
+        label: 'MEDIUM',
+        labelKey: 'difficulty.medium.name',
         accent: '#5bd7ff',
-        description: 'A corrida atual, sem ajuda extra.',
+        description: 'The standard run, no extra help.',
+        descriptionKey: 'difficulty.medium.description',
         boostDrops: false,
         virusPressure: false
     },
     hard: {
         id: 'hard',
-        label: 'DIFICIL',
+        label: 'HARD',
+        labelKey: 'difficulty.hard.name',
         accent: '#ff5b7d',
-        description: 'O virus apaga o mapa atras de voce.',
+        description: 'The virus consumes everything behind you.',
+        descriptionKey: 'difficulty.hard.description',
         boostDrops: false,
         virusPressure: true
     }
@@ -122,7 +128,8 @@ export const DIFFICULTY_MODES = {
 export const BOOST_TYPES = {
     repair: {
         id: 'repair',
-        label: 'REPARO',
+        label: 'REPAIR',
+        labelKey: 'boost.repair',
         color: '#63f0a7',
         accent: '#d7ffe8',
         icon: 'repair.svg',
@@ -131,6 +138,7 @@ export const BOOST_TYPES = {
     slow: {
         id: 'slow',
         label: 'TIME SHIFT',
+        labelKey: 'boost.slow',
         color: '#6bd7ff',
         accent: '#effaff',
         icon: 'slow.svg',
@@ -139,6 +147,7 @@ export const BOOST_TYPES = {
     triple: {
         id: 'triple',
         label: 'TRIPLE JUMP',
+        labelKey: 'boost.triple',
         color: '#cf7bff',
         accent: '#f7e6ff',
         icon: 'triple.svg',
@@ -147,6 +156,7 @@ export const BOOST_TYPES = {
     airDash: {
         id: 'airDash',
         label: 'AIR DASH',
+        labelKey: 'boost.airDash',
         color: '#ffb14d',
         accent: '#fff0d9',
         icon: 'airdash.svg',

@@ -19,7 +19,8 @@ test('contrato de UI exige login gate e ranking modal central', () => {
     });
 
     assert.doesNotMatch(html, /id="leaderboard-panel"/);
-    assert.match(html, /\[ L \] RANKING/);
+    assert.match(html, /\[ L \] LEADERBOARD/);
+    assert.match(html, /id="language-toggle"/);
 });
 
 test('html de producao nao carrega fixture visual de ranking', () => {

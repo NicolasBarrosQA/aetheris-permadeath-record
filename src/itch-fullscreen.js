@@ -1,3 +1,5 @@
+import { onLanguageChange, t } from './i18n.js';
+
 const fullscreenButton = document.getElementById('itch-fullscreen-btn');
 const fullscreenTarget = document.documentElement;
 
@@ -8,7 +10,9 @@ function isFullscreen() {
 function syncFullscreenButton() {
     document.body.classList.toggle('is-fullscreen', isFullscreen());
     if (!fullscreenButton) return;
-    fullscreenButton.innerText = isFullscreen() ? 'JOGANDO' : 'TELA CHEIA';
+    fullscreenButton.innerText = isFullscreen() ? t('fullscreen.playing') : t('fullscreen.enter');
+    fullscreenButton.setAttribute('aria-label', t('fullscreen.aria'));
+    fullscreenButton.setAttribute('title', t('fullscreen.aria'));
     fullscreenButton.hidden = !document.fullscreenEnabled;
 }
 
@@ -53,4 +57,5 @@ document.addEventListener('fullscreenchange', () => {
     resizeAfterFullscreenChange();
 });
 
+onLanguageChange(syncFullscreenButton);
 syncFullscreenButton();

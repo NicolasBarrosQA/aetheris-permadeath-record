@@ -1,7 +1,7 @@
 {
   "name": "AETHERIS: Permadeath Record",
   "short_name": "AETHERIS",
-  "description": "AETHERIS: Permadeath Record em modo aplicativo para mobile.",
+  "description": "AETHERIS: Permadeath Record in mobile app mode.",
   "id": "/",
   "start_url": "/?source=homescreen",
   "scope": "/",

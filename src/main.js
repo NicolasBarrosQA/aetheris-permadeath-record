@@ -19,6 +19,7 @@ import {
     openLeaderboardDialog,
     syncLeaderboardMode
 } from './systems/leaderboard.js';
+import { applyStaticTranslations, onLanguageChange, setupLanguageToggle, t } from './i18n.js';
 
 const ACTION_KEYS = new Set([
     ' ',
@@ -226,6 +227,10 @@ function setupMobileControls() {
 }
 
 function bootstrap() {
+    applyStaticTranslations();
+    setupLanguageToggle();
+    onLanguageChange(() => applyStaticTranslations());
+
     state.container = getRequiredElement('game-container');
     state.canvas = getRequiredElement('gameCanvas');
     state.ctx = state.canvas.getContext('2d', {
@@ -357,11 +362,11 @@ function setupInput() {
             if (state.player) {
                 if (state.cheatFlight) {
                     state.player.invul = 9999;
-                    spawnText('CHEAT VOAR ON', state.player.x, state.player.y - 40, '#0ff');
+                    spawnText(t('cheat.flyOn'), state.player.x, state.player.y - 40, '#0ff');
                 } else {
                     state.player.invul = 0;
                     state.player.vy = 0;
-                    spawnText('CHEAT VOAR OFF', state.player.x, state.player.y - 40, '#ff3355');
+                    spawnText(t('cheat.flyOff'), state.player.x, state.player.y - 40, '#ff3355');
                 }
             }
         }
@@ -374,7 +379,7 @@ function setupInput() {
                 state.game.debugTimeScaleOverride = currentlySlow ? null : 0.18;
                 if (state.player) {
                     spawnText(
-                        currentlySlow ? 'CAMERA LENTA OFF' : 'CAMERA LENTA ON',
+                        currentlySlow ? t('debug.slowCameraOff') : t('debug.slowCameraOn'),
                         state.player.x,
                         state.player.y - 48,
                         currentlySlow ? '#ff7a8a' : '#6bd7ff'

@@ -1,19 +1,35 @@
 import { expect, test } from '@playwright/test';
 
-test('abre com tela de login quando nao existe conta logada', async ({ page }) => {
+test('opens with login screen when no account is signed in', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto('/public/index.html');
 
     await expect(page.locator('#auth-gate')).toBeVisible();
-    await expect(page.locator('#auth-title')).toContainText('Entrar no AETHERIS');
+    await expect(page.locator('#auth-title')).toContainText('Enter AETHERIS');
     await expect(page.locator('#leaderboard-modal')).toBeHidden();
 
     await page.locator('#guest-continue-btn').click();
     await expect(page.locator('#auth-gate')).toBeHidden();
-    await expect(page.locator('#pilot-mode')).toContainText('CONVIDADO');
+    await expect(page.locator('#pilot-mode')).toContainText('GUEST');
 });
 
-test('ranking abre somente por comando e fica centralizado antes da corrida', async ({ page }) => {
+test('language toggle switches the game to pt-BR discreetly', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto('/public/index.html');
+
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await page.locator('#language-toggle').click();
+
+    await expect(page.locator('html')).toHaveAttribute('lang', 'pt-BR');
+    await expect(page.locator('#language-toggle')).toContainText('EN');
+    await expect(page.locator('#auth-title')).toContainText('Entrar no AETHERIS');
+
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'pt-BR');
+    await expect(page.locator('#auth-title')).toContainText('Entrar no AETHERIS');
+});
+
+test('leaderboard opens only by command and stays centered before the run', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto('/public/index.html');
 
@@ -23,7 +39,7 @@ test('ranking abre somente por comando e fica centralizado antes da corrida', as
     await page.locator('#leaderboard-open-btn').click();
     const modal = page.locator('#leaderboard-modal');
     await expect(modal).toBeVisible();
-    await expect(page.locator('#leaderboard-list')).toContainText('SEM PONTUACOES VERIFICADAS');
+    await expect(page.locator('#leaderboard-list')).toContainText('NO VERIFIED SCORES');
 
     const box = await page.locator('.leaderboard-dialog').boundingBox();
     expect(box.x).toBeGreaterThan(300);
@@ -33,7 +49,7 @@ test('ranking abre somente por comando e fica centralizado antes da corrida', as
     await expect(modal).toBeHidden();
 });
 
-test('signup cria conta real no servidor de teste e libera a entrada', async ({ page }) => {
+test('signup creates a real account on the test server and enters the game', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto('/public/index.html');
 
@@ -45,17 +61,17 @@ test('signup cria conta real no servidor de teste e libera a entrada', async ({ 
     await page.locator('#account-submit-btn').click();
 
     await expect(page.locator('#auth-gate')).toBeHidden();
-    await expect(page.locator('#pilot-mode')).toContainText('CONTA');
+    await expect(page.locator('#pilot-mode')).toContainText('ACCOUNT');
     await expect(page.locator('#pilot-name')).toContainText(/E2E Pilot/i);
     await expect(page.locator('#leaderboard-name-input')).toBeDisabled();
 
     await page.locator('#account-open-btn').click();
     await page.locator('#account-logout-btn').click();
     await expect(page.locator('#auth-gate')).toBeVisible();
-    await expect(page.locator('#account-mode')).toContainText('CONVIDADO');
+    await expect(page.locator('#account-mode')).toContainText('GUEST');
 });
 
-test('ranking nao aparece durante gameplay', async ({ page }) => {
+test('leaderboard does not appear during gameplay', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/public/index.html');
 

@@ -225,6 +225,37 @@ html.is-mobile body {
     background: radial-gradient(circle at 50% 54%, rgba(0, 0, 0, 0) 58%, rgba(0, 0, 0, 0.5));
 }
 
+#language-toggle {
+    position: absolute;
+    top: 118px;
+    right: 16px;
+    z-index: 45;
+    min-width: 58px;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid rgba(160, 214, 255, 0.22);
+    border-radius: 6px;
+    background: rgba(3, 9, 24, 0.46);
+    color: #bcd5ed;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    backdrop-filter: blur(8px);
+    opacity: 0.76;
+    transition: opacity 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+#language-toggle:hover,
+#language-toggle:focus-visible {
+    opacity: 1;
+    color: #eaf7ff;
+    border-color: rgba(122, 226, 255, 0.48);
+    outline: none;
+}
+
 #ui-layer {
     position: absolute;
     top: 16px;
@@ -1137,6 +1168,10 @@ h1 {
     font-size: 12px;
 }
 
+.start-control-gap {
+    margin-top: 12px;
+}
+
 @keyframes pulse-hint {
     0% {
         opacity: 0.55;
@@ -1220,6 +1255,11 @@ h1 {
         right: 12px;
         bottom: 12px;
         min-width: 0;
+    }
+
+    #language-toggle {
+        top: 88px;
+        right: 10px;
     }
 
     .system-dialog {
@@ -1315,6 +1355,15 @@ h1 {
         grid-template-columns: minmax(0, 1fr);
     }
 
+    #language-toggle {
+        top: 82px;
+        right: 10px;
+        min-width: 50px;
+        height: 26px;
+        padding: 0 8px;
+        font-size: 10px;
+    }
+
     #leaderboard-name {
         grid-template-columns: 66px 1fr;
     }
@@ -1365,6 +1414,11 @@ h1 {
         width: min(54vw, 680px);
         font-size: 10px;
         padding: 10px 12px;
+    }
+
+    #language-toggle {
+        top: 10px;
+        right: 10px;
     }
 
     #difficulty-picker {

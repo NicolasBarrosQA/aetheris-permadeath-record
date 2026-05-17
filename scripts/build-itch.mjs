@@ -30,28 +30,28 @@ function patchIndexHtml(html) {
 
     next = next.replace(
         '<div id="vignette"></div>',
-        '<div id="vignette"></div>\n        <button type="button" id="itch-fullscreen-btn" aria-label="Abrir em tela cheia">TELA CHEIA</button>'
+        '<div id="vignette"></div>\n        <button type="button" id="itch-fullscreen-btn" aria-label="Open in fullscreen" title="Open in fullscreen">FULLSCREEN</button>'
     );
 
     next = next.replace(
         /<span class="stat-label">[^<]*NCIA<\/span>/,
-        '<span class="stat-label">DISTANCIA</span>'
+        '<span class="stat-label" data-i18n="hud.distance">DISTANCE</span>'
     );
     next = next.replace(
         /<h1 id="overlay-title">[^<]*<\/h1>/,
-        '<h1 id="overlay-title">SISTEMA CRITICO</h1>'
+        '<h1 id="overlay-title">CRITICAL SYSTEM</h1>'
     );
     next = next.replace(
         /<p id="overlay-msg"([^>]*)>[^<]*<\/p>/,
-        '<p id="overlay-msg"$1>CONEXAO PERDIDA</p>'
+        '<p id="overlay-msg"$1>CONNECTION LOST</p>'
     );
     next = next.replace(
         /<button class="touch-btn touch-move" type="button" data-mobile-key="arrowleft"([^>]*)>[^<]*<\/button>/,
-        '<button class="touch-btn touch-move" type="button" data-mobile-key="arrowleft"$1>ESQ</button>'
+        '<button class="touch-btn touch-move" type="button" data-mobile-key="arrowleft"$1>LEFT</button>'
     );
     next = next.replace(
         /<button class="touch-btn touch-move" type="button" data-mobile-key="arrowright"([^>]*)>[^<]*<\/button>/,
-        '<button class="touch-btn touch-move" type="button" data-mobile-key="arrowright"$1>DIR</button>'
+        '<button class="touch-btn touch-move" type="button" data-mobile-key="arrowright"$1>RIGHT</button>'
     );
 
     next = injectBeforeNeedle(
@@ -80,7 +80,7 @@ function patchManifest(manifest) {
 }
 
 const rootIndex = `<!doctype html>
-<html lang="pt-br">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -89,7 +89,7 @@ const rootIndex = `<!doctype html>
   <script>location.replace('public/index.html');</script>
 </head>
 <body>
-  <a href="public/index.html">Abrir AETHERIS</a>
+  <a href="public/index.html">Open AETHERIS</a>
 </body>
 </html>
 `;

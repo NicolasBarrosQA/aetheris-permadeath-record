@@ -6,6 +6,7 @@ import state from '../core/state.js';
 import { storage, save } from '../core/storage.js';
 import { BOOST_TYPES, COIN_LABEL, DIFFICULTY_MODES, SKINS_DB, HP_COLOR } from '../config.js';
 import { resumeAudioContext, SFX } from '../core/audio.js';
+import { onLanguageChange, t } from '../i18n.js';
 
 function getUnlockedSet() {
     return new Set(storage.unlockedSkins);
@@ -28,7 +29,14 @@ export function setDifficultyMode(modeId) {
 export function syncDifficultyUI() {
     if (!state.difficultyButtons?.length) return;
     state.difficultyButtons.forEach(button => {
+        const mode = DIFFICULTY_MODES[button.dataset.difficulty];
         button.classList.toggle('selected', button.dataset.difficulty === storage.difficultyMode);
+        if (!mode) return;
+
+        const name = button.querySelector('.difficulty-name');
+        const description = button.querySelector('.difficulty-desc');
+        if (name) name.innerText = t(mode.labelKey);
+        if (description) description.innerText = t(mode.descriptionKey);
     });
 }
 
@@ -83,14 +91,14 @@ export function renderShop() {
         actionBtn.type = 'button';
 
         if (isEquipped) {
-            actionBtn.innerText = 'EQUIPADO';
+            actionBtn.innerText = t('shop.equipped');
             actionBtn.className += ' btn-equip';
             actionBtn.disabled = true;
         } else if (isUnlocked) {
-            actionBtn.innerText = 'EQUIPAR';
+            actionBtn.innerText = t('shop.equip');
             actionBtn.onclick = () => equipSkin(skin.id);
         } else {
-            actionBtn.innerText = `COMPRAR ${skin.cost}${COIN_LABEL}`;
+            actionBtn.innerText = t('shop.buy', { cost: skin.cost, currency: COIN_LABEL });
             actionBtn.onclick = () => buySkin(skin.id, skin.cost);
         }
 
@@ -110,7 +118,7 @@ export function buySkin(id, cost) {
     }
 
     if (storage.totalCoins < cost) {
-        alert('Saldo insuficiente!');
+        alert(t('shop.insufficient'));
         return;
     }
 
@@ -162,23 +170,23 @@ export function updateUI() {
         const strikeCd = Math.max(state.player.dashCd, state.player.attackCd, 0);
         const weatherActive = state.rainState.active && state.game.started;
         const stateText = state.game.isGameOver
-            ? 'SINAL PERDIDO'
-            : (state.game.started ? 'CORRIDA ATIVA' : 'AGUARDANDO');
+            ? t('status.signalLost')
+            : (state.game.started ? t('status.runActive') : t('status.waiting'));
 
         setPillState(state.uiState, stateText, state.game.started ? 'hot' : 'cold');
         setPillState(
             state.uiDash,
-            strikeReady ? 'GOLPE PRONTO' : `GOLPE ${strikeCd}`,
+            strikeReady ? t('status.strikeReady') : t('status.strikeCooldown', { cooldown: strikeCd }),
             strikeReady ? 'ready' : 'idle'
         );
         setPillState(
             state.uiAttack,
-            state.player.isDashing ? 'INVESTIDA ATIVA' : 'C = GOLPE',
+            state.player.isDashing ? t('status.dashActive') : t('status.strikeKey'),
             state.player.isDashing ? 'hot' : 'cold'
         );
         setPillState(
             state.uiWeather,
-            weatherActive ? 'CHUVA ATIVA' : 'CLIMA ESTAVEL',
+            weatherActive ? t('status.rainActive') : t('status.weatherClear'),
             weatherActive ? 'warn' : 'cold'
         );
     }
@@ -191,7 +199,7 @@ export function updateUI() {
             const boostDef = BOOST_TYPES[activeBoost.id];
             const ratio = activeBoost.maxDuration > 0 ? (activeBoost.duration / activeBoost.maxDuration) : 0;
             state.uiBoost.classList.remove('hidden');
-            state.uiBoostName.innerText = boostDef?.label || 'BOOST';
+            state.uiBoostName.innerText = boostDef?.labelKey ? t(boostDef.labelKey) : (boostDef?.label || 'BOOST');
             state.uiBoostTime.innerText = `${(activeBoost.duration / 60).toFixed(1)}s`;
             state.uiBoostFill.style.width = `${Math.max(0, Math.min(100, ratio * 100))}%`;
             state.uiBoostFill.style.background = `linear-gradient(90deg, ${boostDef?.color || '#63f0a7'}, ${boostDef?.accent || '#effaff'})`;
@@ -203,3 +211,9 @@ export function updateUI() {
         }
     }
 }
+
+onLanguageChange(() => {
+    syncDifficultyUI();
+    if (state.game?.shopOpen) renderShop();
+    updateUI();
+});

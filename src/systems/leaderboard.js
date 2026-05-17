@@ -2,17 +2,13 @@ import state from '../core/state.js';
 import { DIFFICULTY_MODES } from '../config.js';
 import { storage } from '../core/storage.js';
 import { apiUrl, platform, shouldOmitCredentials } from '../platform.js';
+import { onLanguageChange, t } from '../i18n.js';
 
 const API_URL = apiUrl('/api/leaderboard');
 const SESSION_URL = apiUrl('/api/leaderboard/session');
 const ACCOUNT_URL = '/api/account';
 const PLAYER_NAME_KEY = 'aetheris_leaderboard_name_v1';
 const MODE_IDS = Object.keys(DIFFICULTY_MODES);
-const MODE_LABELS = {
-    easy: 'FACIL',
-    medium: 'MEDIO',
-    hard: 'DIFICIL'
-};
 
 const leaderboardState = {
     modeId: storage.difficultyMode || 'medium',
@@ -28,6 +24,8 @@ const leaderboardState = {
 };
 
 let elements = null;
+let statusState = { key: 'leaderboard.status.sync', tone: 'idle', values: null, raw: false };
+let accountMessageState = { key: 'account.message.validating', tone: 'idle', values: null };
 
 function readLocalValue(key, fallback = '') {
     try {
@@ -75,6 +73,11 @@ function formatDuration(ms) {
     return `${min}:${sec}`;
 }
 
+function getModeLabel(modeId) {
+    const mode = DIFFICULTY_MODES[modeId] || DIFFICULTY_MODES.medium;
+    return t(mode.labelKey || `difficulty.${mode.id}.name`);
+}
+
 function updateBodyModalState() {
     document.body.classList.toggle(
         'modal-open',
@@ -82,16 +85,33 @@ function updateBodyModalState() {
     );
 }
 
-function setStatus(text, tone = 'idle') {
+function renderStatus() {
     if (!elements?.status) return;
-    elements.status.innerText = text;
-    elements.status.dataset.tone = tone;
+    elements.status.innerText = statusState.raw
+        ? statusState.key
+        : t(statusState.key, statusState.values || {});
+    elements.status.dataset.tone = statusState.tone;
 }
 
-function setAccountMessage(text, tone = 'idle') {
+function setStatus(key, tone = 'idle', values = null) {
+    statusState = { key, tone, values, raw: false };
+    renderStatus();
+}
+
+function setStatusRaw(text, tone = 'idle') {
+    statusState = { key: text, tone, values: null, raw: true };
+    renderStatus();
+}
+
+function renderAccountMessage() {
     if (!elements?.accountMessage) return;
-    elements.accountMessage.innerText = text;
-    elements.accountMessage.dataset.tone = tone;
+    elements.accountMessage.innerText = t(accountMessageState.key, accountMessageState.values || {});
+    elements.accountMessage.dataset.tone = accountMessageState.tone;
+}
+
+function setAccountMessage(key, tone = 'idle', values = null) {
+    accountMessageState = { key, tone, values };
+    renderAccountMessage();
 }
 
 async function fetchJson(url, options = {}) {
@@ -186,9 +206,10 @@ function syncTabs() {
         const selected = button.dataset.leaderboardMode === leaderboardState.modeId;
         button.classList.toggle('selected', selected);
         button.setAttribute('aria-selected', selected ? 'true' : 'false');
+        button.innerText = getModeLabel(button.dataset.leaderboardMode);
     });
     if (elements.modeLabel) {
-        elements.modeLabel.innerText = MODE_LABELS[leaderboardState.modeId] || 'MEDIO';
+        elements.modeLabel.innerText = getModeLabel(leaderboardState.modeId);
     }
 }
 
@@ -199,6 +220,9 @@ function syncAuthMode() {
         const selected = button.dataset.authMode === leaderboardState.authMode;
         button.classList.toggle('selected', selected);
         button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        button.innerText = t(button.dataset.authMode === 'signup'
+            ? 'account.tab.signup'
+            : 'account.tab.login');
     });
 
     const isLogged = Boolean(leaderboardState.account);
@@ -210,7 +234,7 @@ function syncAuthMode() {
         elements.accountPassword.autocomplete = isSignup ? 'new-password' : 'current-password';
     }
     if (elements.accountSubmit) {
-        elements.accountSubmit.innerText = isSignup ? 'CRIAR CONTA' : 'ENTRAR';
+        elements.accountSubmit.innerText = t(isSignup ? 'account.submit.create' : 'account.submit.login');
     }
 }
 
@@ -222,15 +246,15 @@ function syncAccountUI() {
         ? normalizeName(account.displayName || account.username)
         : normalizeName(readLocalValue(PLAYER_NAME_KEY, 'RUNNER'));
 
-    if (elements.accountMode) elements.accountMode.innerText = isLogged ? 'CONTA' : 'CONVIDADO';
+    if (elements.accountMode) elements.accountMode.innerText = t(isLogged ? 'account.mode.account' : 'account.mode.guest');
     if (elements.accountName) elements.accountName.innerText = displayName;
-    if (elements.pilotMode) elements.pilotMode.innerText = isLogged ? 'CONTA' : 'CONVIDADO';
+    if (elements.pilotMode) elements.pilotMode.innerText = t(isLogged ? 'account.mode.account' : 'account.mode.guest');
     if (elements.pilotName) elements.pilotName.innerText = displayName;
     if (elements.playerLabel) elements.playerLabel.innerText = displayName;
-    if (elements.accountOpen) elements.accountOpen.innerText = isLogged ? 'PERFIL' : 'CONTA';
+    if (elements.accountOpen) elements.accountOpen.innerText = t(isLogged ? 'account.open.profile' : 'account.open.account');
     if (elements.authClose) elements.authClose.style.display = isLogged ? 'block' : 'none';
     if (elements.guestContinue) {
-        elements.guestContinue.innerText = isLogged ? 'FECHAR' : 'JOGAR COMO CONVIDADO';
+        elements.guestContinue.innerText = t(isLogged ? 'account.close' : 'account.guestContinue');
     }
     if (elements.nameInput) {
         elements.nameInput.value = displayName;
@@ -255,7 +279,7 @@ function syncAccountUI() {
         if (isLogged) elements.accountDisplay.style.display = 'none';
     }
     if (elements.authTitle) {
-        elements.authTitle.innerText = isLogged ? 'Perfil AETHERIS' : 'Entrar no AETHERIS';
+        elements.authTitle.innerText = t(isLogged ? 'account.title.profile' : 'account.title.login');
     }
     if (elements.accountTabs) {
         elements.accountTabs.style.display = isLogged ? 'none' : 'flex';
@@ -273,8 +297,8 @@ function renderEntries() {
         const item = document.createElement('li');
         item.className = 'leaderboard-empty';
         item.innerText = leaderboardState.loading
-            ? 'SINCRONIZANDO RANKING...'
-            : 'SEM PONTUACOES VERIFICADAS NESTE MODO';
+            ? t('leaderboard.empty.loading')
+            : t('leaderboard.empty.noScores');
         elements.list.appendChild(item);
         return;
     }
@@ -310,15 +334,15 @@ export async function refreshLeaderboard(modeId = leaderboardState.modeId) {
     leaderboardState.loading = true;
     syncTabs();
     renderEntries();
-    setStatus('SYNC', 'idle');
+    setStatus('leaderboard.status.sync', 'idle');
 
     try {
         const data = await fetchJson(`${API_URL}?mode=${leaderboardState.modeId}&limit=10`);
         leaderboardState.entries = Array.isArray(data.entries) ? data.entries : [];
-        setStatus('ONLINE', 'ready');
+        setStatus('leaderboard.status.online', 'ready');
     } catch {
         leaderboardState.entries = [];
-        setStatus('OFFLINE', 'warn');
+        setStatus('leaderboard.status.offline', 'warn');
     } finally {
         leaderboardState.loading = false;
         renderEntries();
@@ -356,7 +380,7 @@ export async function startLeaderboardRun(modeId) {
         sessionToken: null
     };
     leaderboardState.lastSubmittedRunId = null;
-    setStatus('ARMADO', 'idle');
+    setStatus('leaderboard.status.armed', 'idle');
 
     try {
         const session = await fetchJson(SESSION_URL, {
@@ -366,11 +390,11 @@ export async function startLeaderboardRun(modeId) {
 
         if (leaderboardState.activeRun?.clientRunId === clientRunId && session.ok && session.token) {
             leaderboardState.activeRun.sessionToken = session.token;
-            setStatus('VALIDADO', 'ready');
+            setStatus('leaderboard.status.validated', 'ready');
         }
     } catch {
         if (leaderboardState.activeRun?.clientRunId === clientRunId) {
-            setStatus('SEM SESSAO', 'warn');
+            setStatus('leaderboard.status.noSession', 'warn');
         }
     }
 }
@@ -386,14 +410,14 @@ export async function submitLeaderboardScore() {
     const durationMs = Math.max(1, Math.round(performance.now() - run.startedAt));
 
     if (distanceM <= 0 || !run.sessionToken) {
-        setStatus(run.sessionToken ? 'SEM SCORE' : 'OFFLINE', 'warn');
+        setStatus(run.sessionToken ? 'leaderboard.status.noScore' : 'leaderboard.status.offline', 'warn');
         return;
     }
 
     const playerName = getCurrentPlayerName();
     if (!leaderboardState.account) writeLocalValue(PLAYER_NAME_KEY, playerName);
 
-    setStatus('ENVIANDO', 'idle');
+    setStatus('leaderboard.status.sending', 'idle');
 
     try {
         const result = await fetchJson(API_URL, {
@@ -410,13 +434,17 @@ export async function submitLeaderboardScore() {
         });
 
         if (result.accepted) {
-            setStatus(result.verified ? `#${result.rank}` : 'REVISAO', result.verified ? 'ready' : 'warn');
+            if (result.verified) {
+                setStatusRaw(`#${result.rank}`, 'ready');
+            } else {
+                setStatus('leaderboard.status.review', 'warn');
+            }
             await refreshLeaderboard(run.modeId);
         } else {
-            setStatus('RECUSADO', 'warn');
+            setStatus('leaderboard.status.rejected', 'warn');
         }
     } catch {
-        setStatus('FALHA', 'warn');
+        setStatus('leaderboard.status.failed', 'warn');
     }
 }
 
@@ -424,7 +452,7 @@ async function hydrateAccount() {
     if (!platform.accountEnabled) {
         leaderboardState.account = null;
         leaderboardState.authReady = true;
-        setAccountMessage('Versao itch: ranking online ativo em modo convidado.', 'ready');
+        setAccountMessage('account.message.itchGuest', 'ready');
         syncAccountUI();
         return;
     }
@@ -435,15 +463,15 @@ async function hydrateAccount() {
         leaderboardState.authReady = true;
         setAccountMessage(
             leaderboardState.account
-                ? 'Conta conectada. Seus scores usam este callsign.'
-                : 'Entre para salvar sua identidade global ou jogue como convidado.',
+                ? 'account.message.connectedScores'
+                : 'account.message.enterOrGuest',
             leaderboardState.account ? 'ready' : 'idle'
         );
         if (!leaderboardState.account) showAuthGate();
     } catch {
         leaderboardState.account = null;
         leaderboardState.authReady = true;
-        setAccountMessage('Login indisponivel agora. Modo convidado segue liberado.', 'warn');
+        setAccountMessage('account.message.loginUnavailable', 'warn');
         showAuthGate();
     } finally {
         syncAccountUI();
@@ -453,7 +481,7 @@ async function hydrateAccount() {
 async function submitAccountForm(event) {
     event.preventDefault();
     if (!platform.accountEnabled) {
-        setAccountMessage('No itch, o ranking online usa modo convidado.', 'warn');
+        setAccountMessage('account.message.itchGuestOnly', 'warn');
         return;
     }
 
@@ -465,16 +493,16 @@ async function submitAccountForm(event) {
     const endpoint = leaderboardState.authMode === 'signup' ? `${ACCOUNT_URL}/signup` : `${ACCOUNT_URL}/login`;
 
     if (username.length < 3) {
-        setAccountMessage('Usuario precisa ter pelo menos 3 caracteres.', 'warn');
+        setAccountMessage('account.message.usernameShort', 'warn');
         return;
     }
 
     if (password.length < 10) {
-        setAccountMessage('Senha precisa ter 10+ caracteres com letra e numero.', 'warn');
+        setAccountMessage('account.message.passwordRule', 'warn');
         return;
     }
 
-    setAccountMessage('Validando credenciais...', 'idle');
+    setAccountMessage('account.message.validatingCredentials', 'idle');
 
     try {
         const result = await fetchJson(endpoint, {
@@ -484,21 +512,21 @@ async function submitAccountForm(event) {
 
         leaderboardState.account = result.account || null;
         if (elements.accountPassword) elements.accountPassword.value = '';
-        setAccountMessage('Conta conectada.', 'ready');
+        setAccountMessage('account.message.connected', 'ready');
         syncAccountUI();
         closeAuthGate();
     } catch (error) {
         const code = error.payload?.error;
         const messages = {
-            username_taken: 'Esse usuario ja existe.',
-            username_too_short: 'Usuario precisa ter pelo menos 3 caracteres.',
-            invalid_credentials: 'Usuario ou senha invalidos.',
-            password_needs_letter_and_number: 'Use senha com letras e numeros.',
-            password_too_short: 'Senha precisa ter 10+ caracteres.',
-            password_too_long: 'Senha longa demais.',
-            rate_limited: 'Muitas tentativas. Tente em instantes.'
+            username_taken: 'account.error.usernameTaken',
+            username_too_short: 'account.message.usernameShort',
+            invalid_credentials: 'account.error.invalidCredentials',
+            password_needs_letter_and_number: 'account.error.passwordLetterNumber',
+            password_too_short: 'account.error.passwordTooShort',
+            password_too_long: 'account.error.passwordTooLong',
+            rate_limited: 'account.error.rateLimited'
         };
-        setAccountMessage(messages[code] || 'Nao foi possivel conectar.', 'warn');
+        setAccountMessage(messages[code] || 'account.error.connectFailed', 'warn');
     }
 }
 
@@ -510,7 +538,7 @@ async function logout() {
     }
 
     leaderboardState.account = null;
-    setAccountMessage('Voce esta jogando como convidado.', 'idle');
+    setAccountMessage('account.message.playingGuest', 'idle');
     syncAccountUI();
     showAuthGate();
 }
@@ -597,7 +625,17 @@ export function initLeaderboardUI() {
     wireEvents();
     syncTabs();
     syncAccountUI();
+    renderStatus();
+    renderAccountMessage();
     syncDialogVisibility();
+    onLanguageChange(() => {
+        syncTabs();
+        syncAuthMode();
+        syncAccountUI();
+        renderStatus();
+        renderAccountMessage();
+        renderEntries();
+    });
     hydrateAccount();
     refreshLeaderboard(leaderboardState.modeId);
 }

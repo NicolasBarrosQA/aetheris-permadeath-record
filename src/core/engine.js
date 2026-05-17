@@ -17,6 +17,7 @@ import { updateUI, toggleShop } from '../systems/ui.js';
 import { updateVirus, drawVirus } from '../systems/virus.js';
 import { drawBoostPickup, drawScreenPostFX } from '../systems/vfx.js';
 import { resetLeaderboardRun, startLeaderboardRun, submitLeaderboardScore } from '../systems/leaderboard.js';
+import { t } from '../i18n.js';
 
 function getViewMetrics() {
     const viewW = state.view?.worldWidth || VIRTUAL_WIDTH;
@@ -122,8 +123,8 @@ export function initGame() {
     state.overlay.style.display = 'none';
     state.overlayTitle.style.color = '#ff3355';
     state.overlayTitle.style.textShadow = '0 0 20px #ff3355';
-    state.overlayTitle.innerText = 'SISTEMA CRITICO';
-    state.overlayMsg.innerText = 'CONEXAO PERDIDA';
+    state.overlayTitle.innerText = t('overlay.critical');
+    state.overlayMsg.innerText = t('overlay.connectionLost');
     state.shopModal.style.display = 'none';
     if (state.pauseScreen) state.pauseScreen.style.display = 'none';
     if (state.startHint) state.startHint.style.display = 'block';
@@ -718,17 +719,20 @@ function gameOver() {
         save();
     }
     if (isNewRecord) {
-        state.overlayTitle.innerText = 'NOVO RECORDE';
+        state.overlayTitle.innerText = t('overlay.newRecord');
         state.overlayTitle.style.color = '#ffd700';
         state.overlayTitle.style.textShadow = '0 0 20px #ffaa00';
     } else {
-        state.overlayTitle.innerText = 'SISTEMA CRÍTICO';
+        state.overlayTitle.innerText = t('overlay.critical');
         state.overlayTitle.style.color = '#ff3355';
         state.overlayTitle.style.textShadow = '0 0 20px #ff3355';
     }
     state.overlay.style.display = 'block';
     if (state.overlayMsg) {
-        state.overlayMsg.innerText = `Distância: ${Math.floor(state.game.dist / 10)}m | Recorde: ${Math.floor(storage.highScore / 10)}m`;
+        state.overlayMsg.innerText = t('overlay.summary', {
+            distance: Math.floor(state.game.dist / 10),
+            record: Math.floor(storage.highScore / 10)
+        });
     }
     submitLeaderboardScore();
 }
