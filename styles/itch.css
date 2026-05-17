@@ -1,0 +1,159 @@
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    background: #050715;
+}
+
+#itch-fullscreen-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 45;
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid rgba(122, 226, 255, 0.5);
+    border-radius: 6px;
+    background: rgba(3, 10, 28, 0.78);
+    color: #eaf7ff;
+    cursor: pointer;
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.32), 0 0 16px rgba(68, 232, 255, 0.14);
+    backdrop-filter: blur(10px);
+}
+
+#itch-fullscreen-btn:hover,
+#itch-fullscreen-btn:focus-visible {
+    border-color: rgba(125, 255, 188, 0.7);
+    color: #d8ffe5;
+    outline: none;
+}
+
+body.is-fullscreen #itch-fullscreen-btn {
+    opacity: 0.5;
+}
+
+@media (max-width: 700px), (max-height: 430px) {
+    #mobile-controls,
+    html.is-mobile #mobile-controls {
+        display: none;
+    }
+
+    #start-hint {
+        top: auto;
+        bottom: 8px;
+        width: min(96vw, 590px);
+        max-height: calc(100vh - 16px);
+        padding: 8px 10px;
+        overflow: hidden;
+        font-size: 10px;
+        line-height: 1.3;
+        letter-spacing: 1px;
+    }
+
+    #difficulty-picker {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+        margin-bottom: 7px;
+    }
+
+    .difficulty-btn {
+        min-height: 44px;
+        padding: 5px 7px;
+    }
+
+    .difficulty-name {
+        font-size: 13px;
+    }
+
+    .difficulty-desc {
+        display: none;
+    }
+
+    #pilot-strip,
+    #pre-run-actions {
+        width: 100%;
+        margin-bottom: 7px;
+        padding: 7px 9px;
+    }
+
+    #pre-run-actions {
+        gap: 6px;
+    }
+
+    #account-open-btn,
+    #leaderboard-open-btn,
+    #quick-shop-btn {
+        height: 30px;
+        font-size: 11px;
+    }
+
+    #difficulty-shortcuts {
+        margin-bottom: 6px;
+        font-size: 10px;
+    }
+
+    #ui-layer {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        gap: 6px;
+    }
+
+    .stat-box {
+        min-width: 0;
+        min-height: 52px;
+        flex: 1 1 0;
+        padding: 7px 8px;
+        border-radius: 7px;
+    }
+
+    .stat-label {
+        margin-bottom: 3px;
+        font-size: 9px;
+        letter-spacing: 1px;
+    }
+
+    .stat-val {
+        font-size: 26px;
+    }
+
+    #hp-bar-bg {
+        width: 100%;
+        min-width: 78px;
+        max-width: 136px;
+    }
+
+    #status-rack {
+        display: none;
+    }
+
+    #itch-fullscreen-btn {
+        top: 8px;
+        right: 8px;
+        height: 30px;
+        padding: 0 9px;
+        font-size: 11px;
+    }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+    #start-hint {
+        bottom: 8px;
+        width: min(96vw, 590px);
+    }
+}
+
+@media (hover: none) and (pointer: coarse) and (min-height: 521px) {
+    #mobile-controls,
+    html.is-mobile #mobile-controls {
+        display: block;
+    }
+}

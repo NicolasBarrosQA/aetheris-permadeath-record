@@ -115,3 +115,40 @@ jobs:
 
       - name: High severity audit
         run: npm audit --audit-level=high
+
+  deploy-itch:
+    name: Deploy itch.io
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [static-contracts, unit-integration, e2e, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build itch HTML5 package
+        run: npm run build:itch
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.ITCH_API_KEY }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then
+            echo "::notice::ITCH_API_KEY secret is not set; skipping itch.io deploy."
+            exit 0
+          fi
+
+          curl -L --fail --retry 3 -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler
+          chmod +x butler/butler
+          butler/butler push dist/itch-html5 hzp-apolo/aetheris-permadeath-record:html5 --userversion "github-${GITHUB_SHA::7}"

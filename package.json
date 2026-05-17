@@ -2,6 +2,7 @@
   "name": "aetheris-permadeath-record",
   "private": true,
   "scripts": {
+    "build:itch": "node scripts/build-itch.mjs",
     "test": "npm run test:static && npm run test:unit && npm run test:integration && npm run test:e2e",
     "test:static": "node scripts/check-syntax.mjs && node --test scripts/tests/static/*.test.mjs",
     "test:unit": "node --test scripts/tests/unit/*.test.mjs",

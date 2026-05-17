@@ -1,9 +1,10 @@
 import state from '../core/state.js';
 import { DIFFICULTY_MODES } from '../config.js';
 import { storage } from '../core/storage.js';
+import { apiUrl, platform, shouldOmitCredentials } from '../platform.js';
 
-const API_URL = '/api/leaderboard';
-const SESSION_URL = '/api/leaderboard/session';
+const API_URL = apiUrl('/api/leaderboard');
+const SESSION_URL = apiUrl('/api/leaderboard/session');
 const ACCOUNT_URL = '/api/account';
 const PLAYER_NAME_KEY = 'aetheris_leaderboard_name_v1';
 const MODE_IDS = Object.keys(DIFFICULTY_MODES);
@@ -96,7 +97,7 @@ function setAccountMessage(text, tone = 'idle') {
 async function fetchJson(url, options = {}) {
     const response = await fetch(url, {
         ...options,
-        credentials: 'same-origin',
+        credentials: shouldOmitCredentials(url) ? 'omit' : 'same-origin',
         headers: {
             'Content-Type': 'application/json',
             ...(options.headers || {})
@@ -420,6 +421,14 @@ export async function submitLeaderboardScore() {
 }
 
 async function hydrateAccount() {
+    if (!platform.accountEnabled) {
+        leaderboardState.account = null;
+        leaderboardState.authReady = true;
+        setAccountMessage('Versao itch: ranking online ativo em modo convidado.', 'ready');
+        syncAccountUI();
+        return;
+    }
+
     try {
         const result = await fetchJson(ACCOUNT_URL);
         leaderboardState.account = result.account || null;
@@ -443,6 +452,11 @@ async function hydrateAccount() {
 
 async function submitAccountForm(event) {
     event.preventDefault();
+    if (!platform.accountEnabled) {
+        setAccountMessage('No itch, o ranking online usa modo convidado.', 'warn');
+        return;
+    }
+
     if (leaderboardState.account) return;
 
     const username = normalizeUsername(elements.accountUsername?.value);

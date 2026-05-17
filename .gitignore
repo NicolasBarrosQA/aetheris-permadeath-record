@@ -10,6 +10,7 @@ node_modules/
 *.log
 _*.png
 _*.html
+dist/
 test-results/
 playwright-report/
 
