@@ -7,7 +7,15 @@ import {
     listLeaderboard,
     submitLeaderboardScore
 } from './_shared/leaderboard-db.mjs';
-import { getAccountCookie, getClient, getHashSecret, jsonResponse, readJson } from './_shared/http.mjs';
+import {
+    emptyResponse,
+    getAccountCookie,
+    getClient,
+    getHashSecret,
+    LEADERBOARD_CORS_HEADERS,
+    jsonResponse,
+    readJson
+} from './_shared/http.mjs';
 
 export default async (req: Request, context: Context) => {
     const url = new URL(req.url);
@@ -15,6 +23,11 @@ export default async (req: Request, context: Context) => {
     const storage = createBlobStorage(store);
     const client = getClient(req, context);
     const secret = getHashSecret();
+    const corsHeaders = LEADERBOARD_CORS_HEADERS;
+
+    if (req.method === 'OPTIONS') {
+        return emptyResponse(204, corsHeaders);
+    }
 
     try {
         if (url.pathname === '/api/leaderboard/session' && req.method === 'POST') {
@@ -26,7 +39,7 @@ export default async (req: Request, context: Context) => {
                 secret
             });
 
-            return jsonResponse(result, result.ok ? 200 : 429);
+            return jsonResponse(result, result.ok ? 200 : 429, corsHeaders);
         }
 
         if (url.pathname === '/api/leaderboard' && req.method === 'GET') {
@@ -36,7 +49,7 @@ export default async (req: Request, context: Context) => {
                 limit: Number(url.searchParams.get('limit') || 10)
             });
 
-            return jsonResponse(result);
+            return jsonResponse(result, 200, corsHeaders);
         }
 
         if (url.pathname === '/api/leaderboard' && req.method === 'POST') {
@@ -54,17 +67,17 @@ export default async (req: Request, context: Context) => {
                 secret
             });
 
-            return jsonResponse(result, result.ok ? 200 : 400);
+            return jsonResponse(result, result.ok ? 200 : 400, corsHeaders);
         }
 
-        return jsonResponse({ ok: false, error: 'not_found' }, 404);
+        return jsonResponse({ ok: false, error: 'not_found' }, 404, corsHeaders);
     } catch (error) {
         console.error('leaderboard_error', error);
-        return jsonResponse({ ok: false, error: 'leaderboard_unavailable' }, 500);
+        return jsonResponse({ ok: false, error: 'leaderboard_unavailable' }, 500, corsHeaders);
     }
 };
 
 export const config: Config = {
     path: ['/api/leaderboard', '/api/leaderboard/session'],
-    method: ['GET', 'POST']
+    method: ['GET', 'POST', 'OPTIONS']
 };

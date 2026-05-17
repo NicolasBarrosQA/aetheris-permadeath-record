@@ -1,10 +1,26 @@
 export const ACCOUNT_COOKIE = 'aetheris_account';
+export const LEADERBOARD_CORS_HEADERS = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Max-Age': '86400'
+};
 
 export function jsonResponse(body, status = 200, extraHeaders = {}) {
     return new Response(JSON.stringify(body), {
         status,
         headers: {
             'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+            ...extraHeaders
+        }
+    });
+}
+
+export function emptyResponse(status = 204, extraHeaders = {}) {
+    return new Response(null, {
+        status,
+        headers: {
             'Cache-Control': 'no-store',
             ...extraHeaders
         }
