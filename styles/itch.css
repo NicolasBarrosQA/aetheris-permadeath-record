@@ -36,6 +36,12 @@ body {
     outline: none;
 }
 
+#language-toggle {
+    top: 10px;
+    right: 132px;
+    bottom: auto;
+}
+
 body.is-fullscreen #itch-fullscreen-btn {
     opacity: 0.5;
 }
@@ -141,6 +147,12 @@ body.is-fullscreen #itch-fullscreen-btn {
         height: 30px;
         padding: 0 9px;
         font-size: 11px;
+    }
+
+    #language-toggle {
+        top: 8px;
+        right: 118px;
+        bottom: auto;
     }
 }
 

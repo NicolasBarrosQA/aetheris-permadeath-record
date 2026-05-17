@@ -49,6 +49,20 @@ test('leaderboard opens only by command and stays centered before the run', asyn
     await expect(modal).toBeHidden();
 });
 
+test('shop close button is visible on desktop and closes the shop', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await page.goto('/public/index.html');
+
+    await page.locator('#guest-continue-btn').click();
+    await page.locator('#quick-shop-btn').click();
+
+    await expect(page.locator('#shop-modal')).toBeVisible();
+    await expect(page.locator('#shop-close-btn')).toBeVisible();
+
+    await page.locator('#shop-close-btn').click();
+    await expect(page.locator('#shop-modal')).toBeHidden();
+});
+
 test('signup creates a real account on the test server and enters the game', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto('/public/index.html');

@@ -83,7 +83,31 @@ button {
 }
 
 .mobile-shop-close {
-    display: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    margin: 10px auto 0;
+    padding: 0 18px;
+    border: 1px solid rgba(160, 214, 255, 0.34);
+    border-radius: 8px;
+    background: rgba(8, 18, 40, 0.86);
+    color: #eaf5ff;
+    cursor: pointer;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.mobile-shop-close:hover,
+.mobile-shop-close:focus-visible {
+    border-color: rgba(122, 226, 255, 0.58);
+    color: #ffffff;
+    outline: none;
+    transform: translateY(-1px);
 }
 
 #mobile-controls {
@@ -227,8 +251,8 @@ html.is-mobile body {
 
 #language-toggle {
     position: absolute;
-    top: 118px;
-    right: 16px;
+    right: 18px;
+    bottom: 18px;
     z-index: 45;
     min-width: 58px;
     height: 28px;
@@ -244,7 +268,7 @@ html.is-mobile body {
     letter-spacing: 1px;
     text-transform: uppercase;
     backdrop-filter: blur(8px);
-    opacity: 0.76;
+    opacity: 0.68;
     transition: opacity 0.16s ease, border-color 0.16s ease, color 0.16s ease;
 }
 
@@ -1258,8 +1282,8 @@ h1 {
     }
 
     #language-toggle {
-        top: 88px;
-        right: 10px;
+        right: 12px;
+        bottom: 12px;
     }
 
     .system-dialog {
@@ -1291,20 +1315,6 @@ h1 {
         width: min(96vw, 700px);
         height: min(84vh, 400px);
         padding: 16px;
-    }
-
-    .mobile-shop-close {
-        display: block;
-        margin: 10px auto 0;
-        padding: 7px 18px;
-        border-radius: 8px;
-        border: 1px solid rgba(160, 214, 255, 0.34);
-        background: rgba(8, 18, 40, 0.86);
-        color: #eaf5ff;
-        font-family: 'Rajdhani', sans-serif;
-        font-size: 13px;
-        font-weight: 700;
-        letter-spacing: 1px;
     }
 
     #status-rack {
@@ -1356,8 +1366,8 @@ h1 {
     }
 
     #language-toggle {
-        top: 82px;
         right: 10px;
+        bottom: 10px;
         min-width: 50px;
         height: 26px;
         padding: 0 8px;
@@ -1417,8 +1427,8 @@ h1 {
     }
 
     #language-toggle {
-        top: 10px;
         right: 10px;
+        bottom: 10px;
     }
 
     #difficulty-picker {
