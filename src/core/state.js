@@ -85,7 +85,10 @@ const state = {
         lastTs: 0,
         avgFrameMs: 16.67,
         quality: 1,
-        warmupFrames: 180
+        warmupFrames: 180,
+        // Teto máximo de qualidade detectado uma vez no boot via heurísticas
+        // de hardware (hardwareConcurrency, deviceMemory, mobile). 1 = sem teto.
+        qualityCeiling: 1
     },
 
     // Mapeamento de teclas; manipulado em main.js

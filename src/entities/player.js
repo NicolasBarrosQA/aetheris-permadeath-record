@@ -674,6 +674,7 @@ export default class Player {
      */
     draw() {
         const ctx = state.ctx;
+        const quality = state.performance?.quality || 1;
         this.skinPalette = this.getSkinPalette();
         const skinColors = this.getSkinColors();
 
@@ -698,7 +699,7 @@ export default class Player {
 
                 ctx.globalAlpha = g.alpha * Math.max(0.18, lifeRatio);
                 ctx.fillStyle = trailGrad;
-                ctx.shadowBlur = 24;
+                ctx.shadowBlur = quality >= 0.78 ? 24 : 0;
                 ctx.shadowColor = g.c;
                 ctx.beginPath();
                 ctx.moveTo(headX, headY - headHalfH);
@@ -726,7 +727,7 @@ export default class Player {
                 ghostGrad.addColorStop(1, g.c);
                 ctx.fillStyle = ghostGrad;
                 ctx.globalAlpha = g.alpha * 0.85;
-                ctx.shadowBlur = 12;
+                ctx.shadowBlur = quality >= 0.78 ? 12 : 0;
                 ctx.shadowColor = g.c;
                 ctx.fillRect(g.x, g.y, g.w, g.h);
                 ctx.shadowBlur = 0;
@@ -773,7 +774,7 @@ export default class Player {
             ctx.ellipse(this.w * 0.5, this.h + 4, this.w * 0.5, 6, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            ctx.shadowBlur = 28;
+            ctx.shadowBlur = quality >= 0.78 ? 28 : 0;
             ctx.shadowColor = skinColors.glow || '#0ff';
 
             // espelha o sprite quando estiver virado para a esquerda
@@ -801,7 +802,7 @@ export default class Player {
         grad.addColorStop(0, skinColors.c1);
         grad.addColorStop(1, skinColors.c2);
         ctx.fillStyle = grad;
-        ctx.shadowBlur = 26;
+        ctx.shadowBlur = quality >= 0.78 ? 26 : 0;
         ctx.shadowColor = skinColors.glow;
         ctx.fillRect(0, 0, this.w, this.h);
 

@@ -2,6 +2,37 @@ import state from '../core/state.js';
 import { BOOST_TYPES, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from '../config.js';
 import { getBoostSprite } from '../core/boostSprites.js';
 
+// Edge vignette gradient cache. Only the final stop's alpha varies with
+// motionEffect; quantize to 0.1 buckets so visual is identical but we hit
+// the cache 95%+ of frames.
+const edgeCache = new Map();
+const EDGE_CACHE_CAP = 32;
+
+function getEdgeGradient(ctx, viewW, viewH, motionEffect) {
+    const motionBucket = Math.floor(motionEffect * 10);
+    const key = `${viewW}|${viewH}|${motionBucket}`;
+    let grad = edgeCache.get(key);
+    if (grad) return grad;
+
+    grad = ctx.createRadialGradient(
+        viewW * 0.5,
+        viewH * 0.56,
+        Math.min(viewW, viewH) * 0.34,
+        viewW * 0.5,
+        viewH * 0.56,
+        Math.max(viewW, viewH) * 0.7
+    );
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, `rgba(6, 4, 18, ${0.35 + (motionBucket / 10) * 0.06})`);
+
+    edgeCache.set(key, grad);
+    if (edgeCache.size > EDGE_CACHE_CAP) {
+        const firstKey = edgeCache.keys().next().value;
+        edgeCache.delete(firstKey);
+    }
+    return grad;
+}
+
 function getViewMetrics() {
     const viewW = state.view?.worldWidth || VIRTUAL_WIDTH;
     const viewH = state.view?.worldHeight || VIRTUAL_HEIGHT;
@@ -30,7 +61,7 @@ export function drawBoostPickup(ctx, boost) {
     halo.addColorStop(0.55, `${boostDef.color}cc`);
     halo.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = halo;
-    ctx.shadowBlur = quality >= 0.68 ? 22 : 0;
+    ctx.shadowBlur = quality >= 0.88 ? 22 : 0;
     ctx.shadowColor = boostDef.color;
     ctx.beginPath();
     ctx.arc(0, 0, 16, 0, Math.PI * 2);
@@ -85,17 +116,7 @@ export function drawScreenPostFX() {
     }
 
     ctx.globalCompositeOperation = 'source-over';
-    const edge = ctx.createRadialGradient(
-        viewW * 0.5,
-        viewH * 0.56,
-        Math.min(viewW, viewH) * 0.34,
-        viewW * 0.5,
-        viewH * 0.56,
-        Math.max(viewW, viewH) * 0.7
-    );
-    edge.addColorStop(0, 'rgba(0,0,0,0)');
-    edge.addColorStop(1, `rgba(6, 4, 18, ${0.35 + motionEffect * 0.06})`);
-    ctx.fillStyle = edge;
+    ctx.fillStyle = getEdgeGradient(ctx, viewW, viewH, motionEffect);
     ctx.fillRect(0, 0, viewW, viewH);
 
     if (state.player && state.player.invul > 0) {

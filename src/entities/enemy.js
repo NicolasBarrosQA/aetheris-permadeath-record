@@ -139,6 +139,7 @@ export default class Enemy {
      */
     draw() {
         const ctx = state.ctx;
+        const quality = state.performance?.quality || 1;
         const dY = this.drawY || this.y;
         const baseColor = '#ff9a2e';
         const dangerColor = '#ff2f46';
@@ -156,7 +157,7 @@ export default class Enemy {
         grad.addColorStop(0.35, this.alert ? '#8f1028' : '#b05f0d');
         grad.addColorStop(1, '#1f0610');
         ctx.fillStyle = grad;
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = quality >= 0.85 ? 20 : 0;
         ctx.shadowColor = color;
         ctx.fillRect(this.x, dY, this.w, this.h);
         ctx.shadowBlur = 0;
@@ -191,7 +192,7 @@ export default class Enemy {
         eyeGrad.addColorStop(1, '#ffffff');
         ctx.fillStyle = eyeGrad;
         let eyeX = this.dir === 1 ? this.x + 20 : this.x + 10;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = quality >= 0.88 ? 8 : 0;
         ctx.shadowColor = this.alert ? '#ff5d7e' : '#ffad46';
         ctx.fillRect(eyeX, dY + 12, 7, 7);
         ctx.shadowBlur = 0;

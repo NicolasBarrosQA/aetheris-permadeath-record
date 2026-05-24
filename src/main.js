@@ -65,7 +65,13 @@ function resizeCanvas() {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const pixelArea = vw * vh;
-    const dprCap = pixelArea > 2200000 ? 1.2 : (pixelArea > 1400000 ? 1.35 : 1.6);
+    // Mobile/coarse pointer or narrow viewport: cap DPR at 1.0. Pixel-art
+    // style hides the downscale and fillrate cost drops by ~2-4x on high-DPR
+    // phones (Snapdragon Adreno, Apple A-series GPU integrated).
+    const isMobileLike = vw < 900 || window.matchMedia?.('(hover: none), (pointer: coarse)').matches;
+    const dprCap = isMobileLike
+        ? 1.0
+        : (pixelArea > 2200000 ? 1.2 : (pixelArea > 1400000 ? 1.35 : 1.6));
     const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
     const baseAspect = VIRTUAL_WIDTH / VIRTUAL_HEIGHT;
     const aspect = vw / Math.max(1, vh);
@@ -226,10 +232,27 @@ function setupMobileControls() {
     });
 }
 
+function detectPerformanceCeiling() {
+    // Heurística rude: hardwareConcurrency <= 4 OU deviceMemory <= 4 OU
+    // pointer coarse (mobile/touch) sinaliza máquina fraca. Limita quality
+    // máxima permanentemente, evitando o sistema reativo subir o detalhe
+    // pra um patamar que vai engasgar segundos depois.
+    const cores = navigator.hardwareConcurrency || 8;
+    const memory = navigator.deviceMemory; // só Chromium expõe; undefined = ignora
+    const isCoarse = window.matchMedia?.('(hover: none), (pointer: coarse)').matches;
+    const isWeakCores = cores <= 4;
+    const isWeakMemory = typeof memory === 'number' && memory <= 4;
+
+    if (isCoarse || isWeakCores || isWeakMemory) {
+        state.performance.qualityCeiling = 0.78;
+    }
+}
+
 function bootstrap() {
     applyStaticTranslations();
     setupLanguageToggle();
     onLanguageChange(() => applyStaticTranslations());
+    detectPerformanceCeiling();
 
     state.container = getRequiredElement('game-container');
     state.canvas = getRequiredElement('gameCanvas');

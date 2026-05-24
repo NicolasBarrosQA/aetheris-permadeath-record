@@ -115,8 +115,8 @@ export function initGame() {
     state.virusWall.damageTick = 0;
     state.performance.lastTs = 0;
     state.performance.avgFrameMs = 16.67;
-    state.performance.quality = 0.66;
-    state.performance.warmupFrames = 300;
+    state.performance.quality = 0.45;
+    state.performance.warmupFrames = 360;
     resetLeaderboardRun();
     storage.initialHighScore = storage.highScore;
     // oculta overlay e loja, mostra dica inicial
@@ -429,7 +429,7 @@ function drawGame({ sx, sy }) {
 
         ctx.strokeStyle = `hsla(${hue}, 100%, 62%, 0.94)`;
         ctx.lineWidth = 1.9;
-        ctx.shadowBlur = quality >= 0.72 ? 18 : 0;
+        ctx.shadowBlur = quality >= 0.88 ? 18 : 0;
         ctx.shadowColor = `hsla(${hue}, 100%, 62%, 0.72)`;
         ctx.strokeRect(p.x, p.y, p.w, p.h);
         ctx.shadowBlur = 0;
@@ -470,7 +470,7 @@ function drawGame({ sx, sy }) {
             sg.addColorStop(0, '#ff7b9f');
             sg.addColorStop(1, '#ff1b3d');
             ctx.fillStyle = sg;
-            ctx.shadowBlur = 18;
+            ctx.shadowBlur = quality >= 0.88 ? 18 : 0;
             ctx.shadowColor = '#ff4a6a';
             let start = p.spikeInfo.x;
             let end = p.spikeInfo.x + p.spikeInfo.w;
@@ -497,7 +497,7 @@ function drawGame({ sx, sy }) {
         grad.addColorStop(0.5, '#ffd95f');
         grad.addColorStop(1, '#f0a500');
         ctx.fillStyle = grad;
-        ctx.shadowBlur = quality >= 0.72 ? 20 : 0;
+        ctx.shadowBlur = quality >= 0.88 ? 20 : 0;
         ctx.shadowColor = '#ffb347';
         ctx.beginPath();
         ctx.arc(0, 0, 9.2, 0, Math.PI * 2);
@@ -535,7 +535,7 @@ function drawGame({ sx, sy }) {
             ctx.globalAlpha = effect.alpha;
             ctx.strokeStyle = effect.color;
             ctx.lineWidth = 4.6;
-            ctx.shadowBlur = 20;
+            ctx.shadowBlur = quality >= 0.78 ? 20 : 0;
             ctx.shadowColor = effect.color;
             ctx.beginPath();
             ctx.arc(effect.x, effect.y, effect.radius, angle - arc * 0.5, angle + arc * 0.5);
@@ -562,7 +562,7 @@ function drawGame({ sx, sy }) {
             ctx.globalAlpha = effect.alpha;
             ctx.strokeStyle = effect.color;
             ctx.lineWidth = 3.2;
-            ctx.shadowBlur = 18;
+            ctx.shadowBlur = quality >= 0.78 ? 18 : 0;
             ctx.shadowColor = effect.color;
             ctx.beginPath();
             ctx.arc(effect.x, effect.y, effect.radius, 0, Math.PI * 2);
@@ -592,7 +592,7 @@ function drawGame({ sx, sy }) {
             g.addColorStop(1, 'rgba(255,255,255,0)');
             ctx.globalAlpha = p.alpha || 1;
             ctx.fillStyle = g;
-            ctx.shadowBlur = 16;
+            ctx.shadowBlur = quality >= 0.88 ? 16 : 0;
             ctx.shadowColor = p.color;
             ctx.fillRect(startX, p.y, width, p.h);
             ctx.globalAlpha = (p.alpha || 1) * 0.5;
@@ -605,7 +605,7 @@ function drawGame({ sx, sy }) {
             ctx.strokeStyle = p.color;
             ctx.lineWidth = p.lineWidth || 3;
             ctx.globalAlpha = p.life / 20;
-            ctx.shadowBlur = 16;
+            ctx.shadowBlur = quality >= 0.88 ? 16 : 0;
             ctx.shadowColor = p.color;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
@@ -657,9 +657,16 @@ export function loopGame(ts = performance.now()) {
     perf.avgFrameMs = (perf.avgFrameMs * 0.9) + (frameMs * 0.1);
 
     // Ajuste dinâmico para suavizar início e manter estabilidade.
+    // Curva começa baixa (0.45) e sobe em degraus, dando ao avgFrameMs
+    // tempo de estabilizar antes de subir qualidade — evita o engasgo
+    // típico dos primeiros segundos em PC fraco.
     if (perf.warmupFrames > 0) {
         perf.warmupFrames--;
-        const warmupTarget = perf.warmupFrames > 180 ? 0.56 : (perf.warmupFrames > 80 ? 0.66 : 0.78);
+        const warmupTarget = perf.warmupFrames > 240
+            ? 0.45
+            : (perf.warmupFrames > 150
+                ? 0.58
+                : (perf.warmupFrames > 60 ? 0.7 : 0.85));
         perf.quality += (warmupTarget - perf.quality) * 0.08;
     } else {
         let targetQuality = 1;
@@ -667,6 +674,10 @@ export function loopGame(ts = performance.now()) {
         else if (perf.avgFrameMs > 23) targetQuality = 0.56;
         else if (perf.avgFrameMs > 19) targetQuality = 0.68;
         else if (perf.avgFrameMs > 16.9) targetQuality = 0.82;
+        // Aplica teto de hardware detectado no boot (qualityCeiling) —
+        // máquinas fracas nunca pisam em quality alta mesmo se o
+        // frametime momentaneamente parecer ok.
+        targetQuality = Math.min(targetQuality, perf.qualityCeiling || 1);
         perf.quality += (targetQuality - perf.quality) * (targetQuality < perf.quality ? 0.12 : 0.04);
     }
     if (perf.quality < 0.45) perf.quality = 0.45;

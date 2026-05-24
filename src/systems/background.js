@@ -6,6 +6,55 @@
 import state from '../core/state.js';
 import { BUILDING_BASE, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from '../config.js';
 
+// Gradient caches — sky/haze depend only on viewport height + day/night flag.
+// CanvasGradient objects are reusable between frames as long as the same ctx
+// is bound. Cap entries to bound memory if viewport resizes a lot.
+const skyCache = new Map();
+const hazeCache = new Map();
+const GRADIENT_CACHE_CAP = 16;
+
+function cacheTrim(map) {
+    if (map.size <= GRADIENT_CACHE_CAP) return;
+    const firstKey = map.keys().next().value;
+    map.delete(firstKey);
+}
+
+function getSkyGradient(ctx, viewH, isSun) {
+    const key = `${viewH}|${isSun ? 1 : 0}`;
+    let grad = skyCache.get(key);
+    if (grad) return grad;
+
+    grad = ctx.createLinearGradient(0, 0, 0, viewH);
+    if (isSun) {
+        grad.addColorStop(0, '#13081f');
+        grad.addColorStop(0.36, '#42104e');
+        grad.addColorStop(0.72, '#9f2b59');
+        grad.addColorStop(1, '#f47d63');
+    } else {
+        grad.addColorStop(0, '#020617');
+        grad.addColorStop(0.36, '#0f2041');
+        grad.addColorStop(1, '#2a2f63');
+    }
+
+    skyCache.set(key, grad);
+    cacheTrim(skyCache);
+    return grad;
+}
+
+function getHazeGradient(ctx, horizonY, viewH, isSun) {
+    const key = `${horizonY}|${viewH}|${isSun ? 1 : 0}`;
+    let grad = hazeCache.get(key);
+    if (grad) return grad;
+
+    grad = ctx.createLinearGradient(0, horizonY - 40, 0, viewH);
+    grad.addColorStop(0, isSun ? 'rgba(255, 115, 150, 0.15)' : 'rgba(85, 125, 240, 0.12)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0.76)');
+
+    hazeCache.set(key, grad);
+    cacheTrim(hazeCache);
+    return grad;
+}
+
 function getViewMetrics() {
     const viewW = state.view?.worldWidth || VIRTUAL_WIDTH;
     const viewH = state.view?.worldHeight || VIRTUAL_HEIGHT;
@@ -108,6 +157,7 @@ function drawCelestialBody(ctx, isSun, phase, x, y) {
 }
 
 function drawSkyGrid(ctx, detailScale = 1, viewW, viewH, horizonY) {
+    const quality = state.performance?.quality || 1;
     const hue = (state.game.dist / 120) % 360;
     const gridColor = `hsla(${hue}, 90%, 58%, 0.24)`;
     const midColor = `hsla(${hue}, 85%, 52%, 0.12)`;
@@ -115,7 +165,7 @@ function drawSkyGrid(ctx, detailScale = 1, viewW, viewH, horizonY) {
 
     ctx.save();
     ctx.strokeStyle = gridColor;
-    ctx.shadowBlur = detailScale < 1 ? 9 : 16;
+    ctx.shadowBlur = quality >= 0.88 ? (detailScale < 1 ? 9 : 16) : 0;
     ctx.shadowColor = `hsla(${hue}, 100%, 60%, 0.28)`;
     ctx.lineWidth = 1.2;
     ctx.beginPath();
@@ -141,18 +191,7 @@ export function drawBackground() {
     const celestialArc = viewH * (328 / VIRTUAL_HEIGHT);
     const celestialY = celestialBaseY - (Math.sin(phase * Math.PI) * celestialArc);
 
-    const sky = ctx.createLinearGradient(0, 0, 0, viewH);
-    if (isSun) {
-        sky.addColorStop(0, '#13081f');
-        sky.addColorStop(0.36, '#42104e');
-        sky.addColorStop(0.72, '#9f2b59');
-        sky.addColorStop(1, '#f47d63');
-    } else {
-        sky.addColorStop(0, '#020617');
-        sky.addColorStop(0.36, '#0f2041');
-        sky.addColorStop(1, '#2a2f63');
-    }
-    ctx.fillStyle = sky;
+    ctx.fillStyle = getSkyGradient(ctx, viewH, isSun);
     ctx.fillRect(0, 0, viewW, viewH);
 
     drawAtmosphereBands(ctx, isSun, viewW, viewH);
@@ -182,10 +221,7 @@ export function drawBackground() {
     }
     ctx.globalAlpha = 1;
 
-    const haze = ctx.createLinearGradient(0, horizonY - 40, 0, viewH);
-    haze.addColorStop(0, isSun ? 'rgba(255, 115, 150, 0.15)' : 'rgba(85, 125, 240, 0.12)');
-    haze.addColorStop(1, 'rgba(0, 0, 0, 0.76)');
-    ctx.fillStyle = haze;
+    ctx.fillStyle = getHazeGradient(ctx, horizonY, viewH, isSun);
     ctx.fillRect(0, horizonY - 40, viewW, viewH - horizonY + 40);
 
     drawSkyGrid(ctx, state.game.started ? 1 : 0.6, viewW, viewH, horizonY);
@@ -237,7 +273,7 @@ function drawBuildingRoof(ctx, building, roofX, roofY, roofW, accent, glow, qual
         if (building.beacon) {
             const beaconPulse = 0.45 + (Math.sin((state.game.frames * 0.05) + building.windowPhase) * 0.5);
             ctx.fillStyle = 'rgba(255, 80, 110, 0.95)';
-            ctx.shadowBlur = 12;
+            ctx.shadowBlur = quality >= 0.88 ? 12 : 0;
             ctx.shadowColor = 'rgba(255, 80, 110, 0.75)';
             ctx.beginPath();
             ctx.arc(beaconX, beaconY, 1.8 + (beaconPulse * 1.2), 0, Math.PI * 2);
@@ -610,7 +646,7 @@ export function drawLayer(layer, camX) {
         // Contorno único cyan ao redor da silhueta inteira (corpo + topo).
         ctx.strokeStyle = accent;
         ctx.lineWidth = 1;
-        ctx.shadowBlur = 4;
+        ctx.shadowBlur = quality >= 0.88 ? 4 : 0;
         ctx.shadowColor = glow;
         ctx.stroke();
         ctx.shadowBlur = 0;
