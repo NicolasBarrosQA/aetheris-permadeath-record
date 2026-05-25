@@ -44,3 +44,14 @@ test('GitHub Actions separa checks para diagnostico de QA', () => {
     assert.match(workflow, /e2e:/);
     assert.match(workflow, /security:/);
 });
+
+test('GitHub Actions publica Netlify somente depois do itch', () => {
+    assert.match(workflow, /deploy-netlify:/);
+    assert.match(workflow, /needs:\s*\[static-contracts, unit-integration, e2e, security, deploy-itch\]/);
+    assert.match(workflow, /NETLIFY_SITE_ID:\s*7df12356-b0bd-465c-9875-4445ac9965f1/);
+    assert.match(workflow, /NETLIFY_AUTH_TOKEN/);
+    assert.match(workflow, /netlify-cli@26\.0\.2 deploy/);
+    assert.match(workflow, /--prod/);
+    assert.match(workflow, /--no-build/);
+    assert.match(workflow, /ITCH_API_KEY secret is not set; refusing/);
+});
