@@ -1,7 +1,17 @@
 /*
- * Funções utilitárias gerais. Por enquanto inclui apenas interseção de
- * retângulos, usada no ataque do jogador.
+ * Funções utilitárias gerais compartilhadas entre módulos.
  */
+
+import state from './state.js';
+import { DIFFICULTY_MODES } from '../config.js';
+
+/**
+ * Retorna o modo de dificuldade ativo, com fallback para o modo médio.
+ * @returns {object} Definição do modo em DIFFICULTY_MODES
+ */
+export function getDifficultyMode() {
+    return DIFFICULTY_MODES[state.game.modeId] || DIFFICULTY_MODES.medium;
+}
 
 /**
  * Verifica interseção de dois retângulos axis-aligned.

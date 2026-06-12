@@ -1,168 +1,152 @@
 # AETHERIS — Permadeath Record
 
-> Endless runner 2D em Vanilla JavaScript e HTML5 Canvas, desenvolvido sem engine, com física customizada, geração procedural, arquitetura modular e escalonamento dinâmico de dificuldade.
+> Cyberpunk endless runner built in pure Vanilla JavaScript and HTML5 Canvas — no engine, no framework, global leaderboard.
 
-**Demo:** [Jogar agora](https://aetheris-permadeath-record.netlify.app)  
-**Issues:** [Reportar bug](../../issues)
-
----
-
-![Gameplay do AETHERIS](assets/img/screenshots/gameplay.png)
-
-*Frame real de gameplay no modo difícil.*
+**▶ Play now:** [aetheris-permadeath-record.netlify.app](https://aetheris-permadeath-record.netlify.app)  
+**Bugs / feedback:** [open an issue](../../issues)
 
 ---
 
-## Visão geral
+![AETHERIS gameplay — neon platforms, cyberpunk city, corruption wall closing in](assets/img/screenshots/gameplay.png)
 
-AETHERIS é um endless runner 2D de plataforma com estética cyberpunk, construído inteiramente com JavaScript puro e Canvas HTML5. O projeto foi desenvolvido sem engine e sem framework, com foco em controle fino sobre loop de jogo, física, renderização, balanceamento e organização de código.
+---
 
-O jogo possui três modos de dificuldade, progressão contínua de velocidade, geração procedural de elementos do mapa e persistência local de progresso. No modo difícil, uma parede de corrupção digital avança pelo cenário e transforma a corrida em uma disputa constante contra pressão crescente.
+## What is AETHERIS?
+
+You run. The city glows. Behind you, a wall of digital corruption closes in — consuming every platform, every enemy, every pixel it touches.
+
+AETHERIS is a 2D platform endless runner with a cyberpunk aesthetic. You jump across procedurally generated platforms, collect coins, pick up ability boosts, strike enemies, and try to outrun a pressure curve that never lets you breathe. There is no checkpoint. Every run is a fresh start. Every record is earned.
+
+---
+
+## Features
+
+| | |
+|---|---|
+| **3 difficulty modes** | Easy (boost drops), Medium (standard), Hard (corruption wall chases you) |
+| **Procedural world** | Platforms, enemies, coins and boosts generated on the fly |
+| **Ability boosts** | Time Shift (slow-mo), Triple Jump, Air Dash, Repair |
+| **Skin shop** | 11 skins (including Goku, Naruto, Luffy) — unlocked with in-run coins |
+| **Global leaderboard** | Separate ranking per difficulty mode, verified scores, anti-cheat gate |
+| **Accounts + guest** | Optional login, scrypt-hashed passwords, HttpOnly session cookie |
+| **Adaptive quality** | Auto-scales visual detail to maintain 60 fps on weak hardware |
+| **PWA-ready** | Installable, works offline (assets cached), mobile touch controls |
+| **Bilingual** | English and Brazilian Portuguese, toggleable in-game |
+
+---
+
+## Controls
+
+| Input | Action |
+|---|---|
+| `A` / `D` or `←` / `→` | Move |
+| `W` / `↑` / `Space` | Jump (hold for double jump) |
+| `C` | Dash + strike |
+| `P` / `Esc` | Pause / resume |
+| `S` | Open skin shop |
+| `1` `2` `3` | Switch difficulty (before run) |
+| `L` | Open leaderboard (before run) |
+
+Touch controls available on mobile.
 
 ---
 
 ## Stack
 
-- Vanilla JavaScript (ES Modules)
-- HTML5 Canvas 2D
-- CSS
-- Web Audio API
-- localStorage
-- Netlify Functions
-- SQLite (`sql.js`) persistido em Netlify Blobs
-- GitHub Actions
-- Playwright / Node Test Runner
+- **Runtime:** Vanilla JavaScript (ES Modules) — zero runtime dependencies
+- **Rendering:** HTML5 Canvas 2D API
+- **Audio:** Web Audio API (SFX synthesized at runtime)
+- **Persistence:** `localStorage` for local progress
+- **Backend:** Netlify Functions (TypeScript) + SQLite via `sql.js` + Netlify Blobs
+- **CI/CD:** GitHub Actions → Netlify (gate: full test pyramid must pass)
+- **Tests:** Playwright (E2E) + Node Test Runner (static, unit, integration)
 
 ---
 
-## Controles
+## Architecture
 
-- `A` / `D` ou `←` / `→`: mover
-- `W` / `↑` / `Espaço`: pular
-- `C`: dash / ataque
-- `P` ou `Esc`: pause / continuar
-- `S`: abrir loja de skins
-- `1`, `2`, `3`: trocar dificuldade
+```
+src/
+├── config.js          — all balance constants, physics, skins, boost types
+├── main.js            — DOM wiring, input, resize, bootstrap
+├── i18n.js            — translations (en / pt-BR)
+├── core/
+│   ├── engine.js      — game loop, update, draw, pause, game over
+│   ├── state.js       — single shared state object
+│   ├── audio.js       — Web Audio API SFX + BGM
+│   ├── storage.js     — localStorage persistence
+│   ├── utils.js       — shared helpers (rectIntersect, getDifficultyMode)
+│   └── validation.js  — config contract checks at boot
+├── entities/
+│   ├── player.js      — movement, physics, dash, collision, skin render
+│   └── enemy.js       — enemy AI, patrol, attack, death
+└── systems/
+    ├── worldgen.js    — procedural platform/coin/enemy/boost generation
+    ├── background.js  — parallax city layers, day/night, rain, stars
+    ├── ui.js          — HUD updates, skin shop
+    ├── particles.js   — spark/trail/shockwave emitters
+    ├── virus.js       — corruption wall logic and render
+    ├── vfx.js         — boost pickups, screen post-FX
+    └── leaderboard.js — client-side leaderboard UI and session management
+
+netlify/functions/
+├── leaderboard.mts    — score submission, anti-cheat, ranking queries
+├── account.mts        — auth (login, signup, logout, session)
+└── _shared/           — shared DB helpers, rate limiting, validation
+```
 
 ---
 
-## Principais funcionalidades
-
-- Geração procedural de plataformas, obstáculos, inimigos e moedas
-- Três modos de dificuldade com comportamentos distintos
-- Sistema de boosts coletáveis
-- Loja de skins com desbloqueio por moedas
-- Física de plataforma com coyote time e jump buffer
-- Ciclo dinâmico de dia e noite
-- Background com parallax em múltiplas camadas
-- Skyline cyberpunk com silhuetas variadas, antenas de transmissão, letreiros verticais e outdoors easter egg em homenagem ao gênero (Blade Runner / Cloudpunk)
-- Janelas com paleta cyan/magenta/âmbar e iluminação determinística (sem flicker em massa)
-- Qualidade gráfica adaptativa com ajuste automático por desempenho
-- SFX gerados em tempo real com Web Audio API
-- Persistência local de recorde, moedas, skins e preferências
-- Sistema visual de corrupção digital no modo difícil, com renderização adaptativa (culling vertical + escala de qualidade dinâmica) para manter fluidez
-- Pause inteligente com tela dedicada e suspensão completa da simulação
-- Tela de login inicial quando não há sessão ativa, com opção de conta ou convidado
-- Placar global por dificuldade aberto por botão/atalho antes da corrida e oculto durante gameplay
-- Contas opcionais com modo convidado preservado, sessão segura em cookie HttpOnly e senha com hash `scrypt`
-- Pirâmide de testes com checagem estática, unitários, integração e E2E
-
----
-
-## Destaques técnicos
-
-### 1. Arquitetura modular
-
-O projeto começou como um protótipo monolítico e foi evoluído para uma estrutura modular separada por responsabilidade:
-
-- `core/`: engine, estado global, storage, validação, áudio e utilitários
-- `entities/`: jogador e inimigos
-- `systems/`: geração de mundo, UI, background, partículas, vírus e VFX
-- `netlify/functions/`: API serverless do leaderboard, banco SQLite e válvulas anti-cheat
-
-Esse refactor reduziu acoplamento, melhorou manutenção e facilitou expansão de features.
-
-### Login, placar e anti-cheat
-
-O placar global roda em Netlify Functions e persiste um arquivo SQLite em Netlify Blobs, evitando dependência de serviços externos como Supabase. Cada corrida abre uma sessão curta no servidor e a submissão da pontuação valida modo, duração, velocidade plausível, token de uso único, duplicidade de corrida e rate limit por origem antes de entrar no ranking verificado.
-
-Ao abrir o jogo sem sessão, o usuário recebe uma tela central de login/criação de conta com alternativa explícita para jogar como convidado. Quem cria conta passa a ter um perfil salvo no banco; a sessão usa cookie HttpOnly/Secure/SameSite e as senhas são armazenadas com hash `scrypt` e salt individual. Quando a Netlify não fornece um segredo via ambiente, a API gera um segredo interno persistido no SQLite/Blobs, evitando depender de configuração manual para proteger hashes operacionais.
-
-### Qualidade e CI
-
-O projeto possui uma pirâmide de testes executada localmente e no GitHub Actions:
+## Running locally
 
 ```bash
-npm run test:static       # sintaxe + contratos de UI/CI
-npm run test:unit         # regras de auth/normalizacao/sessao
-npm run test:integration  # banco + ranking + conta/convidado
-npm run test:e2e          # login, convidado, placar central e bloqueio em gameplay
-npm test                  # piramide completa
-npm run ci:verify         # gate completo: piramide + smoke + audit
+npm install
+npx netlify dev   # starts game + Netlify Functions on :8888
 ```
 
-O workflow `.github/workflows/qa.yml` separa contratos estáticos, unitários/integração, E2E e audit para facilitar diagnóstico de QA. A Netlify também executa `npm run ci:netlify` antes de publicar, então a produção não recebe build novo se o gate falhar.
+Or serve the frontend only (no leaderboard):
 
-### 2. Física responsiva
-
-A movimentação foi ajustada para aumentar precisão e sensação de controle:
-
-- **Coyote time**: permite pular por alguns frames após sair da borda
-- **Jump buffer**: registra o comando de pulo pouco antes da colisão com o chão
-
-Esses dois mecanismos reduzem frustração em inputs limítrofes e tornam o gameplay mais consistente.
-
-### 3. Escalonamento de dificuldade no modo difícil
-
-A versão inicial do modo difícil usava crescimento linear de pressão. O resultado era um problema de balanceamento: após certa distância, a perseguição se tornava injusta cedo demais.
-
-A solução foi substituir esse crescimento por uma curva com saturação progressiva, mantendo o modo ameaçador sem quebrar cedo a curva de aprendizagem. Isso transformou o sistema em uma pressão crescente de verdade, em vez de uma inevitabilidade arbitrária.
-
-### 4. Renderização e efeitos em Canvas
-
-O efeito visual de corrupção digital utiliza composição de camadas no Canvas para gerar sensação de desintegração do cenário em tempo real. O sistema combina partículas, resíduos pixelados, brilho, apagamento parcial e pulsação de cor para construir a identidade visual do modo difícil.
-
-### 5. Qualidade gráfica adaptativa
-
-O jogo monitora tempo médio de frame e ajusta automaticamente o nível de detalhe visual. Isso reduz custo de renderização em hardware mais fraco sem exigir configuração manual do usuário.
-
-### 6. Áudio procedural
-
-Os efeitos sonoros principais são sintetizados em tempo real via Web Audio API. Isso reduz dependência de arquivos externos para SFX e mantém o projeto mais controlado no nível de implementação.
+```bash
+node scripts/static-server.mjs   # http://localhost:4173
+```
 
 ---
 
-## Estrutura do projeto
+## Tests
 
-```text
-GG/
-├── public/
-│   └── index.html
-├── src/
-│   ├── config.js
-│   ├── main.js
-│   ├── core/
-│   │   ├── engine.js
-│   │   ├── state.js
-│   │   ├── storage.js
-│   │   ├── audio.js
-│   │   ├── sprites.js
-│   │   ├── boostSprites.js
-│   │   ├── utils.js
-│   │   └── validation.js
-│   ├── entities/
-│   │   ├── player.js
-│   │   └── enemy.js
-│   └── systems/
-│       ├── worldgen.js
-│       ├── background.js
-│       ├── ui.js
-│       ├── particles.js
-│       ├── virus.js
-│       └── vfx.js
-├── assets/
-│   ├── audio/
-│   └── img/
-└── styles/
-    └── main.css
+```bash
+npm run test:static       # syntax + DOM/CI/CSS contracts
+npm run test:unit         # auth rules, score normalisation, session logic
+npm run test:integration  # DB + ranking + account/guest flows
+npm run test:e2e          # login, guest, leaderboard, in-game blocks (Playwright)
+npm test                  # full pyramid
+npm run ci:verify         # pyramid + smoke + audit (same gate as CI)
 ```
+
+The GitHub Actions workflow runs the full pyramid on every push and on PRs targeting `main`. Netlify will not deploy a build that fails the gate.
+
+---
+
+## Technical highlights
+
+### Corruption wall (Hard mode)
+The virus wall moves at a speed derived from an asymptotic curve: fast early, decelerating as difficulty grows. It consumes enemies it catches, deals proximity damage to the player, and produces particle debris on contact. All tuning parameters live in `BALANCE.virus` in `config.js`.
+
+### Adaptive quality
+The engine samples `avgFrameMs` every frame and targets a quality level between `0.45` and `1.0`. Visual subsystems (shadow blur, rain density, debris count, parallax detail) scale proportionally. A warmup phase holds quality low for the first few seconds to avoid a GPU spike on scene load. On mobile and weak CPUs, a boot heuristic caps the ceiling at `0.78`.
+
+### Physics feel
+- **Coyote time:** jump input accepted for a few frames after leaving a ledge edge
+- **Jump buffer:** jump registered slightly before landing, so early inputs still connect
+- **Fixed-timestep accumulator:** simulation runs at a fixed step regardless of frame rate — physics don't speed up on 144 Hz displays
+
+### Anti-cheat
+Each run opens a short-lived server session. On submit, the backend validates: mode, run duration, plausible speed, single-use token, duplicate run ID, and per-origin rate limit. Scores that fail any check are rejected before reaching the verified ranking.
+
+---
+
+## Credits
+
+Music: *Fuga Neon* — used with permission  
+Skins inspired by: Naruto, One Piece, Dragon Ball  
+City aesthetic inspired by: Blade Runner, Cloudpunk

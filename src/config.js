@@ -88,7 +88,19 @@ export const BALANCE = {
         // Teto assintotico da velocidade do virus.
         maxSpeed: 24.2,
         // Quanto maior, mais cedo a curva se aproxima do teto.
-        difficultyFalloff: 0.6
+        difficultyFalloff: 0.6,
+        // Distancia atras da camera em que a parede fica "estacionada"
+        // quando o modo nao usa pressao de virus.
+        idleOffsetBehindCamera: 420,
+        // Alcance da nevoa a frente da parede: inimigos sao desintegrados
+        // e o jogador sofre dano por tick dentro dessa faixa.
+        fogReach: 120,
+        // Profundidade alem da frente da parede em que o jogador morre
+        // instantaneamente (engolido pela corrupcao).
+        killDepth: 18,
+        // Dano por tick da nevoa e intervalo entre ticks (em frames).
+        fogDamage: 18,
+        fogDamageIntervalFrames: 14
     }
 };
 

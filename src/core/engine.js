@@ -9,6 +9,7 @@
 import state from './state.js';
 import { BALANCE, DAY_NIGHT_CYCLE_SECONDS, DIFFICULTY_MODES, VIEWPORT, VIRTUAL_HEIGHT, VIRTUAL_WIDTH } from '../config.js';
 import { storage, save } from './storage.js';
+import { getDifficultyMode } from './utils.js';
 import { tryStartAudio, stopAudio, SFX } from './audio.js';
 import Player from '../entities/player.js';
 import * as worldgen from '../systems/worldgen.js';
@@ -29,10 +30,6 @@ function getViewMetrics() {
         extraW: Math.max(0, viewW - VIRTUAL_WIDTH),
         extraH: Math.max(0, viewH - VIRTUAL_HEIGHT)
     };
-}
-
-function getDifficultyMode() {
-    return DIFFICULTY_MODES[state.game.modeId] || DIFFICULTY_MODES.medium;
 }
 
 function updateActiveBoost() {
@@ -98,7 +95,6 @@ export function initGame() {
     state.game.isGameOver = false;
     state.game.time = 0;
     state.game.timeScale = 1;
-    state.game.debugTimeScaleOverride = null;
     state.game.simAccumulator = 0;
     state.game.frames = 0;
     state.game.runFrames = 0;
@@ -290,13 +286,14 @@ function updateGame() {
         state.ghosts.splice(0, state.ghosts.length - 70);
     }
     // Move poeira; repondo quando sai da tela
-    state.dustParticles.forEach((d, idx) => {
+    for (let i = state.dustParticles.length - 1; i >= 0; i--) {
+        const d = state.dustParticles[i];
         d.x += d.vx;
         if (d.x < -10) {
-            state.dustParticles.splice(idx, 1);
+            state.dustParticles.splice(i, 1);
             worldgen.spawnDust(false);
         }
-    });
+    }
     // Atualiza chuva: alternância ativa/inativa e movimentação
     if (!state.game.started) {
         if (state.rainDrops.length) state.rainDrops.length = 0;
@@ -689,12 +686,7 @@ export function loopGame(ts = performance.now()) {
     if (state.game.started && state.game.running && !state.game.isGameOver && !state.game.shopOpen && !state.game.paused) {
         state.game.runFrames++;
     }
-    // TEMP MOD (screenshot): respeita override de camera lenta quando ativo.
-    const screenshotSlowMo = state.game.debugTimeScaleOverride;
-    const hasScreenshotSlowMo = Number.isFinite(screenshotSlowMo);
-    const timeScaleSource = hasScreenshotSlowMo ? screenshotSlowMo : (state.game.timeScale || 1);
-    const minTimeScale = hasScreenshotSlowMo ? 0.05 : 0.35;
-    const timeScale = Math.max(minTimeScale, Math.min(timeScaleSource, 1));
+    const timeScale = Math.max(0.35, Math.min(state.game.timeScale || 1, 1));
     let shake = { sx: 0, sy: 0 };
     if (!state.game.paused) {
         state.game.simAccumulator += timeScale;

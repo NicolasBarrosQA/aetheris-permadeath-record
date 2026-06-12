@@ -14,8 +14,8 @@ import { spawnParticles, spawnShockwave, spawnText } from '../systems/particles.
 import { rectIntersect } from '../core/utils.js';
 import { getSkinSprite } from '../core/sprites.js';
 
-const STRONG_YELLOW_TRAIL_SKIN_ID = 9;
-const RAINBOW_PLATFORM_SKIN_ID = 5;
+const STRONG_YELLOW_TRAIL_SKIN_ID = SKINS_DB.find(s => s.name === 'Shadow Sage')?.id ?? 9;
+const RAINBOW_PLATFORM_SKIN_ID = SKINS_DB.find(s => s.name === 'Rainbow')?.id ?? 5;
 
 export default class Player {
     constructor() {

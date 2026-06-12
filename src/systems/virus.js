@@ -1,9 +1,6 @@
 import state from '../core/state.js';
-import { BALANCE, DIFFICULTY_MODES } from '../config.js';
-
-function getDifficultyMode() {
-    return DIFFICULTY_MODES[state.game.modeId] || DIFFICULTY_MODES.medium;
-}
+import { BALANCE } from '../config.js';
+import { getDifficultyMode } from '../core/utils.js';
 
 function getVirusPressureSpeed(difficulty) {
     const virusBalance = BALANCE.virus;
@@ -15,10 +12,11 @@ function getVirusPressureSpeed(difficulty) {
 export function updateVirus(viewH) {
     const virus = state.virusWall;
     const mode = getDifficultyMode();
+    const virusCfg = BALANCE.virus;
 
     if (!state.game.started || !mode.virusPressure) {
         virus.active = false;
-        virus.x = state.camera.x - 420;
+        virus.x = state.camera.x - virusCfg.idleOffsetBehindCamera;
         virus.damageTick = 0;
         return;
     }
@@ -26,37 +24,33 @@ export function updateVirus(viewH) {
     const player = state.player;
     virus.active = true;
     virus.pulse += 0.12;
-    // Crescimento com desaceleracao progressiva (curva assintotica).
     const pressureSpeed = getVirusPressureSpeed(state.game.difficulty);
     virus.x += pressureSpeed;
 
     if (virus.damageTick > 0) virus.damageTick--;
 
-    // O vírus desintegra os inimigos que forem pegos pela névoa
     for (let i = state.enemies.length - 1; i >= 0; i--) {
-        let enemy = state.enemies[i];
-        // Se o inimigo ainda está vivo e a névoa vermelha o tocou
-        if (enemy.hp > 0 && enemy.x + enemy.w < virus.x + 120) {
-            // Causa um dano letal garantido (sem conceder moedas ao player)
+        const enemy = state.enemies[i];
+        if (enemy.hp > 0 && enemy.x + enemy.w < virus.x + virusCfg.fogReach) {
             enemy.takeDamage(enemy.maxHp * 10, false);
         }
     }
 
-    if (player.x + player.w < virus.x + 18) {
+    if (player.x + player.w < virus.x + virusCfg.killDepth) {
         player.takeDamage(100);
         return;
     }
 
-    if (player.x < virus.x + 120) {
+    if (player.x < virus.x + virusCfg.fogReach) {
         if (virus.damageTick <= 0) {
-            player.takeDamage(18);
-            virus.damageTick = 14;
+            player.takeDamage(virusCfg.fogDamage);
+            virus.damageTick = virusCfg.fogDamageIntervalFrames;
         }
         player.vx = Math.max(player.vx, 10 + (state.game.difficulty * 0.55));
         state.camera.shake = Math.max(state.camera.shake, 6);
         if (state.game.frames % 5 === 0) {
             state.particles.push({
-                x: virus.x + 18 + Math.random() * 18,
+                x: virus.x + virusCfg.killDepth + Math.random() * 18,
                 y: state.camera.y + Math.random() * (viewH + 120),
                 vx: 1.5 + Math.random() * 2.5,
                 vy: (Math.random() - 0.5) * 1.3,

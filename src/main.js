@@ -32,7 +32,6 @@ const ACTION_KEYS = new Set([
     'c',
     'd',
     'f',
-    'k',
     'l',
     'p',
     'r',
@@ -40,6 +39,10 @@ const ACTION_KEYS = new Set([
     't',
     'w'
 ]);
+
+// Ferramentas de desenvolvimento (ex.: cheat de voo) só ficam ativas com
+// ?debug na URL, mantendo a build publicada limpa para o leaderboard.
+const DEBUG_TOOLS_ENABLED = new URLSearchParams(window.location.search).has('debug');
 
 const MOBILE_QUERY = '(hover: none), (pointer: coarse), (max-width: 820px), (max-height: 520px)';
 const mobileInputPointers = new Map();
@@ -378,7 +381,7 @@ function setupInput() {
             event.preventDefault();
         }
 
-        if (state.keys.r && state.keys.f && state.keys.t && !state.keys.cheatlock) {
+        if (DEBUG_TOOLS_ENABLED && state.keys.r && state.keys.f && state.keys.t && !state.keys.cheatlock) {
             state.cheatFlight = !state.cheatFlight;
             state.keys.cheatlock = true;
 
@@ -395,21 +398,6 @@ function setupInput() {
         }
 
         if (!wasPressed) {
-            // TEMP MOD (screenshot): toggle de camera lenta para capturar frame.
-            // Tecla: K. Remover este bloco quando nao for mais necessario.
-            if (key === 'k') {
-                const currentlySlow = Number.isFinite(state.game.debugTimeScaleOverride);
-                state.game.debugTimeScaleOverride = currentlySlow ? null : 0.18;
-                if (state.player) {
-                    spawnText(
-                        currentlySlow ? t('debug.slowCameraOff') : t('debug.slowCameraOn'),
-                        state.player.x,
-                        state.player.y - 48,
-                        currentlySlow ? '#ff7a8a' : '#6bd7ff'
-                    );
-                }
-            }
-
             if (event.code === 'Space' || key === 'w' || key === 'arrowup') {
                 state.keys.spacepress = true;
             }
