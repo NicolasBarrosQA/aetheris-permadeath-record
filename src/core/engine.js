@@ -32,6 +32,362 @@ function getViewMetrics() {
     };
 }
 
+// ---------------------------------------------------------------------------
+// Helpers de atualização — cada um trata uma única responsabilidade e é
+// chamado por updateGame(). Mantém a função principal legível.
+// ---------------------------------------------------------------------------
+
+function updateDifficultyAndTime() {
+    state.game.difficulty = BALANCE.difficulty.base +
+        Math.floor(state.game.dist / BALANCE.difficulty.distInterval) * BALANCE.difficulty.increment;
+    const runSeconds = state.game.runFrames / 60;
+    state.game.time = (runSeconds % DAY_NIGHT_CYCLE_SECONDS) / DAY_NIGHT_CYCLE_SECONDS;
+}
+
+function updateCamera(cameraOffsetX, cameraOffsetY, extraH) {
+    if (state.game.started) {
+        state.camera.x += (state.player.x - (300 + cameraOffsetX) - state.camera.x) * 0.08;
+    } else {
+        state.camera.x += (state.player.x - (300 + cameraOffsetX) - state.camera.x) * 0.02;
+    }
+    const targetCamY = state.player.y - (320 + cameraOffsetY);
+    state.camera.y += (targetCamY - state.camera.y) * 0.06;
+    state.camera.y = Math.max(-120 - (extraH * 0.35), Math.min(150 + (extraH * 0.55), state.camera.y));
+}
+
+function updateCameraShake() {
+    if (state.camera.shake <= 0) return { sx: 0, sy: 0 };
+    const sx = (Math.random() - 0.5) * state.camera.shake;
+    const sy = (Math.random() - 0.5) * state.camera.shake;
+    state.camera.shake *= 0.9;
+    if (state.camera.shake < 1) state.camera.shake = 0;
+    return { sx, sy };
+}
+
+function updateParticles() {
+    for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        if (p.trail) {
+            p.x += (p.dir || 1) * 1.2;
+            p.life--;
+            p.alpha *= 0.88;
+            if (p.life <= 0 || p.alpha <= 0.02) state.particles.splice(i, 1);
+            continue;
+        }
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.drag) { p.vx *= p.drag; p.vy *= p.drag; }
+        p.life--;
+        p.alpha -= 0.03;
+        if (p.isWave) {
+            p.radius += 5;
+            p.life -= 2;
+        } else if (p.size) {
+            p.size *= 0.986;
+        }
+        if (p.life <= 0) state.particles.splice(i, 1);
+    }
+}
+
+function updateTexts() {
+    for (let i = state.texts.length - 1; i >= 0; i--) {
+        const txt = state.texts[i];
+        txt.y -= 1;
+        txt.life--;
+        if (txt.life <= 0) state.texts.splice(i, 1);
+    }
+}
+
+function updateAttackEffects() {
+    for (let i = state.attackEffects.length - 1; i >= 0; i--) {
+        const effect = state.attackEffects[i];
+        effect.life--;
+        effect.alpha *= effect.fade || 0.78;
+        effect.radius += effect.growth || 2.5;
+        if (effect.spin) effect.angle += effect.spin;
+        if (effect.life <= 0 || effect.alpha <= 0.03) state.attackEffects.splice(i, 1);
+    }
+}
+
+function updateRain(viewH, quality) {
+    if (!state.game.started) {
+        state.rainDrops.length = 0;
+        state.rainSplashes.length = 0;
+        state.rainState.active = false;
+        if (state.rainState.timer <= 0) worldgen.resetRainTimer();
+        return;
+    }
+    if (state.rainState.timer > 0) state.rainState.timer--;
+    if (state.rainState.timer <= 0) {
+        state.rainState.active = !state.rainState.active;
+        worldgen.resetRainTimer();
+    }
+    const rainCount = state.rainState.active ? Math.floor(36 + quality * 56) : 0;
+    if (state.rainState.active) {
+        const needed = rainCount - state.rainDrops.length;
+        const spawnNow = Math.min(Math.max(0, needed), Math.max(3, Math.floor(6 + quality * 5)));
+        for (let i = 0; i < spawnNow; i++) worldgen.spawnRainDrop(false);
+    }
+    for (let i = state.rainDrops.length - 1; i >= 0; i--) {
+        const r = state.rainDrops[i];
+        r.x -= 0.8;
+        r.y += r.speed;
+        if (r.y > viewH) {
+            if (state.rainState.active) worldgen.spawnRainSplash(r.x, (viewH - 10) + Math.random() * 6);
+            state.rainDrops.splice(i, 1);
+            if (state.rainState.active && state.rainDrops.length < rainCount) worldgen.spawnRainDrop(false);
+        }
+    }
+    for (let i = state.rainSplashes.length - 1; i >= 0; i--) {
+        const s = state.rainSplashes[i];
+        s.life--;
+        if (s.life <= 0) state.rainSplashes.splice(i, 1);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Helpers de desenho — cada um renderiza uma camada específica do frame.
+// ---------------------------------------------------------------------------
+
+function drawDustLayer(ctx, viewH, quality) {
+    state.dustParticles.forEach(d => {
+        if (d.y < (viewH * (320 / VIRTUAL_HEIGHT))) return;
+        const r = 0.9 + (d.size * 1.6);
+        const haze = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, r * 2.4);
+        haze.addColorStop(0, `rgba(198, 234, 255, ${d.alpha * 0.42})`);
+        haze.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = haze;
+        ctx.beginPath();
+        ctx.arc(d.x, d.y, r * 2.4, 0, Math.PI * 2);
+        ctx.fill();
+    });
+}
+
+function drawPlatforms(ctx, quality, isWorldVisible) {
+    const platformDetailStep = quality < 0.74 ? 56 : (quality < 0.9 ? 40 : 28);
+    state.platforms.forEach(p => {
+        if (!isWorldVisible(p.x, p.y - 32, p.w, p.h + 80)) return;
+        const hue = (p.colorHue + state.game.frames) % 360;
+
+        const bodyGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+        bodyGrad.addColorStop(0, '#070d1c');
+        bodyGrad.addColorStop(0.45, '#050811');
+        bodyGrad.addColorStop(1, '#010204');
+        ctx.fillStyle = bodyGrad;
+        ctx.fillRect(p.x, p.y, p.w, p.h);
+
+        const ledAlpha = 0.86 + (Math.sin((state.game.frames * 0.08) + (p.x * 0.03)) * 0.08);
+        const ledStrip = ctx.createLinearGradient(p.x, p.y - 1, p.x, p.y + 8);
+        ledStrip.addColorStop(0, `hsla(${hue}, 100%, 78%, ${ledAlpha})`);
+        ledStrip.addColorStop(0.4, `hsla(${hue}, 100%, 67%, ${Math.max(0.62, ledAlpha - 0.12)})`);
+        ledStrip.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = ledStrip;
+        ctx.fillRect(p.x, p.y - 1, p.w, 9);
+
+        ctx.strokeStyle = `hsla(${hue}, 100%, 62%, 0.94)`;
+        ctx.lineWidth = 1.9;
+        ctx.shadowBlur = quality >= 0.88 ? 18 : 0;
+        ctx.shadowColor = `hsla(${hue}, 100%, 62%, 0.72)`;
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
+        ctx.shadowBlur = 0;
+
+        if (quality >= 0.78) {
+            ctx.beginPath();
+            ctx.strokeStyle = `hsla(${hue}, 100%, 66%, 0.18)`;
+            ctx.lineWidth = 1;
+            for (let gx = 0; gx < p.w; gx += platformDetailStep) {
+                ctx.moveTo(p.x + gx, p.y + 2);
+                ctx.lineTo(p.x + gx + (platformDetailStep * 0.5), p.y + p.h - 2);
+            }
+            ctx.stroke();
+        }
+
+        if (quality >= 0.84) {
+            const capGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+            capGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+            capGrad.addColorStop(0.55, 'rgba(255, 255, 255, 0.02)');
+            capGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = capGrad;
+            ctx.fillRect(p.x, p.y, p.w, p.h);
+        }
+
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+        ctx.fillRect(p.x, p.y + p.h - 4, p.w, 4);
+
+        if (quality >= 0.8) {
+            const refl = ctx.createLinearGradient(p.x, p.y + p.h, p.x, p.y + p.h + 28);
+            refl.addColorStop(0, `hsla(${hue}, 100%, 58%, 0.22)`);
+            refl.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = refl;
+            ctx.fillRect(p.x, p.y + p.h, p.w, 28);
+        }
+
+        if (p.spikeInfo) {
+            const sg = ctx.createLinearGradient(p.spikeInfo.x, p.y - 14, p.spikeInfo.x, p.y + 4);
+            sg.addColorStop(0, '#ff7b9f');
+            sg.addColorStop(1, '#ff1b3d');
+            ctx.fillStyle = sg;
+            ctx.shadowBlur = quality >= 0.88 ? 18 : 0;
+            ctx.shadowColor = '#ff4a6a';
+            for (let sx2 = p.spikeInfo.x; sx2 < p.spikeInfo.x + p.spikeInfo.w; sx2 += 15) {
+                const spikeH = 12 + Math.sin(state.game.frames * 0.3 + sx2) * 3;
+                ctx.beginPath();
+                ctx.moveTo(sx2, p.y);
+                ctx.lineTo(sx2 + 7, p.y - spikeH);
+                ctx.lineTo(sx2 + 14, p.y);
+                ctx.fill();
+            }
+            ctx.shadowBlur = 0;
+        }
+    });
+}
+
+function drawCoins(ctx, quality, isWorldVisible) {
+    state.coins.forEach(c => {
+        if (!isWorldVisible(c.x - 16, c.y - 16, 32, 32)) return;
+        ctx.save();
+        ctx.translate(c.x, c.y);
+        ctx.scale(Math.cos(c.rot), 1);
+        const grad = ctx.createRadialGradient(-1, -1, 2, 0, 0, 11);
+        grad.addColorStop(0, '#fff9d8');
+        grad.addColorStop(0.5, '#ffd95f');
+        grad.addColorStop(1, '#f0a500');
+        ctx.fillStyle = grad;
+        ctx.shadowBlur = quality >= 0.88 ? 20 : 0;
+        ctx.shadowColor = '#ffb347';
+        ctx.beginPath();
+        ctx.arc(0, 0, 9.2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = 'rgba(255, 249, 220, 0.72)';
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(0, 0, 5.4, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(120, 70, 20, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillRect(-3.5, -4.8, 7, 1.8);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.fillRect(-2, -2.2, 4, 0.9);
+        ctx.restore();
+    });
+}
+
+function drawAttackEffects(ctx, quality) {
+    state.attackEffects.forEach(effect => {
+        ctx.save();
+        if (effect.kind === 'slash') {
+            const arc = effect.arc || (Math.PI * 0.9);
+            const angle = effect.angle || 0;
+            ctx.globalAlpha = effect.alpha;
+            ctx.strokeStyle = effect.color;
+            ctx.lineWidth = 4.6;
+            ctx.shadowBlur = quality >= 0.78 ? 20 : 0;
+            ctx.shadowColor = effect.color;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, effect.radius, angle - arc * 0.5, angle + arc * 0.5);
+            ctx.stroke();
+            ctx.globalAlpha = effect.alpha * 0.55;
+            ctx.lineWidth = 2.1;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, effect.radius * 0.72, angle - arc * 0.45, angle + arc * 0.45);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        } else if (effect.kind === 'impact' || effect.kind === 'dashBurst') {
+            const burstColor = effect.color || '#ffffff';
+            const core = ctx.createRadialGradient(effect.x, effect.y, 0, effect.x, effect.y, effect.radius * 1.8);
+            core.addColorStop(0, `rgba(255,255,255,${effect.alpha * 0.95})`);
+            core.addColorStop(0.45, burstColor);
+            core.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.globalAlpha = effect.alpha;
+            ctx.fillStyle = core;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, effect.radius * 1.8, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            ctx.globalAlpha = effect.alpha;
+            ctx.strokeStyle = effect.color;
+            ctx.lineWidth = 3.2;
+            ctx.shadowBlur = quality >= 0.78 ? 18 : 0;
+            ctx.shadowColor = effect.color;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, effect.radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.globalAlpha = effect.alpha * 0.58;
+            ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, effect.radius * 0.72, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = `rgba(255, 255, 255, ${effect.alpha * 0.22})`;
+            ctx.beginPath();
+            ctx.arc(effect.x, effect.y, 8 + effect.alpha * 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        ctx.restore();
+    });
+}
+
+function drawParticleLayer(ctx, quality, isWorldVisible) {
+    state.particles.forEach(p => {
+        if (p.trail) {
+            if (!isWorldVisible(p.x - Math.abs(p.w || 0), p.y - 20, Math.abs(p.w || 0) + 40, (p.h || 0) + 40)) return;
+            const dir = p.dir || 1;
+            const span = p.w * dir;
+            const startX = span >= 0 ? p.x : p.x + span;
+            const width = Math.abs(span);
+            const g = ctx.createLinearGradient(p.x, p.y, p.x + span, p.y);
+            g.addColorStop(0, p.color);
+            g.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.globalAlpha = p.alpha || 1;
+            ctx.fillStyle = g;
+            ctx.shadowBlur = quality >= 0.88 ? 16 : 0;
+            ctx.shadowColor = p.color;
+            ctx.fillRect(startX, p.y, width, p.h);
+            ctx.globalAlpha = (p.alpha || 1) * 0.5;
+            ctx.fillStyle = 'rgba(255,255,255,0.55)';
+            ctx.fillRect(startX, p.y + (p.h * 0.42), width, Math.max(1, p.h * 0.08));
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1;
+        } else if (p.isWave) {
+            if (!isWorldVisible(p.x - p.radius, p.y - p.radius, p.radius * 2, p.radius * 2)) return;
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = p.lineWidth || 3;
+            ctx.globalAlpha = p.life / 20;
+            ctx.shadowBlur = quality >= 0.88 ? 16 : 0;
+            ctx.shadowColor = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.globalAlpha = 1;
+        } else {
+            if (!isWorldVisible(p.x - 40, p.y - 40, 80, 80)) return;
+            const alpha = p.alpha || 1;
+            const radius = Math.max(0.6, p.size || (2 + Math.abs(p.vx) * 0.3));
+            const spark = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * 2.4);
+            spark.addColorStop(0, `rgba(255,255,255,${alpha * 0.9})`);
+            spark.addColorStop(0.45, p.color);
+            spark.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = spark;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, radius * 2.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    });
+}
+
+function drawFloatingTexts(ctx, isWorldVisible) {
+    state.texts.forEach(txt => {
+        if (!isWorldVisible(txt.x - 80, txt.y - 30, 160, 60)) return;
+        ctx.fillStyle = txt.color;
+        ctx.font = 'bold 16px Courier New';
+        ctx.fillText(txt.txt, txt.x, txt.y);
+    });
+}
+
 function updateActiveBoost() {
     const activeBoost = state.activeBoost;
     if (!activeBoost) {
@@ -190,102 +546,27 @@ export function togglePause() {
  */
 function updateGame() {
     const quality = state.performance.quality || 1;
-    const { viewW, viewH, extraW, extraH } = getViewMetrics();
+    const { viewH, extraW, extraH } = getViewMetrics();
     const cameraOffsetX = state.view?.offsetX ?? (extraW * VIEWPORT.CAMERA_OFFSET_X_RATIO);
     const cameraOffsetY = state.view?.offsetY ?? (extraH * VIEWPORT.CAMERA_OFFSET_Y_RATIO);
-    updateActiveBoost();
-    // Ajuste de dificuldade de acordo com a distância. Os parâmetros
-    // vivem em BALANCE.difficulty para evitar números mágicos.
-    state.game.difficulty = BALANCE.difficulty.base +
-        Math.floor(state.game.dist / BALANCE.difficulty.distInterval) * BALANCE.difficulty.increment;
-    // Ciclo dia/noite baseado no tempo corrido. O contador runFrames
-    // só incrementa quando a corrida está ativa. Converte para
-    // segundos dividindo por 60 e usa o valor configurado em
-    // DAY_NIGHT_CYCLE_SECONDS para definir o ciclo.
-    const runSeconds = state.game.runFrames / 60;
-    let cycle = (runSeconds % DAY_NIGHT_CYCLE_SECONDS) / DAY_NIGHT_CYCLE_SECONDS;
-    state.game.time = cycle;
-    // Atualiza jogador
-    state.player.update();
-    // Geração de mundo e atualização de câmera
-    if (state.game.started) {
-        worldgen.generateWorld();
-        state.camera.x += (state.player.x - (300 + cameraOffsetX) - state.camera.x) * 0.08;
-    } else {
-        state.camera.x += (state.player.x - (300 + cameraOffsetX) - state.camera.x) * 0.02;
-    }
-    let targetCamY = state.player.y - (320 + cameraOffsetY);
-    state.camera.y += (targetCamY - state.camera.y) * 0.06;
-    if (state.camera.y < (-120 - (extraH * 0.35))) state.camera.y = -120 - (extraH * 0.35);
-    if (state.camera.y > (150 + (extraH * 0.55))) state.camera.y = 150 + (extraH * 0.55);
-    updateVirus(viewH);
-    // Tremor de câmera
-    let sx = 0;
-    let sy = 0;
-    if (state.camera.shake > 0) {
-        sx = (Math.random() - 0.5) * state.camera.shake;
-        sy = (Math.random() - 0.5) * state.camera.shake;
-        state.camera.shake *= 0.9;
-        if (state.camera.shake < 1) state.camera.shake = 0;
-    }
-    // Atualiza inimigos
-    state.enemies.forEach(e => e.update());
-    // Atualiza partículas (inclui trail, ondas e partículas normais)
-    for (let i = state.particles.length - 1; i >= 0; i--) {
-        let p = state.particles[i];
-        if (p.trail) {
-            p.x += (p.dir || 1) * 1.2;
-            p.life--;
-            p.alpha *= 0.88;
-            if (p.life <= 0 || p.alpha <= 0.02) state.particles.splice(i, 1);
-            continue;
-        }
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.drag) {
-            p.vx *= p.drag;
-            p.vy *= p.drag;
-        }
-        p.life--;
-        p.alpha -= 0.03;
-        if (p.isWave) {
-            p.radius += 5;
-            p.life -= 2;
-        } else if (p.size) {
-            p.size *= 0.986;
-        }
-        if (p.life <= 0) state.particles.splice(i, 1);
-    }
-    // Atualiza textos flutuantes
-    for (let i = state.texts.length - 1; i >= 0; i--) {
-        let t = state.texts[i];
-        t.y -= 1;
-        t.life--;
-        if (t.life <= 0) state.texts.splice(i, 1);
-    }
-    // Atualiza efeitos curtos de ataque em uma lista dedicada para
-    // garantir que o frame visual seja desenhado no passo de render.
-    for (let i = state.attackEffects.length - 1; i >= 0; i--) {
-        const effect = state.attackEffects[i];
-        effect.life--;
-        effect.alpha *= effect.fade || 0.78;
-        effect.radius += effect.growth || 2.5;
-        if (effect.spin) effect.angle += effect.spin;
 
-        if (effect.life <= 0 || effect.alpha <= 0.03) {
-            state.attackEffects.splice(i, 1);
-        }
-    }
-    if (state.particles.length > 260) {
-        state.particles.splice(0, state.particles.length - 260);
-    }
-    if (state.texts.length > 40) {
-        state.texts.splice(0, state.texts.length - 40);
-    }
-    if (state.ghosts.length > 70) {
-        state.ghosts.splice(0, state.ghosts.length - 70);
-    }
-    // Move poeira; repondo quando sai da tela
+    updateActiveBoost();
+    updateDifficultyAndTime();
+    state.player.update();
+    if (state.game.started) worldgen.generateWorld();
+    updateCamera(cameraOffsetX, cameraOffsetY, extraH);
+    updateVirus(viewH);
+    const { sx, sy } = updateCameraShake();
+
+    state.enemies.forEach(e => e.update());
+    updateParticles();
+    updateTexts();
+    updateAttackEffects();
+
+    if (state.particles.length > 260) state.particles.length = 260;
+    if (state.texts.length > 40) state.texts.length = 40;
+    if (state.ghosts.length > 70) state.ghosts.length = 70;
+
     for (let i = state.dustParticles.length - 1; i >= 0; i--) {
         const d = state.dustParticles[i];
         d.x += d.vx;
@@ -294,61 +575,20 @@ function updateGame() {
             worldgen.spawnDust(false);
         }
     }
-    // Atualiza chuva: alternância ativa/inativa e movimentação
-    if (!state.game.started) {
-        if (state.rainDrops.length) state.rainDrops.length = 0;
-        if (state.rainSplashes.length) state.rainSplashes.length = 0;
-        state.rainState.active = false;
-        if (state.rainState.timer <= 0) worldgen.resetRainTimer();
-    } else {
-        if (state.rainState.timer > 0) state.rainState.timer--;
-        if (state.rainState.timer <= 0) {
-            state.rainState.active = !state.rainState.active;
-            worldgen.resetRainTimer();
-        }
-        const rainCount = state.rainState.active ? Math.floor(36 + quality * 56) : 0;
-        if (state.rainState.active) {
-            const needed = rainCount - state.rainDrops.length;
-            const burst = Math.max(3, Math.floor(6 + quality * 5));
-            const spawnNow = Math.min(Math.max(0, needed), burst);
-            for (let i = 0; i < spawnNow; i++) worldgen.spawnRainDrop(false);
-        }
-        for (let i = state.rainDrops.length - 1; i >= 0; i--) {
-            const r = state.rainDrops[i];
-            r.x -= 0.8;
-            r.y += r.speed;
-            if (r.y > viewH) {
-                if (state.rainState.active) worldgen.spawnRainSplash(r.x, (viewH - 10) + Math.random() * 6);
-                state.rainDrops.splice(i, 1);
-                if (state.rainState.active && state.rainDrops.length < rainCount) worldgen.spawnRainDrop(false);
-            }
-        }
-        for (let i = state.rainSplashes.length - 1; i >= 0; i--) {
-            const s = state.rainSplashes[i];
-            s.life--;
-            if (s.life <= 0) state.rainSplashes.splice(i, 1);
-        }
-    }
-    // Piscadas de prédios
-    const shouldUpdateBuildingFlash = state.game.started || (state.game.frames % 3 === 0);
-    if (shouldUpdateBuildingFlash) {
+
+    updateRain(viewH, quality);
+
+    // Decrementa timers de flash dos prédios (flash em massa foi removido;
+    // mantemos só o decremento para não deixar valores presos caso algo os sete).
+    if (state.game.started || (state.game.frames % 3 === 0)) {
         [state.bgLayer1, state.bgLayer2, state.bgLayer3].forEach(layer => {
-            layer.forEach(b => {
-                // (Flash em massa removido — causava piscação visual indesejada.
-                // Mantemos só o decremento por segurança caso algo o setasse.)
-                if (b.flashTimer > 0) b.flashTimer--;
-            });
+            layer.forEach(b => { if (b.flashTimer > 0) b.flashTimer--; });
         });
     }
-    // Rotaciona moedas
-    state.coins.forEach(c => {
-        c.rot += 0.1;
-    });
-    state.boosts.forEach(boost => {
-        boost.rot += 0.1;
-        boost.bob += 0.08;
-    });
-    // Atualiza a HUD
+
+    state.coins.forEach(c => { c.rot += 0.1; });
+    state.boosts.forEach(boost => { boost.rot += 0.1; boost.bob += 0.08; });
+
     updateUI();
     return { sx, sy };
 }
@@ -362,281 +602,51 @@ function drawGame({ sx, sy }) {
     const ctx = state.ctx;
     const quality = state.performance?.quality || 1;
     const { viewW, viewH } = getViewMetrics();
-    // Aplica transformação para corrigir resolução em telas de alta
-    // densidade. O escalonamento da cena em si é feito via CSS no
-    // contêiner; aqui multiplicamos apenas pelo devicePixelRatio.
     const dpr = state.view?.dpr || 1;
     const renderScale = state.view?.scale || 1;
+
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#02040a';
     ctx.fillRect(0, 0, state.canvas.width, state.canvas.height);
     ctx.setTransform(dpr * renderScale, 0, 0, dpr * renderScale, 0, 0);
-    // fundo (céu, sol/lua, estrelas, grade)
+
     background.drawBackground();
-    // camadas de prédios
     background.drawLayer(state.bgLayer1, state.camera.x);
     background.drawLayer(state.bgLayer2, state.camera.x);
     background.drawLayer(state.bgLayer3, state.camera.x);
-    // chuva
     background.drawRainBackground();
-    // poeira em camada de tela
-    state.dustParticles.forEach(d => {
-        if (d.y < (viewH * (320 / VIRTUAL_HEIGHT))) return;
-        const r = 0.9 + (d.size * 1.6);
-        const haze = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, r * 2.4);
-        haze.addColorStop(0, `rgba(198, 234, 255, ${d.alpha * 0.42})`);
-        haze.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = haze;
-        ctx.beginPath();
-        ctx.arc(d.x, d.y, r * 2.4, 0, Math.PI * 2);
-        ctx.fill();
-    });
-    // mundo (plataformas, moedas, inimigos, player, partículas, textos)
+    drawDustLayer(ctx, viewH, quality);
+
     ctx.save();
     ctx.translate(-state.camera.x + sx, -state.camera.y + sy);
+
     const worldLeft = state.camera.x - 160;
     const worldRight = state.camera.x + viewW + 180;
     const worldTop = state.camera.y - 180;
     const worldBottom = state.camera.y + viewH + 200;
     const isWorldVisible = (x, y, w, h) =>
         x + w >= worldLeft && x <= worldRight && y + h >= worldTop && y <= worldBottom;
-    // plataformas
-    const platformDetailStep = quality < 0.74 ? 56 : (quality < 0.9 ? 40 : 28);
-    state.platforms.forEach(p => {
-        if (!isWorldVisible(p.x, p.y - 32, p.w, p.h + 80)) return;
-        const hue = (p.colorHue + state.game.frames) % 360;
-        const neonColor = `hsl(${hue}, 100%, 58%)`;
-        const pulse = 0.45 + (Math.sin((state.game.frames * 0.05) + (p.x * 0.02)) * 0.2);
 
-        const bodyGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
-        bodyGrad.addColorStop(0, '#070d1c');
-        bodyGrad.addColorStop(0.45, '#050811');
-        bodyGrad.addColorStop(1, '#010204');
-        ctx.fillStyle = bodyGrad;
-        ctx.fillRect(p.x, p.y, p.w, p.h);
+    drawPlatforms(ctx, quality, isWorldVisible);
+    drawCoins(ctx, quality, isWorldVisible);
 
-        // LED principal: sempre aceso, independente do modo de performance.
-        const ledAlpha = 0.86 + (Math.sin((state.game.frames * 0.08) + (p.x * 0.03)) * 0.08);
-        const ledStrip = ctx.createLinearGradient(p.x, p.y - 1, p.x, p.y + 8);
-        ledStrip.addColorStop(0, `hsla(${hue}, 100%, 78%, ${ledAlpha})`);
-        ledStrip.addColorStop(0.4, `hsla(${hue}, 100%, 67%, ${Math.max(0.62, ledAlpha - 0.12)})`);
-        ledStrip.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = ledStrip;
-        ctx.fillRect(p.x, p.y - 1, p.w, 9);
-
-        ctx.strokeStyle = `hsla(${hue}, 100%, 62%, 0.94)`;
-        ctx.lineWidth = 1.9;
-        ctx.shadowBlur = quality >= 0.88 ? 18 : 0;
-        ctx.shadowColor = `hsla(${hue}, 100%, 62%, 0.72)`;
-        ctx.strokeRect(p.x, p.y, p.w, p.h);
-        ctx.shadowBlur = 0;
-
-        if (quality >= 0.78) {
-            ctx.beginPath();
-            ctx.strokeStyle = `hsla(${hue}, 100%, 66%, 0.18)`;
-            ctx.lineWidth = 1;
-            for (let gx = 0; gx < p.w; gx += platformDetailStep) {
-                ctx.moveTo(p.x + gx, p.y + 2);
-                ctx.lineTo(p.x + gx + (platformDetailStep * 0.5), p.y + p.h - 2);
-            }
-            ctx.stroke();
-        }
-
-        if (quality >= 0.84) {
-            const capGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
-            capGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-            capGrad.addColorStop(0.55, 'rgba(255, 255, 255, 0.02)');
-            capGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = capGrad;
-            ctx.fillRect(p.x, p.y, p.w, p.h);
-        }
-
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
-        ctx.fillRect(p.x, p.y + p.h - 4, p.w, 4);
-
-        // reflexo molhado
-        if (quality >= 0.8) {
-            let refl = ctx.createLinearGradient(p.x, p.y + p.h, p.x, p.y + p.h + 28);
-            refl.addColorStop(0, `hsla(${hue}, 100%, 58%, 0.22)`);
-            refl.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = refl;
-            ctx.fillRect(p.x, p.y + p.h, p.w, 28);
-        }
-        if (p.spikeInfo) {
-            let sg = ctx.createLinearGradient(p.spikeInfo.x, p.y - 14, p.spikeInfo.x, p.y + 4);
-            sg.addColorStop(0, '#ff7b9f');
-            sg.addColorStop(1, '#ff1b3d');
-            ctx.fillStyle = sg;
-            ctx.shadowBlur = quality >= 0.88 ? 18 : 0;
-            ctx.shadowColor = '#ff4a6a';
-            let start = p.spikeInfo.x;
-            let end = p.spikeInfo.x + p.spikeInfo.w;
-            for (let sx2 = start; sx2 < end; sx2 += 15) {
-                let spikeH = 12 + Math.sin(state.game.frames * 0.3 + sx2) * 3;
-                ctx.beginPath();
-                ctx.moveTo(sx2, p.y);
-                ctx.lineTo(sx2 + 7, p.y - spikeH);
-                ctx.lineTo(sx2 + 14, p.y);
-                ctx.fill();
-            }
-        }
-        ctx.shadowBlur = 0;
-    });
-    // moedas
-    state.coins.forEach(c => {
-        if (!isWorldVisible(c.x - 16, c.y - 16, 32, 32)) return;
-        ctx.save();
-        ctx.translate(c.x, c.y);
-        let scaleX = Math.cos(c.rot);
-        ctx.scale(scaleX, 1);
-        let grad = ctx.createRadialGradient(-1, -1, 2, 0, 0, 11);
-        grad.addColorStop(0, '#fff9d8');
-        grad.addColorStop(0.5, '#ffd95f');
-        grad.addColorStop(1, '#f0a500');
-        ctx.fillStyle = grad;
-        ctx.shadowBlur = quality >= 0.88 ? 20 : 0;
-        ctx.shadowColor = '#ffb347';
-        ctx.beginPath();
-        ctx.arc(0, 0, 9.2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.lineWidth = 1.4;
-        ctx.strokeStyle = 'rgba(255, 249, 220, 0.72)';
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(0, 0, 5.4, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(120, 70, 20, 0.4)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.fillRect(-3.5, -4.8, 7, 1.8);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
-        ctx.fillRect(-2, -2.2, 4, 0.9);
-        ctx.restore();
-    });
     state.boosts.forEach(boost => {
-        if (!isWorldVisible(boost.x - 24, boost.y - 24, 48, 48)) return;
-        drawBoostPickup(ctx, boost);
+        if (isWorldVisible(boost.x - 24, boost.y - 24, 48, 48)) drawBoostPickup(ctx, boost);
     });
-    // inimigos e jogador
+
     state.enemies.forEach(e => {
         if (isWorldVisible(e.x - 32, e.y - 32, e.w + 64, e.h + 64)) e.draw();
     });
     state.player.draw();
-    state.attackEffects.forEach(effect => {
-        ctx.save();
-        if (effect.kind === 'slash') {
-            const arc = effect.arc || (Math.PI * 0.9);
-            const angle = effect.angle || 0;
-            ctx.globalAlpha = effect.alpha;
-            ctx.strokeStyle = effect.color;
-            ctx.lineWidth = 4.6;
-            ctx.shadowBlur = quality >= 0.78 ? 20 : 0;
-            ctx.shadowColor = effect.color;
-            ctx.beginPath();
-            ctx.arc(effect.x, effect.y, effect.radius, angle - arc * 0.5, angle + arc * 0.5);
-            ctx.stroke();
 
-            ctx.globalAlpha = effect.alpha * 0.55;
-            ctx.lineWidth = 2.1;
-            ctx.beginPath();
-            ctx.arc(effect.x, effect.y, effect.radius * 0.72, angle - arc * 0.45, angle + arc * 0.45);
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-        } else if (effect.kind === 'impact' || effect.kind === 'dashBurst') {
-            const burstColor = effect.color || '#ffffff';
-            const core = ctx.createRadialGradient(effect.x, effect.y, 0, effect.x, effect.y, effect.radius * 1.8);
-            core.addColorStop(0, `rgba(255,255,255,${effect.alpha * 0.95})`);
-            core.addColorStop(0.45, burstColor);
-            core.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.globalAlpha = effect.alpha;
-            ctx.fillStyle = core;
-            ctx.beginPath();
-            ctx.arc(effect.x, effect.y, effect.radius * 1.8, 0, Math.PI * 2);
-            ctx.fill();
-        } else {
-            ctx.globalAlpha = effect.alpha;
-            ctx.strokeStyle = effect.color;
-            ctx.lineWidth = 3.2;
-            ctx.shadowBlur = quality >= 0.78 ? 18 : 0;
-            ctx.shadowColor = effect.color;
-            ctx.beginPath();
-            ctx.arc(effect.x, effect.y, effect.radius, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.globalAlpha = effect.alpha * 0.58;
-            ctx.lineWidth = 1.6;
-            ctx.beginPath();
-            ctx.arc(effect.x, effect.y, effect.radius * 0.72, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.fillStyle = `rgba(255, 255, 255, ${effect.alpha * 0.22})`;
-            ctx.beginPath();
-            ctx.arc(effect.x, effect.y, 8 + effect.alpha * 6, 0, Math.PI * 2);
-            ctx.fill();
-        }
-        ctx.restore();
-    });
-    // partículas
-    state.particles.forEach(p => {
-        if (p.trail) {
-            if (!isWorldVisible(p.x - Math.abs(p.w || 0), p.y - 20, Math.abs(p.w || 0) + 40, (p.h || 0) + 40)) return;
-            const dir = p.dir || 1;
-            const span = p.w * dir;
-            const startX = span >= 0 ? p.x : p.x + span;
-            const width = Math.abs(span);
-            let g = ctx.createLinearGradient(p.x, p.y, p.x + span, p.y);
-            g.addColorStop(0, p.color);
-            g.addColorStop(1, 'rgba(255,255,255,0)');
-            ctx.globalAlpha = p.alpha || 1;
-            ctx.fillStyle = g;
-            ctx.shadowBlur = quality >= 0.88 ? 16 : 0;
-            ctx.shadowColor = p.color;
-            ctx.fillRect(startX, p.y, width, p.h);
-            ctx.globalAlpha = (p.alpha || 1) * 0.5;
-            ctx.fillStyle = 'rgba(255,255,255,0.55)';
-            ctx.fillRect(startX, p.y + (p.h * 0.42), width, Math.max(1, p.h * 0.08));
-            ctx.shadowBlur = 0;
-            ctx.globalAlpha = 1;
-        } else if (p.isWave) {
-            if (!isWorldVisible(p.x - p.radius, p.y - p.radius, p.radius * 2, p.radius * 2)) return;
-            ctx.strokeStyle = p.color;
-            ctx.lineWidth = p.lineWidth || 3;
-            ctx.globalAlpha = p.life / 20;
-            ctx.shadowBlur = quality >= 0.88 ? 16 : 0;
-            ctx.shadowColor = p.color;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-            ctx.globalAlpha = 1;
-        } else {
-            if (!isWorldVisible(p.x - 40, p.y - 40, 80, 80)) return;
-            const alpha = p.alpha || 1;
-            const radius = Math.max(0.6, p.size || (2 + Math.abs(p.vx) * 0.3));
-            const spark = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, radius * 2.4);
-            spark.addColorStop(0, `rgba(255,255,255,${alpha * 0.9})`);
-            spark.addColorStop(0.45, p.color);
-            spark.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.globalAlpha = alpha;
-            ctx.fillStyle = spark;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, radius * 2.4, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.globalAlpha = 1;
-        }
-    });
-    // textos flutuantes
-    state.texts.forEach(t => {
-        if (!isWorldVisible(t.x - 80, t.y - 30, 160, 60)) return;
-        ctx.fillStyle = t.color;
-        ctx.font = 'bold 16px Courier New';
-        ctx.fillText(t.txt, t.x, t.y);
-    });
+    drawAttackEffects(ctx, quality);
+    drawParticleLayer(ctx, quality, isWorldVisible);
+    drawFloatingTexts(ctx, isWorldVisible);
     drawVirus(ctx, viewH);
+
     ctx.restore();
-    if (state.game.started && quality >= 0.82) {
-        drawScreenPostFX();
-    }
+
+    if (state.game.started && quality >= 0.82) drawScreenPostFX();
 }
 
 /**
