@@ -17,3 +17,4 @@ playwright-report/
 
 # Local Netlify folder
 .netlify
+.claude/
