@@ -700,6 +700,10 @@ html.is-mobile body {
     padding: 7px 10px;
     text-align: left;
     pointer-events: auto;
+    border: 1px solid rgba(160, 214, 255, 0.14);
+    border-radius: 7px;
+    background: rgba(2, 8, 22, 0.72);
+    backdrop-filter: blur(8px);
 }
 
 /* Account open button */
@@ -1864,35 +1868,56 @@ h1 {
         max-height: 82vh;
     }
 
-    #leaderboard-context,
-    #pilot-strip {
+    #leaderboard-context {
         grid-template-columns: minmax(0, 1fr);
     }
 
     #difficulty-picker {
-        top: 130px;
-        left: 10px;
-        width: 148px;
+        top: 118px;
+        left: 8px;
+        width: 152px;
+    }
+
+    #difficulty-picker .difficulty-btn {
+        min-height: 44px;
+        padding: 6px 8px;
+    }
+
+    #difficulty-picker .difficulty-desc {
+        display: none;
     }
 
     #pre-run-actions {
-        top: 130px;
-        right: 10px;
-        width: 130px;
+        top: 118px;
+        right: 8px;
+        width: 152px;
+    }
+
+    #pre-run-actions #leaderboard-open-btn,
+    #pre-run-actions #quick-shop-btn {
+        height: 34px;
     }
 
     #pilot-strip {
-        top: 236px;
-        right: 10px;
-        width: 130px;
+        top: 198px;
+        right: 8px;
+        width: 152px;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+    }
+
+    #pilot-strip #account-open-btn {
+        width: 100%;
+        height: 28px;
     }
 
     #language-toggle {
-        top: 96px;
-        right: 10px;
+        top: 88px;
+        left: 8px;
+        right: auto;
         bottom: auto;
         min-width: 50px;
-        height: 26px;
+        height: 24px;
         padding: 0 8px;
         font-size: 10px;
     }
