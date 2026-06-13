@@ -71,16 +71,16 @@
                     <span class="difficulty-desc" data-i18n="difficulty.hard.description">The virus consumes everything behind you.</span>
                 </button>
             </div>
+            <div id="pre-run-actions">
+                <button type="button" id="leaderboard-open-btn" data-i18n="leaderboard.action">LEADERBOARD</button>
+                <button type="button" id="quick-shop-btn" data-i18n="shop.short">SHOP</button>
+            </div>
             <div id="pilot-strip">
                 <div>
                     <span id="pilot-mode">GUEST</span>
                     <strong id="pilot-name">RUNNER</strong>
                 </div>
                 <button type="button" id="account-open-btn">ACCOUNT</button>
-            </div>
-            <div id="pre-run-actions">
-                <button type="button" id="leaderboard-open-btn" data-i18n="leaderboard.action">LEADERBOARD</button>
-                <button type="button" id="quick-shop-btn" data-i18n="shop.short">SHOP</button>
             </div>
             <div id="start-controls">
                 <div id="difficulty-shortcuts" data-i18n="start.shortcuts">[1] EASY  [2] MEDIUM  [3] HARD</div>
@@ -136,6 +136,8 @@
                     <span id="account-mode">GUEST</span>
                     <strong id="account-name">RUNNER</strong>
                 </div>
+                <button type="button" id="guest-continue-btn">PLAY AS GUEST</button>
+                <div class="auth-or-divider"><span data-i18n="account.orSignIn">or sign in</span></div>
                 <h1 id="auth-title">Enter AETHERIS</h1>
                 <p class="modal-copy" data-i18n="account.copy">Keep one callsign and one leaderboard identity across itch and Netlify, or play as guest.</p>
                 <form id="account-form" autocomplete="on">
@@ -150,7 +152,6 @@
                     <button type="button" id="account-logout-btn" data-i18n="account.logout">LOG OUT</button>
                     <p id="account-message" data-i18n="account.message.validating">Validating session...</p>
                 </form>
-                <button type="button" id="guest-continue-btn">PLAY AS GUEST</button>
             </div>
         </section>
 
