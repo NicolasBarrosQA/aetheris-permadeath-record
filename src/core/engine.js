@@ -20,6 +20,46 @@ import { drawBoostPickup, drawScreenPostFX } from '../systems/vfx.js';
 import { resetLeaderboardRun, startLeaderboardRun, submitLeaderboardScore } from '../systems/leaderboard.js';
 import { t } from '../i18n.js';
 
+// Coin gradient created once and reused via ctx.translate (center always at 0,0)
+let _coinGrad = null;
+function getCoinGrad(ctx) {
+    if (!_coinGrad) {
+        _coinGrad = ctx.createRadialGradient(-1, -1, 2, 0, 0, 11);
+        _coinGrad.addColorStop(0, '#fff9d8');
+        _coinGrad.addColorStop(0.5, '#ffd95f');
+        _coinGrad.addColorStop(1, '#f0a500');
+    }
+    return _coinGrad;
+}
+
+// Platform body gradient is identical for every platform (3 dark stops, no hue)
+let _platBodyGrad = null;
+function getPlatBodyGrad(ctx, p) {
+    if (!_platBodyGrad) {
+        _platBodyGrad = ctx.createLinearGradient(0, 0, 0, 1);
+        _platBodyGrad.addColorStop(0, '#070d1c');
+        _platBodyGrad.addColorStop(0.45, '#050811');
+        _platBodyGrad.addColorStop(1, '#010204');
+    }
+    // Re-create only when platform height changes (rare; different h buckets exist)
+    if (_platBodyGrad._h !== p.h) {
+        _platBodyGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+        _platBodyGrad.addColorStop(0, '#070d1c');
+        _platBodyGrad.addColorStop(0.45, '#050811');
+        _platBodyGrad.addColorStop(1, '#010204');
+        _platBodyGrad._h = p.h;
+        _platBodyGrad._y = p.y;
+    } else if (_platBodyGrad._y !== p.y) {
+        _platBodyGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+        _platBodyGrad.addColorStop(0, '#070d1c');
+        _platBodyGrad.addColorStop(0.45, '#050811');
+        _platBodyGrad.addColorStop(1, '#010204');
+        _platBodyGrad._h = p.h;
+        _platBodyGrad._y = p.y;
+    }
+    return _platBodyGrad;
+}
+
 function getViewMetrics() {
     const viewW = state.view?.worldWidth || VIRTUAL_WIDTH;
     const viewH = state.view?.worldHeight || VIRTUAL_HEIGHT;
@@ -165,17 +205,17 @@ function drawDustLayer(ctx, viewH, quality) {
 
 function drawPlatforms(ctx, quality, isWorldVisible) {
     const platformDetailStep = quality < 0.74 ? 56 : (quality < 0.9 ? 40 : 28);
-    state.platforms.forEach(p => {
-        if (!isWorldVisible(p.x, p.y - 32, p.w, p.h + 80)) return;
+    const useShadow = quality >= 0.88;
+    const visiblePlatforms = state.platforms.filter(p => isWorldVisible(p.x, p.y - 32, p.w, p.h + 80));
+
+    // Pass 1 — base fills and strips (no shadowBlur)
+    visiblePlatforms.forEach(p => {
         const hue = (p.colorHue + state.game.frames) % 360;
 
-        const bodyGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
-        bodyGrad.addColorStop(0, '#070d1c');
-        bodyGrad.addColorStop(0.45, '#050811');
-        bodyGrad.addColorStop(1, '#010204');
-        ctx.fillStyle = bodyGrad;
+        ctx.fillStyle = getPlatBodyGrad(ctx, p);
         ctx.fillRect(p.x, p.y, p.w, p.h);
 
+        // LED strip: thin animated band — inline hsla is cheaper than a gradient here
         const ledAlpha = 0.86 + (Math.sin((state.game.frames * 0.08) + (p.x * 0.03)) * 0.08);
         const ledStrip = ctx.createLinearGradient(p.x, p.y - 1, p.x, p.y + 8);
         ledStrip.addColorStop(0, `hsla(${hue}, 100%, 78%, ${ledAlpha})`);
@@ -183,13 +223,6 @@ function drawPlatforms(ctx, quality, isWorldVisible) {
         ledStrip.addColorStop(1, 'rgba(0, 0, 0, 0)');
         ctx.fillStyle = ledStrip;
         ctx.fillRect(p.x, p.y - 1, p.w, 9);
-
-        ctx.strokeStyle = `hsla(${hue}, 100%, 62%, 0.94)`;
-        ctx.lineWidth = 1.9;
-        ctx.shadowBlur = quality >= 0.88 ? 18 : 0;
-        ctx.shadowColor = `hsla(${hue}, 100%, 62%, 0.72)`;
-        ctx.strokeRect(p.x, p.y, p.w, p.h);
-        ctx.shadowBlur = 0;
 
         if (quality >= 0.78) {
             ctx.beginPath();
@@ -203,11 +236,15 @@ function drawPlatforms(ctx, quality, isWorldVisible) {
         }
 
         if (quality >= 0.84) {
-            const capGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
-            capGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
-            capGrad.addColorStop(0.55, 'rgba(255, 255, 255, 0.02)');
-            capGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = capGrad;
+            if (!p._capGrad || p._capGradH !== p.h || p._capGradY !== p.y) {
+                p._capGrad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.h);
+                p._capGrad.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+                p._capGrad.addColorStop(0.55, 'rgba(255, 255, 255, 0.02)');
+                p._capGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                p._capGradH = p.h;
+                p._capGradY = p.y;
+            }
+            ctx.fillStyle = p._capGrad;
             ctx.fillRect(p.x, p.y, p.w, p.h);
         }
 
@@ -215,20 +252,41 @@ function drawPlatforms(ctx, quality, isWorldVisible) {
         ctx.fillRect(p.x, p.y + p.h - 4, p.w, 4);
 
         if (quality >= 0.8) {
-            const refl = ctx.createLinearGradient(p.x, p.y + p.h, p.x, p.y + p.h + 28);
-            refl.addColorStop(0, `hsla(${hue}, 100%, 58%, 0.22)`);
-            refl.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = refl;
+            if (!p._reflGrad || p._reflGradHue !== hue || p._reflGradY !== p.y) {
+                p._reflGrad = ctx.createLinearGradient(p.x, p.y + p.h, p.x, p.y + p.h + 28);
+                p._reflGrad.addColorStop(0, `hsla(${hue}, 100%, 58%, 0.22)`);
+                p._reflGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                p._reflGradHue = hue;
+                p._reflGradY = p.y;
+            }
+            ctx.fillStyle = p._reflGrad;
             ctx.fillRect(p.x, p.y + p.h, p.w, 28);
         }
+    });
 
-        if (p.spikeInfo) {
-            const sg = ctx.createLinearGradient(p.spikeInfo.x, p.y - 14, p.spikeInfo.x, p.y + 4);
-            sg.addColorStop(0, '#ff7b9f');
-            sg.addColorStop(1, '#ff1b3d');
-            ctx.fillStyle = sg;
-            ctx.shadowBlur = quality >= 0.88 ? 18 : 0;
-            ctx.shadowColor = '#ff4a6a';
+    // Pass 2 — glow outlines (1 shadowBlur toggle for all platforms)
+    if (useShadow) ctx.shadowBlur = 18;
+    ctx.lineWidth = 1.9;
+    visiblePlatforms.forEach(p => {
+        const hue = (p.colorHue + state.game.frames) % 360;
+        ctx.strokeStyle = `hsla(${hue}, 100%, 62%, 0.94)`;
+        if (useShadow) ctx.shadowColor = `hsla(${hue}, 100%, 62%, 0.72)`;
+        ctx.strokeRect(p.x, p.y, p.w, p.h);
+    });
+    if (useShadow) ctx.shadowBlur = 0;
+
+    // Pass 3 — spikes (only platforms that have them)
+    const spiked = visiblePlatforms.filter(p => p.spikeInfo);
+    if (spiked.length > 0) {
+        if (useShadow) { ctx.shadowBlur = 18; ctx.shadowColor = '#ff4a6a'; }
+        spiked.forEach(p => {
+            if (!p._spikeGrad || p._spikeGradY !== p.y) {
+                p._spikeGrad = ctx.createLinearGradient(p.spikeInfo.x, p.y - 14, p.spikeInfo.x, p.y + 4);
+                p._spikeGrad.addColorStop(0, '#ff7b9f');
+                p._spikeGrad.addColorStop(1, '#ff1b3d');
+                p._spikeGradY = p.y;
+            }
+            ctx.fillStyle = p._spikeGrad;
             for (let sx2 = p.spikeInfo.x; sx2 < p.spikeInfo.x + p.spikeInfo.w; sx2 += 15) {
                 const spikeH = 12 + Math.sin(state.game.frames * 0.3 + sx2) * 3;
                 ctx.beginPath();
@@ -237,24 +295,21 @@ function drawPlatforms(ctx, quality, isWorldVisible) {
                 ctx.lineTo(sx2 + 14, p.y);
                 ctx.fill();
             }
-            ctx.shadowBlur = 0;
-        }
-    });
+        });
+        if (useShadow) ctx.shadowBlur = 0;
+    }
 }
 
 function drawCoins(ctx, quality, isWorldVisible) {
+    const useShadow = quality >= 0.88;
+    // Single shadowBlur toggle for all coins
+    if (useShadow) { ctx.shadowBlur = 20; ctx.shadowColor = '#ffb347'; }
     state.coins.forEach(c => {
         if (!isWorldVisible(c.x - 16, c.y - 16, 32, 32)) return;
         ctx.save();
         ctx.translate(c.x, c.y);
         ctx.scale(Math.cos(c.rot), 1);
-        const grad = ctx.createRadialGradient(-1, -1, 2, 0, 0, 11);
-        grad.addColorStop(0, '#fff9d8');
-        grad.addColorStop(0.5, '#ffd95f');
-        grad.addColorStop(1, '#f0a500');
-        ctx.fillStyle = grad;
-        ctx.shadowBlur = quality >= 0.88 ? 20 : 0;
-        ctx.shadowColor = '#ffb347';
+        ctx.fillStyle = getCoinGrad(ctx);
         ctx.beginPath();
         ctx.arc(0, 0, 9.2, 0, Math.PI * 2);
         ctx.fill();
@@ -272,6 +327,7 @@ function drawCoins(ctx, quality, isWorldVisible) {
         ctx.fillRect(-2, -2.2, 4, 0.9);
         ctx.restore();
     });
+    if (useShadow) ctx.shadowBlur = 0;
 }
 
 function drawAttackEffects(ctx, quality) {

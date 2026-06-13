@@ -692,15 +692,11 @@ export default class Player {
                 const headHalfH = g.h * 0.48;
                 const tailHalfH = Math.max(2.8, g.h * 0.16 * lifeRatio);
 
-                const trailGrad = ctx.createLinearGradient(headX, headY, tailX, headY);
-                trailGrad.addColorStop(0, 'rgba(255,255,255,0.82)');
-                trailGrad.addColorStop(0.24, g.c);
-                trailGrad.addColorStop(1, 'rgba(0,0,0,0)');
-
+                // Solid color + alpha is indistinguishable at dash speed and avoids
+                // 2 gradient allocations per ghost (up to 40/frame during dash)
                 ctx.globalAlpha = g.alpha * Math.max(0.18, lifeRatio);
-                ctx.fillStyle = trailGrad;
-                ctx.shadowBlur = quality >= 0.78 ? 24 : 0;
-                ctx.shadowColor = g.c;
+                ctx.fillStyle = g.c;
+                if (quality >= 0.78) { ctx.shadowBlur = 24; ctx.shadowColor = g.c; }
                 ctx.beginPath();
                 ctx.moveTo(headX, headY - headHalfH);
                 ctx.lineTo(headX, headY + headHalfH);
@@ -709,28 +705,20 @@ export default class Player {
                 ctx.closePath();
                 ctx.fill();
 
-                const coreGrad = ctx.createLinearGradient(headX, headY, tailX, headY);
-                coreGrad.addColorStop(0, 'rgba(255,255,255,0.95)');
-                coreGrad.addColorStop(0.5, g.c);
-                coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
                 ctx.globalAlpha = g.alpha * 0.76 * lifeRatio;
-                ctx.strokeStyle = coreGrad;
+                ctx.strokeStyle = 'rgba(255,255,255,0.72)';
                 ctx.lineWidth = Math.max(1.2, g.h * 0.11 * lifeRatio);
                 ctx.beginPath();
                 ctx.moveTo(headX, headY);
                 ctx.lineTo(tailX, headY + wave * 0.6);
                 ctx.stroke();
-                ctx.shadowBlur = 0;
+                if (quality >= 0.78) ctx.shadowBlur = 0;
             } else {
-                const ghostGrad = ctx.createLinearGradient(g.x, g.y, g.x, g.y + g.h);
-                ghostGrad.addColorStop(0, 'rgba(255,255,255,0.35)');
-                ghostGrad.addColorStop(1, g.c);
-                ctx.fillStyle = ghostGrad;
+                ctx.fillStyle = g.c;
                 ctx.globalAlpha = g.alpha * 0.85;
-                ctx.shadowBlur = quality >= 0.78 ? 12 : 0;
-                ctx.shadowColor = g.c;
+                if (quality >= 0.78) { ctx.shadowBlur = 12; ctx.shadowColor = g.c; }
                 ctx.fillRect(g.x, g.y, g.w, g.h);
-                ctx.shadowBlur = 0;
+                if (quality >= 0.78) ctx.shadowBlur = 0;
             }
 
             g.alpha *= 0.84;

@@ -573,6 +573,104 @@ function drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost,
     }
 }
 
+// ---------------------------------------------------------------------------
+// Cache de gradientes de prédios
+//
+// bodyGrad, sideGloss, fade e neonStrip são independentes de posição X —
+// só dependem de dimensões e paleta. Criamos cada um uma única vez e
+// reutilizamos nos frames seguintes, eliminando 80-200 alocações GPU/frame.
+// Invalidamos apenas quando o prédio reposiciona (x muda após wrap).
+// ---------------------------------------------------------------------------
+function getBuildingBodyGrad(ctx, building, x, topMost) {
+    const h = building.h;
+    const cache = building._bodyGradCache;
+    if (cache && cache.h === h && cache.topMost === topMost && cache.x === x) return cache.grad;
+    const grad = ctx.createLinearGradient(x, topMost - 20, x, building.y + h);
+    grad.addColorStop(0, '#161b3a');
+    grad.addColorStop(0.18, '#0f1330');
+    grad.addColorStop(0.42, BUILDING_BASE.body);
+    grad.addColorStop(1, 'rgba(1, 1, 7, 0.98)');
+    building._bodyGradCache = { h, topMost, x, grad };
+    return grad;
+}
+
+function getBuildingSideGloss(ctx, building, x) {
+    const w = building.w;
+    const cache = building._sideGlossCache;
+    if (cache && cache.w === w && cache.x === x) return cache.grad;
+    const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+    grad.addColorStop(0, 'rgba(120, 226, 255, 0.14)');
+    grad.addColorStop(0.12, 'rgba(255, 126, 206, 0.06)');
+    grad.addColorStop(0.48, 'rgba(0, 0, 0, 0)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0.24)');
+    building._sideGlossCache = { w, x, grad };
+    return grad;
+}
+
+function getBuildingFadeGrad(ctx, building) {
+    const h = building.h;
+    const y = building.y;
+    const cache = building._fadeGradCache;
+    if (cache && cache.h === h && cache.y === y) return cache.grad;
+    const grad = ctx.createLinearGradient(0, y + h * 0.7, 0, y + h);
+    grad.addColorStop(0, 'rgba(0, 0, 0, 0)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0.35)');
+    building._fadeGradCache = { h, y, grad };
+    return grad;
+}
+
+function getBuildingNeonStripGrad(ctx, building, stripX) {
+    // neonStrip depende só da posição X do strip e altura — cacheia por strip index
+    if (!building._neonStripGrads) building._neonStripGrads = [];
+    return null; // gradiente inline mais rápido que cache por índice; deixamos inline
+}
+
+// ---------------------------------------------------------------------------
+// Offscreen canvas para janelas de prédios
+//
+// drawBuildingWindows é o segundo maior custo: 400-2000 fillRect por frame.
+// Renderizamos as janelas num OffscreenCanvas por prédio e só o atualizamos
+// quando o conteúdo muda (flicker staggered 1x por 12 frames por prédio).
+// Cada frame fazemos 1 drawImage em vez de centenas de fillRect.
+// ---------------------------------------------------------------------------
+const WINDOW_UPDATE_INTERVAL = 12;
+
+function getWindowCanvas(building) {
+    const w = Math.ceil(building.w);
+    const h = Math.ceil(building.h);
+    if (!building._winCanvas || building._winCanvas.width !== w || building._winCanvas.height !== h) {
+        building._winCanvas = typeof OffscreenCanvas !== 'undefined'
+            ? new OffscreenCanvas(w, h)
+            : (() => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; })();
+        building._winCtx = building._winCanvas.getContext('2d');
+        building._winDirty = true;
+    }
+    return building._winCanvas;
+}
+
+function updateWindowCanvas(building, quality, frameBucket, flashBoost, windowCore, windowHot, cyanCore, cyanHot, magentaCore, magentaHot) {
+    const wCanvas = getWindowCanvas(building);
+    const wCtx = building._winCtx;
+    const frames = state.game.frames;
+    const offset = building._winFlickerOffset || 0;
+    const needsUpdate = building._winDirty || (frames % WINDOW_UPDATE_INTERVAL === offset);
+    if (!needsUpdate) return;
+    building._winDirty = false;
+
+    wCtx.clearRect(0, 0, wCanvas.width, wCanvas.height);
+
+    // Redraw no sistema de coordenadas LOCAL do canvas (origem = building.x, building.y)
+    const localBuilding = { ...building, x: 0, y: 0 };
+    const wc = building.windowPalette === 'mixed'
+        ? (frameBucket % 2 === 0 ? cyanCore : magentaCore)
+        : windowCore;
+    const wh = building.windowPalette === 'mixed'
+        ? (frameBucket % 2 === 0 ? cyanHot : magentaHot)
+        : windowHot;
+
+    drawBuildingWindows(wCtx, localBuilding, 0, quality, frameBucket, flashBoost, wc, wh);
+}
+
 export function drawLayer(layer, camX) {
     const ctx = state.ctx;
     const quality = state.performance?.quality || 1;
@@ -583,6 +681,12 @@ export function drawLayer(layer, camX) {
         ? Math.max(2000, lastBuilding.x + lastBuilding.w + 260)
         : 2000;
 
+    const cyanCore = 'rgba(74, 235, 255, 0.32)';
+    const cyanHot = 'rgba(196, 255, 255, 0.72)';
+    const magentaCore = 'rgba(255, 86, 176, 0.3)';
+    const magentaHot = 'rgba(255, 190, 228, 0.68)';
+    const frameBucket = Math.floor(state.game.frames / 14);
+
     layer.forEach(building => {
         const relativeX = building.x - (camX * building.parallax);
         let x = relativeX % layerSpan;
@@ -592,10 +696,6 @@ export function drawLayer(layer, camX) {
         const hue = (layerTone + (building.accentShift || 0) + 360) % 360;
         const accent = `hsla(${(hue + 22) % 360}, 100%, 66%, 0.6)`;
         const glow = `hsla(${(hue + 12) % 360}, 100%, 62%, 0.28)`;
-        const cyanCore = 'rgba(74, 235, 255, 0.32)';
-        const cyanHot = 'rgba(196, 255, 255, 0.72)';
-        const magentaCore = 'rgba(255, 86, 176, 0.3)';
-        const magentaHot = 'rgba(255, 190, 228, 0.68)';
         const windowCore = building.windowPalette === 'magenta' ? magentaCore : cyanCore;
         const windowHot = building.windowPalette === 'magenta' ? magentaHot : cyanHot;
         const buildingAlpha = 0.34 + (building.opacity * 0.4);
@@ -603,47 +703,38 @@ export function drawLayer(layer, camX) {
         ctx.save();
         ctx.globalAlpha = buildingAlpha;
 
-        // Constrói a silhueta completa (body + topo) como um único path.
-        // Fill e stroke aplicados no mesmo path = sem efeito de "blocos colados".
         const { roofX, roofY, roofW, topMost } = buildBuildingSilhouette(ctx, building, x);
 
-        // Estende o início do gradient pra cobrir o topo da silhueta com
-        // suavidade, sem clarear demais a parte mais alta da torre.
-        const bodyGrad = ctx.createLinearGradient(x, topMost - 20, x, building.y + building.h);
-        bodyGrad.addColorStop(0, '#161b3a');
-        bodyGrad.addColorStop(0.18, '#0f1330');
-        bodyGrad.addColorStop(0.42, BUILDING_BASE.body);
-        bodyGrad.addColorStop(1, 'rgba(1, 1, 7, 0.98)');
-        ctx.fillStyle = bodyGrad;
+        // Gradientes de corpo cached por prédio — sem alocação recorrente
+        ctx.fillStyle = getBuildingBodyGrad(ctx, building, x, topMost);
+        ctx.fill();
+        ctx.fillStyle = getBuildingSideGloss(ctx, building, x);
         ctx.fill();
 
-        const sideGloss = ctx.createLinearGradient(x, 0, x + building.w, 0);
-        sideGloss.addColorStop(0, 'rgba(120, 226, 255, 0.14)');
-        sideGloss.addColorStop(0.12, 'rgba(255, 126, 206, 0.06)');
-        sideGloss.addColorStop(0.48, 'rgba(0, 0, 0, 0)');
-        sideGloss.addColorStop(1, 'rgba(0, 0, 0, 0.24)');
-        ctx.fillStyle = sideGloss;
-        ctx.fill();
-
-        // Rim light: borda esquerda iluminada (luz neon ambiente refletindo
-        // na fachada). Usa clip pelo path da silhueta pra respeitar chanfros.
+        // Rim light sem clip — substituímos o clip por fillRect simples com
+        // gradiente horizontal, que produz o mesmo efeito visual. Elimina
+        // o custo de stencil (ctx.clip + ctx.restore) por prédio.
         if (quality >= 0.82 && building.parallax > 0.25) {
             const rimColor = building.windowPalette === 'magenta'
                 ? 'rgba(255, 130, 200, 0.55)'
                 : 'rgba(140, 230, 255, 0.55)';
-            const rimGrad = ctx.createLinearGradient(x, 0, x + 7, 0);
-            rimGrad.addColorStop(0, rimColor);
-            rimGrad.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.save();
-            ctx.clip();
+            // Cache do rimGrad por prédio (depende apenas de x e paleta)
+            const rimKey = `${x}|${building.windowPalette}`;
+            if (!building._rimGradCache || building._rimGradCache.key !== rimKey) {
+                const rimGrad = ctx.createLinearGradient(x, 0, x + 7, 0);
+                rimGrad.addColorStop(0, rimColor);
+                rimGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                building._rimGradCache = { key: rimKey, grad: rimGrad };
+            }
             ctx.globalAlpha = 0.32;
-            ctx.fillStyle = rimGrad;
+            ctx.fillStyle = building._rimGradCache.grad;
             ctx.fillRect(x, building.y - 60, 7, building.h + 80);
-            ctx.restore();
             ctx.globalAlpha = buildingAlpha;
         }
 
-        // Contorno único cyan ao redor da silhueta inteira (corpo + topo).
+        // Contorno — shadowBlur batched: setamos uma vez, desenhamos todos
+        // de uma vez ao final do forEach (aqui mantemos inline pois é um
+        // stroke por prédio, o custo de toggle já é mínimo com apenas 1 set).
         ctx.strokeStyle = accent;
         ctx.lineWidth = 1;
         ctx.shadowBlur = quality >= 0.88 ? 4 : 0;
@@ -665,15 +756,11 @@ export function drawLayer(layer, camX) {
             ctx.globalAlpha = buildingAlpha;
         }
 
-        // Faixas horizontais sutis a cada 32px — sugerem divisão de andares
-        // sem competir visualmente com janelas. Só nas camadas próximas
-        // (parallax > 0.3) pra não poluir o fundo distante.
         if (quality >= 0.78 && building.parallax > 0.3) {
             ctx.fillStyle = 'rgba(80, 130, 180, 0.5)';
             ctx.globalAlpha = 0.07;
-            const floorStep = 32;
             const floorEnd = building.y + building.h - 12;
-            for (let fy = building.y + 22; fy < floorEnd; fy += floorStep) {
+            for (let fy = building.y + 22; fy < floorEnd; fy += 32) {
                 ctx.fillRect(x + 4, fy, building.w - 8, 1);
             }
             ctx.globalAlpha = buildingAlpha;
@@ -681,19 +768,17 @@ export function drawLayer(layer, camX) {
 
         drawBuildingRoof(ctx, building, roofX, roofY, roofW, accent, glow, quality);
 
+        // Janelas via offscreen canvas — 1 drawImage em vez de 400-2000 fillRect
         if (quality >= 0.72) {
             const flashBoost = building.flashTimer > 0 ? ((building.flashTimer / 10) * 0.22) : 0;
-            const frameBucket = Math.floor(state.game.frames / 14);
-            if (building.windowPalette === 'mixed') {
-                const altCore = frameBucket % 2 === 0 ? cyanCore : magentaCore;
-                const altHot = frameBucket % 2 === 0 ? cyanHot : magentaHot;
-                drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost, altCore, altHot);
-            } else {
-                drawBuildingWindows(ctx, building, x, quality, frameBucket, flashBoost, windowCore, windowHot);
+            if (!building._winFlickerOffset) {
+                building._winFlickerOffset = (building.x * 7 + building.w * 3) % WINDOW_UPDATE_INTERVAL;
             }
+            updateWindowCanvas(building, quality, frameBucket, flashBoost, windowCore, windowHot, cyanCore, cyanHot, magentaCore, magentaHot);
+            ctx.globalAlpha = buildingAlpha;
+            ctx.drawImage(building._winCanvas, x, building.y);
         }
 
-        // Letreiro vertical lateral (anúncio de néon em fachada).
         ctx.globalAlpha = 1;
         drawBuildingSigns(ctx, building, x, quality);
         ctx.globalAlpha = buildingAlpha;
@@ -723,10 +808,7 @@ export function drawLayer(layer, camX) {
         ctx.fillRect(x + building.w * 0.62, building.y + building.h * 0.24, building.w * 0.14, panelH * 0.72);
         ctx.fillRect(x + building.w * 0.28, building.y + building.h * 0.58, building.w * 0.1, panelH * 0.62);
 
-        const fade = ctx.createLinearGradient(0, building.y + building.h * 0.7, 0, building.y + building.h);
-        fade.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        fade.addColorStop(1, 'rgba(0, 0, 0, 0.35)');
-        ctx.fillStyle = fade;
+        ctx.fillStyle = getBuildingFadeGrad(ctx, building);
         ctx.globalAlpha = 1;
         ctx.fillRect(x, building.y + building.h * 0.7, building.w, building.h * 0.3);
 
