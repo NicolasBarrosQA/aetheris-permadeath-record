@@ -29,7 +29,7 @@ test('language toggle switches the game to pt-BR discreetly', async ({ page }) =
     await expect(page.locator('#auth-title')).toContainText('Entrar no AETHERIS');
 });
 
-test('leaderboard opens only by command and stays centered before the run', async ({ page }) => {
+test('leaderboard opens only by command and appears as right-side panel before the run', async ({ page }) => {
     await page.setViewportSize({ width: 1366, height: 768 });
     await page.goto('/public/index.html');
 
@@ -42,8 +42,9 @@ test('leaderboard opens only by command and stays centered before the run', asyn
     await expect(page.locator('#leaderboard-list')).toContainText('NO VERIFIED SCORES');
 
     const box = await page.locator('.leaderboard-dialog').boundingBox();
+    // Panel anchors to the right edge of the screen
     expect(box.x).toBeGreaterThan(300);
-    expect(box.x + box.width).toBeLessThan(1066);
+    expect(box.x + box.width).toBeGreaterThan(1066);
 
     await page.locator('#leaderboard-close-btn').click();
     await expect(modal).toBeHidden();
