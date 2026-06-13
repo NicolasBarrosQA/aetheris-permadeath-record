@@ -11,6 +11,7 @@
     --text-dim: #95abc9;
     --rack-bg: rgba(3, 9, 24, 0.58);
     --rack-border: rgba(152, 217, 255, 0.18);
+    --shop-bg: rgba(3, 9, 24, 0.96);
 }
 
 * {
@@ -99,7 +100,7 @@ button {
     font-weight: 700;
     letter-spacing: 1px;
     text-transform: uppercase;
-    transition: border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+    transition: all 0.18s ease;
 }
 
 .mobile-shop-close:hover,
@@ -107,7 +108,11 @@ button {
     border-color: rgba(122, 226, 255, 0.58);
     color: #ffffff;
     outline: none;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+}
+
+.mobile-shop-close:active {
+    transform: translateY(0) scale(0.98);
 }
 
 #mobile-controls {
@@ -443,7 +448,7 @@ html.is-mobile body {
 }
 
 /* ============================================================
-   SYSTEM MODALS (auth gate, leaderboard)
+   SYSTEM MODALS (auth gate + leaderboard)
    ============================================================ */
 
 .system-modal {
@@ -470,12 +475,13 @@ html.is-mobile body {
     overflow-y: auto;
     padding: 22px;
     border: 1px solid rgba(142, 224, 255, 0.32);
-    border-radius: 8px;
+    border-radius: 10px;
     background:
-        linear-gradient(180deg, rgba(10, 22, 48, 0.96), rgba(3, 9, 24, 0.96)),
-        rgba(4, 10, 25, 0.96);
+        linear-gradient(180deg, rgba(10, 22, 48, 0.98), rgba(3, 9, 24, 0.98)),
+        rgba(4, 10, 25, 0.98);
     box-shadow:
-        0 28px 90px rgba(0, 0, 0, 0.82),
+        0 32px 100px rgba(0, 0, 0, 0.88),
+        0 0 0 1px rgba(91, 215, 255, 0.06),
         inset 0 1px 0 rgba(255, 255, 255, 0.08);
     color: #eaf5ff;
     scrollbar-width: thin;
@@ -488,7 +494,7 @@ html.is-mobile body {
 }
 
 /* ============================================================
-   MODAL TOPLINE
+   MODAL TOP LINE
    ============================================================ */
 
 .modal-topline {
@@ -514,7 +520,7 @@ html.is-mobile body {
 }
 
 /* ============================================================
-   CONSISTENT BUTTON BASE
+   CONSISTENT BUTTON BASE + SMOOTH TRANSITIONS
    ============================================================ */
 
 .icon-close,
@@ -528,7 +534,7 @@ html.is-mobile body {
 #leaderboard-tabs button {
     min-width: 0;
     border: 1px solid rgba(146, 216, 255, 0.24);
-    border-radius: 6px;
+    border-radius: 7px;
     background: rgba(8, 18, 40, 0.76);
     color: #d8edff;
     cursor: pointer;
@@ -560,7 +566,6 @@ html.is-mobile body {
 #leaderboard-tabs button:focus-visible {
     outline: none;
     transform: translateY(-2px);
-    border-color: rgba(122, 226, 255, 0.54);
     color: #ffffff;
 }
 
@@ -577,26 +582,26 @@ html.is-mobile body {
 }
 
 /* ============================================================
-   CLOSE / UTILITY BUTTON
+   ICON CLOSE — utility, dim
    ============================================================ */
 
 .icon-close {
     height: 30px;
     padding: 0 10px;
-    color: #aecaec;
+    color: #7a9ab8;
     border-color: rgba(146, 216, 255, 0.16);
-    background: rgba(4, 10, 24, 0.5);
+    background: transparent;
 }
 
 .icon-close:hover,
 .icon-close:focus-visible {
-    border-color: rgba(146, 216, 255, 0.32);
+    color: #aecaec;
+    border-color: rgba(146, 216, 255, 0.3);
     box-shadow: none;
-    color: #c8dff5;
 }
 
 /* ============================================================
-   ACCOUNT SUMMARY / PILOT STRIP
+   ACCOUNT SUMMARY / PILOT STRIP / LEADERBOARD CONTEXT
    ============================================================ */
 
 #account-summary,
@@ -608,9 +613,9 @@ html.is-mobile body {
     gap: 12px;
     margin-bottom: 12px;
     padding: 8px 12px;
-    border: 1px solid rgba(160, 214, 255, 0.18);
+    border: 1px solid rgba(160, 214, 255, 0.14);
     border-radius: 7px;
-    background: rgba(2, 8, 22, 0.62);
+    background: rgba(2, 8, 22, 0.52);
 }
 
 #leaderboard-context {
@@ -645,46 +650,51 @@ html.is-mobile body {
     white-space: nowrap;
 }
 
+/* Pilot strip — compact inline layout */
 #pilot-strip {
     width: min(470px, 100%);
     margin: 0 auto 8px;
     text-align: left;
+    padding: 7px 10px;
 }
 
+/* Account open button */
 #account-open-btn {
     height: 34px;
     padding: 0 12px;
 }
 
 /* ============================================================
-   GUEST CONTINUE BUTTON — PRIMARY CTA
+   AUTH GATE: GUEST CONTINUE — PRIMARY CTA
    ============================================================ */
 
 #guest-continue-btn {
     width: 100%;
     height: 52px;
     margin-bottom: 0;
+    padding: 0 20px;
     font-size: 16px;
     font-weight: 700;
     letter-spacing: 2px;
     border-color: rgba(91, 215, 255, 0.75);
-    color: #e2f6ff;
+    color: #e8f9ff;
     background:
-        linear-gradient(135deg, rgba(91, 215, 255, 0.14), rgba(91, 215, 255, 0.04)),
-        rgba(8, 18, 40, 0.86);
+        linear-gradient(145deg, rgba(91, 215, 255, 0.14), rgba(91, 215, 255, 0.04)),
+        rgba(6, 16, 36, 0.88);
     box-shadow:
         0 0 28px rgba(91, 215, 255, 0.22),
         inset 0 0 12px rgba(91, 215, 255, 0.06);
+    border-radius: 8px;
 }
 
 #guest-continue-btn:hover,
 #guest-continue-btn:focus-visible {
-    border-color: rgba(91, 215, 255, 0.95);
+    border-color: rgba(91, 215, 255, 1);
     background:
-        linear-gradient(135deg, rgba(91, 215, 255, 0.22), rgba(91, 215, 255, 0.08)),
-        rgba(8, 18, 40, 0.9);
+        linear-gradient(145deg, rgba(91, 215, 255, 0.22), rgba(91, 215, 255, 0.08)),
+        rgba(6, 18, 42, 0.92);
     box-shadow:
-        0 0 38px rgba(91, 215, 255, 0.35),
+        0 0 38px rgba(91, 215, 255, 0.36),
         inset 0 0 16px rgba(91, 215, 255, 0.1);
     color: #ffffff;
     transform: translateY(-2px);
@@ -716,7 +726,7 @@ html.is-mobile body {
 }
 
 /* ============================================================
-   MODAL COPY
+   MODAL COPY + HEADING
    ============================================================ */
 
 .modal-copy {
@@ -757,91 +767,110 @@ html.is-mobile body {
 #account-form-tabs button,
 #leaderboard-tabs button,
 #account-submit-btn,
-#account-logout-btn,
-#leaderboard-open-btn,
-#quick-shop-btn {
+#account-logout-btn {
     height: 38px;
 }
 
-/* Leaderboard and pre-run action buttons at 42px */
-#leaderboard-open-btn,
-#quick-shop-btn {
-    height: 42px;
-}
+/* ============================================================
+   BUTTON ACCENT COLORS BY ROLE
+   ============================================================ */
 
-/* Form tab selected state */
-#account-form-tabs button.selected,
-#leaderboard-tabs button:hover,
-#leaderboard-tabs button.selected {
-    border-color: rgba(91, 215, 255, 0.52);
-    color: #d8f4ff;
-    background: rgba(44, 155, 200, 0.18);
-}
-
-/* Submit button — green action */
+/* Account submit — green (action) */
 #account-submit-btn {
-    height: 38px;
-    border-color: rgba(102, 242, 164, 0.52);
+    border-color: rgba(102, 242, 164, 0.55);
     color: #d8ffe5;
-    background: rgba(61, 192, 132, 0.18);
+    background:
+        linear-gradient(145deg, rgba(102, 242, 164, 0.18), rgba(102, 242, 164, 0.04)),
+        rgba(8, 18, 40, 0.82);
+    box-shadow: 0 0 18px rgba(102, 242, 164, 0.1);
 }
 
 #account-submit-btn:hover,
 #account-submit-btn:focus-visible {
-    border-color: rgba(102, 242, 164, 0.82);
-    background: rgba(61, 192, 132, 0.28);
-    box-shadow: 0 0 22px rgba(102, 242, 164, 0.2);
+    border-color: rgba(102, 242, 164, 0.85);
+    background:
+        linear-gradient(145deg, rgba(102, 242, 164, 0.28), rgba(102, 242, 164, 0.08)),
+        rgba(8, 20, 44, 0.9);
+    box-shadow: 0 0 28px rgba(102, 242, 164, 0.22);
     color: #ffffff;
-    transform: translateY(-2px);
 }
 
-/* Logout button — destructive red */
+/* Account logout — red/pink (destructive) */
 #account-logout-btn {
     display: none;
-    border-color: rgba(255, 77, 120, 0.42);
+    border-color: rgba(255, 77, 120, 0.44);
     color: #ffc2d3;
-    background: rgba(180, 30, 70, 0.14);
+    background:
+        linear-gradient(145deg, rgba(255, 77, 120, 0.12), rgba(255, 77, 120, 0.03)),
+        rgba(8, 18, 40, 0.82);
 }
 
 #account-logout-btn:hover,
 #account-logout-btn:focus-visible {
-    border-color: rgba(255, 77, 120, 0.72);
-    background: rgba(180, 30, 70, 0.24);
-    box-shadow: 0 0 20px rgba(255, 77, 120, 0.2);
-    color: #ffd8e2;
-    transform: translateY(-2px);
+    border-color: rgba(255, 77, 120, 0.78);
+    background:
+        linear-gradient(145deg, rgba(255, 77, 120, 0.22), rgba(255, 77, 120, 0.07)),
+        rgba(8, 18, 40, 0.9);
+    box-shadow: 0 0 22px rgba(255, 77, 120, 0.2);
+    color: #ffffff;
 }
+
+/* Form tab selected + leaderboard tabs hover/selected */
+#account-form-tabs button.selected,
+#leaderboard-tabs button:hover,
+#leaderboard-tabs button.selected {
+    border-color: rgba(102, 242, 164, 0.48);
+    color: #d8ffe5;
+    background:
+        linear-gradient(145deg, rgba(61, 192, 132, 0.22), rgba(61, 192, 132, 0.06)),
+        rgba(8, 18, 40, 0.86);
+    box-shadow: 0 0 14px rgba(102, 242, 164, 0.12);
+}
+
+/* ============================================================
+   PRE-RUN ACTION BUTTONS
+   ============================================================ */
 
 /* Leaderboard open — cyan secondary */
 #leaderboard-open-btn {
+    height: 42px;
     border-color: rgba(91, 215, 255, 0.44);
-    color: #d8f0ff;
-    background: rgba(30, 120, 180, 0.14);
+    color: #cff0ff;
+    background:
+        linear-gradient(145deg, rgba(91, 215, 255, 0.14), rgba(91, 215, 255, 0.03)),
+        rgba(8, 18, 40, 0.82);
+    box-shadow: 0 0 14px rgba(91, 215, 255, 0.1);
 }
 
 #leaderboard-open-btn:hover,
 #leaderboard-open-btn:focus-visible {
-    border-color: rgba(91, 215, 255, 0.76);
-    background: rgba(30, 120, 180, 0.24);
-    box-shadow: 0 0 22px rgba(91, 215, 255, 0.2);
+    border-color: rgba(91, 215, 255, 0.78);
+    background:
+        linear-gradient(145deg, rgba(91, 215, 255, 0.24), rgba(91, 215, 255, 0.07)),
+        rgba(8, 20, 44, 0.9);
+    box-shadow: 0 0 24px rgba(91, 215, 255, 0.22);
     color: #ffffff;
-    transform: translateY(-2px);
 }
 
 /* Quick shop — gold secondary */
 #quick-shop-btn {
-    border-color: rgba(255, 217, 95, 0.42);
-    color: #fff3c0;
-    background: rgba(160, 120, 10, 0.14);
+    height: 42px;
+    border-color: rgba(255, 217, 95, 0.44);
+    color: #fff0b0;
+    background:
+        linear-gradient(145deg, rgba(255, 217, 95, 0.12), rgba(255, 217, 95, 0.03)),
+        rgba(8, 18, 40, 0.82);
+    box-shadow: 0 0 14px rgba(255, 217, 95, 0.08);
 }
 
 #quick-shop-btn:hover,
 #quick-shop-btn:focus-visible {
-    border-color: rgba(255, 217, 95, 0.72);
-    background: rgba(160, 120, 10, 0.24);
-    box-shadow: 0 0 22px rgba(255, 217, 95, 0.2);
-    color: #fff7d0;
-    transform: translateY(-2px);
+    border-color: rgba(255, 217, 95, 0.78);
+    background:
+        linear-gradient(145deg, rgba(255, 217, 95, 0.22), rgba(255, 217, 95, 0.06)),
+        rgba(8, 20, 44, 0.9);
+    box-shadow: 0 0 24px rgba(255, 217, 95, 0.2);
+    color: #ffffff;
 }
 
 /* ============================================================
@@ -863,7 +892,7 @@ html.is-mobile body {
     font: 700 14px 'Rajdhani', sans-serif;
     letter-spacing: 1px;
     outline: none;
-    transition: all 0.18s ease;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
 
 #account-message {
@@ -872,6 +901,10 @@ html.is-mobile body {
     color: #95abc9;
     line-height: 1.25;
     text-transform: none;
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
 }
 
 #account-message[data-tone="ready"] {
@@ -882,8 +915,16 @@ html.is-mobile body {
     color: #ffd795;
 }
 
+#account-username:focus,
+#account-display:focus,
+#account-password:focus,
+#leaderboard-name-input:focus {
+    border-color: rgba(91, 215, 255, 0.64);
+    box-shadow: 0 0 16px rgba(91, 215, 255, 0.14);
+}
+
 /* ============================================================
-   LEADERBOARD STATUS
+   LEADERBOARD
    ============================================================ */
 
 #leaderboard-status {
@@ -904,10 +945,6 @@ html.is-mobile body {
     color: #ffd795;
     border-color: rgba(255, 205, 104, 0.45);
 }
-
-/* ============================================================
-   LEADERBOARD NAME INPUT
-   ============================================================ */
 
 #leaderboard-name {
     display: grid;
@@ -933,21 +970,9 @@ html.is-mobile body {
     opacity: 0.72;
 }
 
-#account-username:focus,
-#account-display:focus,
-#account-password:focus,
-#leaderboard-name-input:focus {
-    border-color: rgba(91, 215, 255, 0.64);
-    box-shadow: 0 0 16px rgba(91, 215, 255, 0.14);
-}
-
-/* ============================================================
-   LEADERBOARD LIST
-   ============================================================ */
-
 #leaderboard-list {
     display: grid;
-    gap: 8px;
+    gap: 6px;
     max-height: min(46vh, 360px);
     margin: 0;
     padding: 0;
@@ -960,9 +985,14 @@ html.is-mobile body {
 .leaderboard-row,
 .leaderboard-empty {
     min-height: 44px;
-    border-radius: 6px;
-    background: rgba(2, 8, 22, 0.64);
-    border: 1px solid rgba(160, 214, 255, 0.14);
+    border-radius: 7px;
+    background: rgba(2, 8, 22, 0.52);
+    border: 1px solid rgba(160, 214, 255, 0.11);
+}
+
+/* Alternating subtle background for readability */
+.leaderboard-row:nth-child(even) {
+    background: rgba(4, 12, 30, 0.7);
 }
 
 .leaderboard-row {
@@ -972,15 +1002,12 @@ html.is-mobile body {
     gap: 10px;
     padding: 10px 12px;
     font-family: 'Rajdhani', sans-serif;
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.leaderboard-row:nth-child(even) {
-    background: rgba(4, 12, 30, 0.72);
-}
-
-.leaderboard-row:nth-child(odd) {
-    background: rgba(2, 7, 20, 0.54);
+.leaderboard-row:hover {
+    background: rgba(8, 20, 48, 0.8);
+    border-color: rgba(160, 214, 255, 0.2);
 }
 
 .leaderboard-empty {
@@ -1022,6 +1049,10 @@ html.is-mobile body {
     font-size: 12px;
     text-align: right;
 }
+
+/* ============================================================
+   BOOST HUD INTERNALS
+   ============================================================ */
 
 .boost-icon {
     width: 46px;
@@ -1076,6 +1107,10 @@ html.is-mobile body {
     transition: width 0.15s linear;
 }
 
+/* ============================================================
+   STATUS PILLS
+   ============================================================ */
+
 .status-pill {
     min-width: 150px;
     padding: 9px 12px;
@@ -1123,7 +1158,7 @@ html.is-mobile body {
 }
 
 /* ============================================================
-   OVERLAY SCREEN (game over) — dramatic
+   OVERLAY SCREEN (game over) — DRAMATIC
    ============================================================ */
 
 #overlay-screen {
@@ -1133,31 +1168,35 @@ html.is-mobile body {
     transform: translate(-50%, -50%);
     z-index: 20;
     min-width: min(90vw, 480px);
-    padding: 44px 48px;
+    padding: 48px 52px;
     text-align: center;
     display: none;
-    border-radius: 12px;
+    border-radius: 14px;
     border: 1px solid rgba(255, 77, 120, 0.5);
     background:
-        linear-gradient(150deg, rgba(14, 17, 35, 0.94), rgba(36, 7, 22, 0.92));
+        linear-gradient(150deg, rgba(20, 8, 22, 0.96), rgba(36, 6, 24, 0.94));
     box-shadow:
-        0 25px 90px rgba(0, 0, 0, 0.88),
-        0 0 60px rgba(255, 77, 120, 0.12),
-        inset 0 0 35px rgba(255, 255, 255, 0.03);
-    backdrop-filter: blur(14px);
+        0 32px 110px rgba(0, 0, 0, 0.9),
+        0 0 60px rgba(255, 77, 120, 0.14),
+        inset 0 0 40px rgba(255, 77, 120, 0.05);
+    backdrop-filter: blur(16px);
+    animation: dialog-enter 0.22s ease-out both;
 }
 
 #overlay-title {
+    margin: 0 0 14px;
+    font-family: 'Rajdhani', sans-serif;
     font-size: 52px;
+    font-weight: 700;
     letter-spacing: 5px;
-    color: #ff6090;
+    color: #ff4d78;
     text-shadow:
-        0 0 28px rgba(255, 77, 120, 0.7),
-        0 0 8px rgba(255, 77, 120, 0.4);
+        0 0 30px rgba(255, 77, 120, 0.7),
+        0 0 8px rgba(255, 77, 120, 0.5);
 }
 
 /* ============================================================
-   PAUSE SCREEN — clean
+   PAUSE SCREEN — CLEANER
    ============================================================ */
 
 #pause-screen {
@@ -1191,9 +1230,9 @@ html.is-mobile body {
 }
 
 #pause-title {
-    margin: 0 0 0;
-    padding-bottom: 14px;
-    border-bottom: 1px solid rgba(91, 215, 255, 0.18);
+    margin: 0 0 12px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(91, 215, 255, 0.2);
     font-family: 'Rajdhani', sans-serif;
     font-size: 56px;
     font-weight: 700;
@@ -1205,38 +1244,38 @@ html.is-mobile body {
 }
 
 #pause-msg {
-    margin: 14px 0 4px;
+    margin: 0 0 4px;
     color: #95abc9;
     font-size: 13px;
     letter-spacing: 1.5px;
     text-transform: uppercase;
 }
 
+/* Pause resume — btn style with cyan accent */
 #pause-resume-btn {
-    margin-top: 22px;
+    margin-top: 28px;
     padding: 10px 34px;
     border-radius: 8px;
-    border: 1px solid rgba(91, 215, 255, 0.5);
+    border: 1px solid rgba(91, 215, 255, 0.55);
     background:
-        linear-gradient(135deg, rgba(91, 215, 255, 0.14), rgba(91, 215, 255, 0.04)),
-        rgba(8, 18, 40, 0.86);
-    color: #d8f4ff;
+        linear-gradient(135deg, rgba(91, 215, 255, 0.18), rgba(91, 215, 255, 0.05));
+    color: #cff0ff;
     font-family: 'Rajdhani', sans-serif;
     font-size: 16px;
-    letter-spacing: 2px;
+    letter-spacing: 1px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.18s ease;
-    box-shadow: 0 0 20px rgba(91, 215, 255, 0.12);
+    box-shadow: 0 0 18px rgba(91, 215, 255, 0.12);
 }
 
 #pause-resume-btn:hover,
 #pause-resume-btn:focus-visible {
-    outline: none;
     transform: translateY(-2px);
-    border-color: rgba(91, 215, 255, 0.85);
-    box-shadow: 0 0 32px rgba(91, 215, 255, 0.28);
+    border-color: rgba(91, 215, 255, 0.9);
+    box-shadow: 0 8px 24px rgba(91, 215, 255, 0.28);
     color: #ffffff;
+    outline: none;
 }
 
 #pause-resume-btn:active {
@@ -1247,6 +1286,10 @@ html.is-mobile body {
     from { opacity: 0; }
     to { opacity: 1; }
 }
+
+/* ============================================================
+   GENERIC H1 + BTN (used in overlay/pause)
+   ============================================================ */
 
 h1 {
     margin: 0 0 12px;
@@ -1268,14 +1311,22 @@ h1 {
     letter-spacing: 1px;
     font-weight: 700;
     cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    transition: all 0.18s ease;
 }
 
 .btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(122, 224, 255, 0.24);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(122, 224, 255, 0.28);
     filter: brightness(1.08);
 }
+
+.btn:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* ============================================================
+   SHOP MODAL
+   ============================================================ */
 
 #shop-modal {
     position: absolute;
@@ -1287,13 +1338,13 @@ h1 {
     display: none;
     flex-direction: column;
     transform: translate(-50%, -50%);
-    border-radius: 8px;
+    border-radius: 10px;
     border: 1px solid rgba(122, 224, 255, 0.4);
     background:
-        linear-gradient(180deg, rgba(10, 22, 48, 0.96), rgba(3, 9, 24, 0.96));
+        linear-gradient(180deg, rgba(10, 22, 48, 0.98), rgba(3, 9, 24, 0.98));
     box-shadow:
-        0 24px 90px rgba(0, 0, 0, 0.86),
-        inset 0 0 40px rgba(74, 203, 255, 0.09);
+        0 28px 100px rgba(0, 0, 0, 0.9),
+        inset 0 0 40px rgba(74, 203, 255, 0.07);
     backdrop-filter: blur(18px);
     padding: 22px;
     overflow: hidden;
@@ -1324,27 +1375,29 @@ h1 {
     text-shadow: 0 0 14px rgba(255, 201, 88, 0.45);
 }
 
+/* Skins grid with fade edges hinting at scroll */
 #skins-grid {
+    position: relative;
     display: flex;
     gap: 14px;
     flex: 1 1 auto;
     min-height: 0;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 8px 28px;
+    padding: 8px 4px;
     scrollbar-width: thin;
     scrollbar-color: rgba(115, 229, 255, 0.66) rgba(11, 18, 38, 0.9);
-    position: relative;
 }
 
+/* Left/right fade edges to hint at scroll */
 #skins-grid::before,
 #skins-grid::after {
     content: '';
     position: sticky;
     top: 0;
     bottom: 0;
-    width: 36px;
-    min-width: 36px;
+    width: 32px;
+    min-width: 32px;
     flex-shrink: 0;
     pointer-events: none;
     z-index: 2;
@@ -1352,12 +1405,12 @@ h1 {
 
 #skins-grid::before {
     left: 0;
-    background: linear-gradient(to right, rgba(10, 22, 48, 0.92), transparent);
+    background: linear-gradient(to right, var(--shop-bg) 0%, transparent 100%);
 }
 
 #skins-grid::after {
     right: 0;
-    background: linear-gradient(to left, rgba(10, 22, 48, 0.92), transparent);
+    background: linear-gradient(to left, var(--shop-bg) 0%, transparent 100%);
 }
 
 .skin-card {
@@ -1374,13 +1427,17 @@ h1 {
     background:
         linear-gradient(160deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0)),
         rgba(5, 10, 24, 0.72);
-    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: all 0.18s ease;
 }
 
 .skin-card:hover {
     transform: translateY(-3px);
     border-color: rgba(144, 230, 255, 0.54);
-    box-shadow: 0 12px 24px rgba(30, 68, 120, 0.32);
+    box-shadow: 0 12px 28px rgba(30, 68, 120, 0.38);
+}
+
+.skin-card:active {
+    transform: translateY(0) scale(0.98);
 }
 
 .skin-card.selected {
@@ -1423,13 +1480,17 @@ h1 {
     font-size: 10px;
     font-family: 'Space Grotesk', sans-serif;
     cursor: pointer;
-    transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+    transition: all 0.18s ease;
 }
 
 .btn-buy:hover {
     transform: translateY(-1px);
     background: linear-gradient(140deg, rgba(82, 232, 255, 0.3), rgba(255, 134, 186, 0.3));
     color: #fff;
+}
+
+.btn-buy:active {
+    transform: translateY(0) scale(0.98);
 }
 
 .btn-equip {
@@ -1455,6 +1516,10 @@ h1 {
     text-transform: uppercase;
 }
 
+/* ============================================================
+   START HINT PANEL
+   ============================================================ */
+
 #start-hint {
     position: absolute;
     left: 50%;
@@ -1463,10 +1528,10 @@ h1 {
     transform: translateX(-50%);
     width: min(720px, calc(100vw - 32px));
     padding: 14px 16px 12px;
-    border-radius: 8px;
+    border-radius: 10px;
     border: 1px solid rgba(177, 222, 255, 0.26);
     background:
-        linear-gradient(180deg, rgba(8, 20, 46, 0.82), rgba(3, 9, 24, 0.68));
+        linear-gradient(180deg, rgba(8, 20, 46, 0.84), rgba(3, 9, 24, 0.7));
     color: rgba(224, 243, 255, 0.9);
     text-align: center;
     text-transform: uppercase;
@@ -1486,10 +1551,14 @@ h1 {
     position: absolute;
     inset: 0 0 auto;
     height: 2px;
-    border-radius: 8px 8px 0 0;
+    border-radius: 10px 10px 0 0;
     background: linear-gradient(90deg, rgba(91, 215, 255, 0), rgba(91, 215, 255, 0.76), rgba(255, 217, 95, 0.46), rgba(91, 215, 255, 0));
     opacity: 0.82;
 }
+
+/* ============================================================
+   DIFFICULTY PICKER
+   ============================================================ */
 
 #difficulty-picker {
     display: grid;
@@ -1509,44 +1578,42 @@ h1 {
     color: #deefff;
     cursor: pointer;
     pointer-events: auto;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
+    transition: all 0.18s ease;
 }
 
 .difficulty-btn:hover {
-    transform: translateY(-1px);
-    border-color: rgba(160, 228, 255, 0.3);
+    transform: translateY(-2px);
+    border-color: rgba(160, 228, 255, 0.35);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
-.difficulty-btn.selected {
-    border-color: rgba(102, 242, 164, 0.58);
-    box-shadow: 0 0 24px rgba(102, 242, 164, 0.16);
-    background:
-        linear-gradient(180deg, rgba(86, 230, 155, 0.17), rgba(255, 255, 255, 0.02)),
-        rgba(3, 11, 25, 0.74);
+.difficulty-btn:active {
+    transform: translateY(0) scale(0.98);
 }
 
+/* Mode-specific accent colors when selected */
 [data-difficulty="easy"].selected {
-    border-color: rgba(102, 242, 164, 0.7);
-    box-shadow: 0 0 28px rgba(102, 242, 164, 0.22);
+    border-color: rgba(102, 242, 164, 0.62);
+    box-shadow: 0 0 24px rgba(102, 242, 164, 0.18);
     background:
-        linear-gradient(180deg, rgba(86, 230, 155, 0.2), rgba(255, 255, 255, 0.01)),
-        rgba(3, 11, 25, 0.74);
+        linear-gradient(180deg, rgba(102, 242, 164, 0.16), rgba(102, 242, 164, 0.03)),
+        rgba(3, 11, 25, 0.78);
 }
 
 [data-difficulty="medium"].selected {
-    border-color: rgba(91, 215, 255, 0.7);
-    box-shadow: 0 0 28px rgba(91, 215, 255, 0.22);
+    border-color: rgba(91, 215, 255, 0.62);
+    box-shadow: 0 0 24px rgba(91, 215, 255, 0.18);
     background:
-        linear-gradient(180deg, rgba(60, 180, 240, 0.18), rgba(255, 255, 255, 0.01)),
-        rgba(3, 11, 25, 0.74);
+        linear-gradient(180deg, rgba(91, 215, 255, 0.16), rgba(91, 215, 255, 0.03)),
+        rgba(3, 11, 25, 0.78);
 }
 
 [data-difficulty="hard"].selected {
-    border-color: rgba(255, 77, 120, 0.7);
-    box-shadow: 0 0 28px rgba(255, 77, 120, 0.22);
+    border-color: rgba(255, 77, 120, 0.62);
+    box-shadow: 0 0 24px rgba(255, 77, 120, 0.18);
     background:
-        linear-gradient(180deg, rgba(220, 50, 90, 0.18), rgba(255, 255, 255, 0.01)),
-        rgba(3, 11, 25, 0.74);
+        linear-gradient(180deg, rgba(255, 77, 120, 0.14), rgba(255, 77, 120, 0.03)),
+        rgba(3, 11, 25, 0.78);
 }
 
 .difficulty-name,
@@ -1567,19 +1634,23 @@ h1 {
     text-transform: none;
 }
 
+/* ============================================================
+   START CONTROLS — subdued keyboard hints
+   ============================================================ */
+
 #start-controls {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap: 5px;
-    opacity: 0.78;
+    margin-top: 2px;
+    opacity: 0.82;
 }
 
 #difficulty-shortcuts {
-    color: #9bbddc;
+    color: #99c0de;
     font-size: 10px;
-    letter-spacing: 0.5px;
 }
 
 .start-control-line,
@@ -1588,17 +1659,21 @@ h1 {
     align-items: center;
     min-height: 22px;
     padding: 0 7px;
-    border: 1px solid rgba(160, 214, 255, 0.1);
+    border: 1px solid rgba(160, 214, 255, 0.11);
     border-radius: 5px;
     background: rgba(2, 8, 22, 0.28);
     font-size: 10px;
-    color: rgba(200, 230, 255, 0.75);
     letter-spacing: 0.5px;
+    color: rgba(200, 230, 255, 0.72);
 }
 
 .start-control-gap {
     margin-top: 0;
 }
+
+/* ============================================================
+   KEYFRAME ANIMATIONS
+   ============================================================ */
 
 @keyframes pulse-hint {
     0% {
@@ -1652,6 +1727,10 @@ h1 {
         transform: translate3d(0, -10px, 0);
     }
 }
+
+/* ============================================================
+   RESPONSIVE — MEDIUM BREAKPOINT
+   ============================================================ */
 
 @media (max-width: 900px), (max-height: 640px) {
     #ui-layer {
@@ -1711,8 +1790,13 @@ h1 {
     }
 
     #overlay-screen {
-        min-width: min(90vw, 360px);
-        padding: 30px 22px;
+        min-width: min(90vw, 380px);
+        padding: 34px 28px;
+    }
+
+    #overlay-title {
+        font-size: 40px;
+        letter-spacing: 3px;
     }
 
     #shop-modal {
