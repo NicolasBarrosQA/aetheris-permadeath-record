@@ -208,7 +208,11 @@ function setupMobileControls() {
         button.addEventListener('pointerdown', event => {
             event.preventDefault();
             event.stopPropagation();
-            button.setPointerCapture?.(event.pointerId);
+            try {
+                button.setPointerCapture?.(event.pointerId);
+            } catch {
+                // Ponteiro sintetico ou ja liberado: seguir sem captura.
+            }
             state.keys[key] = true;
             button.classList.add('pressed');
             mobileInputPointers.set(event.pointerId, { key, button });
@@ -233,6 +237,32 @@ function setupMobileControls() {
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) releaseAllMobileInputs();
     });
+}
+
+function isTouchFirstDevice() {
+    return window.matchMedia?.('(hover: none)').matches;
+}
+
+// O jogo e desenhado para paisagem. No PWA instalado o manifest trava a
+// orientacao; no navegador tentamos fullscreen + lock a partir do gesto
+// de inicio (iOS nao suporta lock — o overlay de rotacao cobre o caso).
+function requestLandscapeImmersion() {
+    if (!isTouchFirstDevice()) return;
+
+    const root = document.documentElement;
+    const lockLandscape = () => screen.orientation?.lock?.('landscape').catch(() => {});
+
+    if (document.fullscreenElement) {
+        lockLandscape();
+        return;
+    }
+
+    const enterFullscreen = root.requestFullscreen?.({ navigationUI: 'hide' });
+    if (enterFullscreen?.then) {
+        enterFullscreen.then(lockLandscape).catch(() => {});
+    } else {
+        lockLandscape();
+    }
 }
 
 function detectPerformanceCeiling() {
@@ -322,6 +352,7 @@ function bootstrap() {
             event.preventDefault();
             event.stopPropagation();
             if (state.game.started || state.game.isGameOver) return;
+            requestLandscapeImmersion();
             // Simula um toque curto de movimento: e o mesmo gatilho de
             // corrida usado pelo teclado e pelos controles touch.
             state.keys.arrowright = true;

@@ -4,7 +4,7 @@
  * installed PWA. Leaderboard/account API calls are never cached.
  */
 
-const VERSION = 'aetheris-v1';
+const VERSION = 'aetheris-v2';
 const SHELL_CACHE = `${VERSION}-shell`;
 const RUNTIME_CACHE = `${VERSION}-runtime`;
 

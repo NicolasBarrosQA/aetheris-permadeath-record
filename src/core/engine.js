@@ -778,6 +778,9 @@ export function loopGame(ts = performance.now()) {
 function gameOver() {
     state.game.running = false;
     state.game.isGameOver = true;
+    // Na tela de game over os controles touch e o aviso de rotacao saem;
+    // so o RESTART importa.
+    document.body.classList.remove('game-running');
     if (state.game.rafId) {
         cancelAnimationFrame(state.game.rafId);
         state.game.rafId = null;

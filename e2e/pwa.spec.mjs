@@ -8,6 +8,7 @@ test('manifest is reachable and declares an installable app', async ({ request }
     expect(manifest.name).toContain('AETHERIS');
     expect(manifest.start_url).toBeTruthy();
     expect(['fullscreen', 'standalone', 'minimal-ui']).toContain(manifest.display);
+    expect(manifest.orientation).toBe('landscape');
 
     const pngIcons = (manifest.icons || []).filter(icon => icon.type === 'image/png');
     const sizes = pngIcons.map(icon => icon.sizes);

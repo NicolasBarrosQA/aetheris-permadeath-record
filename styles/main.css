@@ -1792,6 +1792,101 @@ h1 {
 }
 
 /* ============================================================
+   LANDSCAPE-FIRST
+   The game is designed for horizontal play. The installed PWA
+   locks orientation via the manifest; in the browser we ask.
+   ============================================================ */
+
+#landscape-hint {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: -4px;
+    color: var(--gold);
+    font-family: var(--font-display);
+    font-size: var(--fs-micro);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+}
+
+#rotate-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 26;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+    background:
+        radial-gradient(ellipse at center, rgba(6, 12, 30, 0.92), rgba(2, 5, 13, 0.97));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    text-transform: uppercase;
+}
+
+#rotate-overlay strong {
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: var(--fs-title);
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-shadow: 0 0 18px rgba(77, 225, 255, 0.4);
+}
+
+#rotate-overlay span:not(.rotate-glyph) {
+    color: var(--ink-dim);
+    font-family: var(--font-display);
+    font-size: var(--fs-small);
+    letter-spacing: 2px;
+}
+
+.rotate-glyph {
+    display: inline-block;
+    width: 22px;
+    height: 36px;
+    border: 2px solid var(--cyan);
+    border-radius: 6px;
+    box-shadow: 0 0 14px rgba(77, 225, 255, 0.3);
+    animation: rotate-device 1.8s ease-in-out infinite;
+}
+
+.rotate-glyph--big {
+    width: 42px;
+    height: 68px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+}
+
+@keyframes rotate-device {
+    0%,
+    18% {
+        transform: rotate(0deg);
+    }
+    52%,
+    82% {
+        transform: rotate(90deg);
+    }
+    100% {
+        transform: rotate(90deg);
+    }
+}
+
+/* Only real touch devices in portrait get the rotation prompts */
+@media (orientation: portrait) and (hover: none) {
+    #landscape-hint {
+        display: flex;
+    }
+
+    body.game-running #rotate-overlay {
+        display: flex;
+    }
+}
+
+/* ============================================================
    MOBILE TOUCH CONTROLS
    ============================================================ */
 

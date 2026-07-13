@@ -15,12 +15,14 @@ test('index.html declara manifest, icones e registro do PWA', () => {
     assert.match(html, /viewport-fit=cover/);
     assert.match(html, /src\/pwa\.js/);
     assert.match(html, /id="pwa-install-btn"/);
+    assert.match(html, /id="rotate-overlay"/);
 });
 
 test('manifest esta completo para instalacao', () => {
     assert.ok(manifest.name.includes('AETHERIS'));
     assert.ok(manifest.start_url);
     assert.ok(['fullscreen', 'standalone', 'minimal-ui'].includes(manifest.display));
+    assert.equal(manifest.orientation, 'landscape');
     const pngSizes = manifest.icons.filter(icon => icon.type === 'image/png').map(icon => icon.sizes);
     assert.ok(pngSizes.includes('192x192'));
     assert.ok(pngSizes.includes('512x512'));

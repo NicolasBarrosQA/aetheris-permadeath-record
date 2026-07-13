@@ -149,10 +149,12 @@ test.describe('desktop layout', () => {
         await expect(page.locator('#start-run-btn')).toBeVisible();
         await page.locator('#start-run-btn').click();
         await expect(page.locator('#start-hint')).toBeHidden();
+    });
 
-        // Selecting a difficulty keeps the segmented control on screen.
-        await page.reload();
+    test('selecting a difficulty keeps the segmented control on screen', async ({ page }) => {
+        await page.goto('/public/index.html');
         await enterAsGuest(page);
+
         await page.locator('[data-difficulty="hard"]').click();
         await expect(page.locator('#difficulty-picker')).toBeVisible();
         await expect(page.locator('[data-difficulty="hard"]')).toHaveClass(/selected/);
