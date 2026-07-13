@@ -15,9 +15,12 @@ async function enterAsGuest(page) {
 }
 
 // Aguarda animacoes CSS de entrada antes de medir a geometria.
+// Animacoes infinitas (ex.: pulso do START) sao ignoradas.
 async function settledBox(locator) {
     await locator.evaluate(element => Promise.all(
-        element.getAnimations({ subtree: true }).map(animation => animation.finished)
+        element.getAnimations({ subtree: true })
+            .filter(animation => Number.isFinite(animation.effect?.getComputedTiming?.().endTime))
+            .map(animation => animation.finished)
     ).catch(() => {}));
     return locator.boundingBox();
 }
@@ -40,7 +43,7 @@ for (const vp of VIEWPORTS) {
             expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.innerWidth);
 
             // Core pre-run controls must be visible and inside the viewport.
-            for (const selector of ['#leaderboard-open-btn', '#quick-shop-btn', '#account-open-btn', '[data-difficulty="medium"]']) {
+            for (const selector of ['#start-run-btn', '#leaderboard-open-btn', '#quick-shop-btn', '#account-open-btn', '[data-difficulty="medium"]']) {
                 const locator = page.locator(selector);
                 await expect(locator).toBeVisible();
                 const box = await locator.boundingBox();
@@ -83,12 +86,15 @@ for (const vp of VIEWPORTS) {
 test.describe('touch controls', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
 
-    test('touch buttons are visible and meet the 44px target size', async ({ page }) => {
+    test('touch controls appear only during the run and meet the 44px target size', async ({ page }) => {
         await page.goto('/public/index.html');
         await enterAsGuest(page);
 
-        // O container tem altura zero (clusters posicionados de forma
-        // absoluta); a visibilidade real e a dos botoes.
+        // Antes da corrida o hub de menu e a unica interface.
+        await expect(page.locator('[data-mobile-action="jump"]')).toBeHidden();
+
+        await page.locator('#start-run-btn').click();
+        await expect(page.locator('#start-hint')).toBeHidden();
         await expect(page.locator('[data-mobile-action="jump"]')).toBeVisible();
 
         for (const selector of [
@@ -101,6 +107,11 @@ test.describe('touch controls', () => {
             expect(box.width, `${selector} width`).toBeGreaterThanOrEqual(44);
             expect(box.height, `${selector} height`).toBeGreaterThanOrEqual(44);
         }
+
+        // Ranking/loja ficam bloqueados durante a corrida: so PAUSE aparece.
+        await expect(page.locator('[data-mobile-action="pause"]')).toBeVisible();
+        await expect(page.locator('[data-mobile-action="ranking"]')).toBeHidden();
+        await expect(page.locator('[data-mobile-action="shop"]')).toBeHidden();
     });
 
     test('keyboard hint chips are hidden on touch layouts', async ({ page }) => {
@@ -113,27 +124,37 @@ test.describe('touch controls', () => {
 test.describe('desktop layout', () => {
     test.use({ viewport: { width: 1366, height: 768 } });
 
-    test('difficulty rail sits left and systems rail sits right', async ({ page }) => {
+    test('menu hub is centered with the whole hierarchy inside one card', async ({ page }) => {
         await page.goto('/public/index.html');
         await enterAsGuest(page);
 
-        const difficulty = await page.locator('#difficulty-picker').boundingBox();
-        const actions = await page.locator('#pre-run-actions').boundingBox();
-        expect(difficulty.x + difficulty.width).toBeLessThan(1366 / 2);
-        expect(actions.x).toBeGreaterThan(1366 / 2);
+        const card = await settledBox(page.locator('.menu-card'));
+        const center = card.x + card.width / 2;
+        expect(Math.abs(center - 683)).toBeLessThan(20);
 
-        // Pilot strip flows below the actions without overlapping.
+        // Difficulty > START > secondary actions > pilot identity, top to bottom.
+        const difficulty = await page.locator('#difficulty-picker').boundingBox();
+        const start = await page.locator('#start-run-btn').boundingBox();
+        const actions = await page.locator('#pre-run-actions').boundingBox();
         const pilot = await page.locator('#pilot-strip').boundingBox();
-        expect(pilot.y).toBeGreaterThanOrEqual(actions.y + actions.height);
+        expect(start.y).toBeGreaterThan(difficulty.y);
+        expect(actions.y).toBeGreaterThan(start.y);
+        expect(pilot.y).toBeGreaterThanOrEqual(actions.y + actions.height - 1);
     });
 
-    test('start CTA is visible before the run and gone during it', async ({ page }) => {
+    test('START RUN begins the run and dismisses the menu hub', async ({ page }) => {
         await page.goto('/public/index.html');
         await enterAsGuest(page);
 
-        await expect(page.locator('#start-cta')).toBeVisible();
-        await page.keyboard.down('d');
-        await expect(page.locator('#start-cta')).toBeHidden();
-        await page.keyboard.up('d');
+        await expect(page.locator('#start-run-btn')).toBeVisible();
+        await page.locator('#start-run-btn').click();
+        await expect(page.locator('#start-hint')).toBeHidden();
+
+        // Selecting a difficulty keeps the segmented control on screen.
+        await page.reload();
+        await enterAsGuest(page);
+        await page.locator('[data-difficulty="hard"]').click();
+        await expect(page.locator('#difficulty-picker')).toBeVisible();
+        await expect(page.locator('[data-difficulty="hard"]')).toHaveClass(/selected/);
     });
 });

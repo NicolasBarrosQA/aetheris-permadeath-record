@@ -64,38 +64,47 @@
         </div>
 
         <div id="start-hint">
-            <div class="rail rail-left">
-            <div id="difficulty-picker">
-                <span class="rail-title" data-i18n="start.difficulty">DIFFICULTY</span>
-                <button type="button" class="difficulty-btn" data-difficulty="easy">
-                    <span class="difficulty-name" data-i18n="difficulty.easy.name">EASY</span>
-                    <span class="difficulty-desc" data-i18n="difficulty.easy.description">Rare boosts and more breathing room.</span>
-                </button>
-                <button type="button" class="difficulty-btn selected" data-difficulty="medium">
-                    <span class="difficulty-name" data-i18n="difficulty.medium.name">MEDIUM</span>
-                    <span class="difficulty-desc" data-i18n="difficulty.medium.description">The standard run, no extra help.</span>
-                </button>
-                <button type="button" class="difficulty-btn" data-difficulty="hard">
-                    <span class="difficulty-name" data-i18n="difficulty.hard.name">HARD</span>
-                    <span class="difficulty-desc" data-i18n="difficulty.hard.description">The virus consumes everything behind you.</span>
-                </button>
-            </div>
-            </div>
-            <div class="rail rail-right">
-            <div id="pre-run-actions">
-                <span class="rail-title" data-i18n="start.systems">SYSTEMS</span>
-                <button type="button" id="leaderboard-open-btn" class="ui-btn ui-btn--cyan" data-i18n="leaderboard.action">LEADERBOARD</button>
-                <button type="button" id="quick-shop-btn" class="ui-btn ui-btn--gold" data-i18n="shop.short">SHOP</button>
-            </div>
-            <div id="pilot-strip">
-                <div>
-                    <span id="pilot-mode">GUEST</span>
-                    <strong id="pilot-name">RUNNER</strong>
+            <div class="menu-card">
+                <header class="menu-brand">
+                    <span class="menu-eyebrow">// PERMADEATH RECORD</span>
+                    <span class="menu-wordmark">AETHERIS</span>
+                    <p class="menu-tagline" data-i18n="start.tagline">Outrun the corruption. Set the record.</p>
+                </header>
+
+                <section class="menu-section">
+                    <span class="menu-label" data-i18n="start.difficulty">DIFFICULTY</span>
+                    <div id="difficulty-picker">
+                        <button type="button" class="difficulty-btn" data-difficulty="easy">
+                            <span class="difficulty-name" data-i18n="difficulty.easy.name">EASY</span>
+                            <span class="difficulty-desc" data-i18n="difficulty.easy.description">Rare boosts and more breathing room.</span>
+                        </button>
+                        <button type="button" class="difficulty-btn selected" data-difficulty="medium">
+                            <span class="difficulty-name" data-i18n="difficulty.medium.name">MEDIUM</span>
+                            <span class="difficulty-desc" data-i18n="difficulty.medium.description">The standard run, no extra help.</span>
+                        </button>
+                        <button type="button" class="difficulty-btn" data-difficulty="hard">
+                            <span class="difficulty-name" data-i18n="difficulty.hard.name">HARD</span>
+                            <span class="difficulty-desc" data-i18n="difficulty.hard.description">The virus consumes everything behind you.</span>
+                        </button>
+                    </div>
+                    <p id="difficulty-desc" aria-live="polite">The standard run, no extra help.</p>
+                </section>
+
+                <button type="button" id="start-run-btn" class="ui-btn ui-btn--cyan ui-btn--hero" data-i18n="start.play">START RUN</button>
+
+                <div id="pre-run-actions">
+                    <button type="button" id="leaderboard-open-btn" class="ui-btn ui-btn--ghost" data-i18n="leaderboard.action">LEADERBOARD</button>
+                    <button type="button" id="quick-shop-btn" class="ui-btn ui-btn--ghost" data-i18n="shop.short">SHOP</button>
                 </div>
-                <button type="button" id="account-open-btn" class="ui-btn ui-btn--ghost">ACCOUNT</button>
+
+                <div id="pilot-strip">
+                    <div>
+                        <span id="pilot-mode">GUEST</span>
+                        <strong id="pilot-name">RUNNER</strong>
+                    </div>
+                    <button type="button" id="account-open-btn" class="ui-btn ui-btn--ghost">ACCOUNT</button>
+                </div>
             </div>
-            </div>
-            <div id="start-cta" data-i18n="start.cta">MOVE TO START THE RUN</div>
             <div id="start-controls">
                 <div id="difficulty-shortcuts" data-i18n="start.shortcuts">[1] EASY  [2] MEDIUM  [3] HARD</div>
                 <div class="start-control-line" data-i18n="start.menu">[ Q ] MENU | [ L ] LEADERBOARD | [ S ] SHOP | [ P ] PAUSE</div>
