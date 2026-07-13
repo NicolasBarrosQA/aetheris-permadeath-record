@@ -316,6 +316,22 @@ function bootstrap() {
             window.focus();
         });
     }
+    const startRunBtn = document.getElementById('start-run-btn');
+    if (startRunBtn) {
+        startRunBtn.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (state.game.started || state.game.isGameOver) return;
+            // Simula um toque curto de movimento: e o mesmo gatilho de
+            // corrida usado pelo teclado e pelos controles touch.
+            state.keys.arrowright = true;
+            window.setTimeout(() => {
+                state.keys.arrowright = false;
+            }, 180);
+            wakeGameAudio();
+            window.focus();
+        });
+    }
     state.difficultyButtons = [...document.querySelectorAll('[data-difficulty]')];
 
     state.difficultyButtons.forEach(button => {
@@ -323,10 +339,9 @@ function bootstrap() {
             event.preventDefault();
             event.stopPropagation();
             if (!state.game.started) {
+                // Controle segmentado: a selecao troca, o controle permanece.
                 setDifficultyMode(button.dataset.difficulty);
                 syncLeaderboardMode(button.dataset.difficulty);
-                if (state.difficultyPicker) state.difficultyPicker.style.display = 'none';
-                if (state.difficultyShortcuts) state.difficultyShortcuts.style.display = 'none';
             }
             button.blur();
             window.focus();
@@ -414,13 +429,6 @@ function setupInput() {
                 const nextMode = key === '1' ? 'easy' : (key === '2' ? 'medium' : 'hard');
                 setDifficultyMode(nextMode);
                 syncLeaderboardMode(nextMode);
-                if (state.difficultyPicker) state.difficultyPicker.style.display = 'none';
-                if (state.difficultyShortcuts) state.difficultyShortcuts.style.display = 'none';
-            }
-
-            if (!state.game.started && key === 'q') {
-                if (state.difficultyPicker) state.difficultyPicker.style.display = 'grid';
-                if (state.difficultyShortcuts) state.difficultyShortcuts.style.display = 'block';
             }
 
             if (key === 'p' && state.game.started && !state.game.isGameOver && !state.game.shopOpen) {

@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#050715" />
+    <meta name="color-scheme" content="dark" />
     <meta name="application-name" content="AETHERIS" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -36,12 +37,14 @@
     <meta name="twitter:image" content="/assets/img/screenshots/gameplay.png" />
     <meta name="twitter:image:alt" content="AETHERIS gameplay screenshot" />
 
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="canonical" href="https://aetheris-permadeath-record.netlify.app" />
-    <link rel="manifest" href="/manifest.webmanifest?v=pwa-1" />
-    <link rel="icon" type="image/svg+xml" href="/assets/img/app/aetheris-icon.svg?v=pwa-1" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/app/favicon-32.png?v=pwa-1" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/app/apple-touch-icon.png?v=pwa-1" />
-    <link rel="stylesheet" href="../styles/main.css?v=auth-ranking-2" />
+    <link rel="manifest" href="/manifest.webmanifest?v=pwa-2" />
+    <link rel="icon" type="image/svg+xml" href="/assets/img/app/aetheris-icon.svg?v=pwa-2" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/app/favicon-32.png?v=pwa-2" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/app/apple-touch-icon.png?v=pwa-2" />
+    <link rel="stylesheet" href="../styles/main.css?v=ux-3" />
 </head>
 <body>
 
@@ -54,33 +57,53 @@
         <div id="frame-glow"></div>
         <div id="crt-overlay"></div>
         <div id="vignette"></div>
-        <button type="button" id="language-toggle" class="language-toggle" aria-label="Switch language to Brazilian Portuguese" title="Switch language to Brazilian Portuguese">PT-BR</button>
+
+        <div id="system-toggles">
+            <button type="button" id="pwa-install-btn" class="hidden" data-i18n="pwa.install" data-i18n-aria-label="pwa.installAria">INSTALL APP</button>
+            <button type="button" id="language-toggle" class="language-toggle" aria-label="Switch language to Brazilian Portuguese" title="Switch language to Brazilian Portuguese">PT-BR</button>
+        </div>
 
         <div id="start-hint">
-            <div id="difficulty-picker">
-                <button type="button" class="difficulty-btn" data-difficulty="easy">
-                    <span class="difficulty-name" data-i18n="difficulty.easy.name">EASY</span>
-                    <span class="difficulty-desc" data-i18n="difficulty.easy.description">Rare boosts and more breathing room.</span>
-                </button>
-                <button type="button" class="difficulty-btn selected" data-difficulty="medium">
-                    <span class="difficulty-name" data-i18n="difficulty.medium.name">MEDIUM</span>
-                    <span class="difficulty-desc" data-i18n="difficulty.medium.description">The standard run, no extra help.</span>
-                </button>
-                <button type="button" class="difficulty-btn" data-difficulty="hard">
-                    <span class="difficulty-name" data-i18n="difficulty.hard.name">HARD</span>
-                    <span class="difficulty-desc" data-i18n="difficulty.hard.description">The virus consumes everything behind you.</span>
-                </button>
-            </div>
-            <div id="pre-run-actions">
-                <button type="button" id="leaderboard-open-btn" data-i18n="leaderboard.action">LEADERBOARD</button>
-                <button type="button" id="quick-shop-btn" data-i18n="shop.short">SHOP</button>
-            </div>
-            <div id="pilot-strip">
-                <div>
-                    <span id="pilot-mode">GUEST</span>
-                    <strong id="pilot-name">RUNNER</strong>
+            <div class="menu-card">
+                <header class="menu-brand">
+                    <span class="menu-eyebrow">// PERMADEATH RECORD</span>
+                    <span class="menu-wordmark">AETHERIS</span>
+                    <p class="menu-tagline" data-i18n="start.tagline">Outrun the corruption. Set the record.</p>
+                </header>
+
+                <section class="menu-section">
+                    <span class="menu-label" data-i18n="start.difficulty">DIFFICULTY</span>
+                    <div id="difficulty-picker">
+                        <button type="button" class="difficulty-btn" data-difficulty="easy">
+                            <span class="difficulty-name" data-i18n="difficulty.easy.name">EASY</span>
+                            <span class="difficulty-desc" data-i18n="difficulty.easy.description">Rare boosts and more breathing room.</span>
+                        </button>
+                        <button type="button" class="difficulty-btn selected" data-difficulty="medium">
+                            <span class="difficulty-name" data-i18n="difficulty.medium.name">MEDIUM</span>
+                            <span class="difficulty-desc" data-i18n="difficulty.medium.description">The standard run, no extra help.</span>
+                        </button>
+                        <button type="button" class="difficulty-btn" data-difficulty="hard">
+                            <span class="difficulty-name" data-i18n="difficulty.hard.name">HARD</span>
+                            <span class="difficulty-desc" data-i18n="difficulty.hard.description">The virus consumes everything behind you.</span>
+                        </button>
+                    </div>
+                    <p id="difficulty-desc" aria-live="polite">The standard run, no extra help.</p>
+                </section>
+
+                <button type="button" id="start-run-btn" class="ui-btn ui-btn--cyan ui-btn--hero" data-i18n="start.play">START RUN</button>
+
+                <div id="pre-run-actions">
+                    <button type="button" id="leaderboard-open-btn" class="ui-btn ui-btn--ghost" data-i18n="leaderboard.action">LEADERBOARD</button>
+                    <button type="button" id="quick-shop-btn" class="ui-btn ui-btn--ghost" data-i18n="shop.short">SHOP</button>
                 </div>
-                <button type="button" id="account-open-btn">ACCOUNT</button>
+
+                <div id="pilot-strip">
+                    <div>
+                        <span id="pilot-mode">GUEST</span>
+                        <strong id="pilot-name">RUNNER</strong>
+                    </div>
+                    <button type="button" id="account-open-btn" class="ui-btn ui-btn--ghost">ACCOUNT</button>
+                </div>
             </div>
             <div id="start-controls">
                 <div id="difficulty-shortcuts" data-i18n="start.shortcuts">[1] EASY  [2] MEDIUM  [3] HARD</div>
@@ -132,14 +155,14 @@
                     <span data-i18n="account.modalTop">AETHERIS ID</span>
                     <button type="button" id="auth-close-btn" class="icon-close" aria-label="Close" data-i18n="account.close" data-i18n-aria-label="account.closeAria">CLOSE</button>
                 </div>
+                <h1 id="auth-title">Enter AETHERIS</h1>
+                <p class="modal-copy" data-i18n="account.copy">Keep one callsign and one leaderboard identity across itch and Netlify, or play as guest.</p>
                 <div id="account-summary">
                     <span id="account-mode">GUEST</span>
                     <strong id="account-name">RUNNER</strong>
                 </div>
-                <button type="button" id="guest-continue-btn">PLAY AS GUEST</button>
+                <button type="button" id="guest-continue-btn" class="ui-btn ui-btn--cyan ui-btn--hero">PLAY AS GUEST</button>
                 <div class="auth-or-divider"><span data-i18n="account.orSignIn">or sign in</span></div>
-                <h1 id="auth-title">Enter AETHERIS</h1>
-                <p class="modal-copy" data-i18n="account.copy">Keep one callsign and one leaderboard identity across itch and Netlify, or play as guest.</p>
                 <form id="account-form" autocomplete="on">
                     <div id="account-form-tabs">
                         <button type="button" class="selected" data-auth-mode="login" data-i18n="account.tab.login">LOG IN</button>
@@ -148,8 +171,8 @@
                     <input id="account-username" name="username" type="text" maxlength="20" autocomplete="username" placeholder="username" data-i18n-placeholder="account.usernamePlaceholder" />
                     <input id="account-display" name="nickname" type="text" maxlength="16" autocomplete="nickname" placeholder="callsign" data-i18n-placeholder="account.displayPlaceholder" />
                     <input id="account-password" name="password" type="password" maxlength="128" autocomplete="current-password" placeholder="password" data-i18n-placeholder="account.passwordPlaceholder" />
-                    <button type="submit" id="account-submit-btn">LOG IN</button>
-                    <button type="button" id="account-logout-btn" data-i18n="account.logout">LOG OUT</button>
+                    <button type="submit" id="account-submit-btn" class="ui-btn ui-btn--green">LOG IN</button>
+                    <button type="button" id="account-logout-btn" class="ui-btn ui-btn--red" data-i18n="account.logout">LOG OUT</button>
                     <p id="account-message" data-i18n="account.message.validating">Validating session...</p>
                 </form>
             </div>
@@ -202,7 +225,7 @@
 
         <div id="overlay-screen">
             <h1 id="overlay-title">CRITICAL SYSTEM</h1>
-            <p id="overlay-msg" style="color:#ccc; font-size: 14px;">CONNECTION LOST</p>
+            <p id="overlay-msg">CONNECTION LOST</p>
             <button class="btn" onclick="resetGame()" data-i18n="overlay.restart">RESTART</button>
         </div>
 
@@ -230,6 +253,9 @@
         </div>
     </div>
 
-    <script type="module" src="../src/main.js?v=auth-ranking-2"></script>
+    <noscript>AETHERIS needs JavaScript enabled to run.</noscript>
+
+    <script type="module" src="../src/main.js?v=ux-3"></script>
+    <script type="module" src="../src/pwa.js?v=ux-3"></script>
 </body>
 </html>

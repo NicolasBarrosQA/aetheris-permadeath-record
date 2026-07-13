@@ -31,6 +31,7 @@ export function syncDifficultyUI() {
     state.difficultyButtons.forEach(button => {
         const mode = DIFFICULTY_MODES[button.dataset.difficulty];
         button.classList.toggle('selected', button.dataset.difficulty === storage.difficultyMode);
+        button.setAttribute('aria-pressed', button.dataset.difficulty === storage.difficultyMode ? 'true' : 'false');
         if (!mode) return;
 
         const name = button.querySelector('.difficulty-name');
@@ -38,6 +39,13 @@ export function syncDifficultyUI() {
         if (name) name.innerText = t(mode.labelKey);
         if (description) description.innerText = t(mode.descriptionKey);
     });
+
+    // Linha compartilhada abaixo do controle segmentado do hub.
+    const selectedMode = DIFFICULTY_MODES[storage.difficultyMode];
+    const descriptionLine = document.getElementById('difficulty-desc');
+    if (descriptionLine && selectedMode) {
+        descriptionLine.innerText = t(selectedMode.descriptionKey);
+    }
 }
 
 export function toggleShop() {
@@ -48,6 +56,7 @@ export function toggleShop() {
 
     state.game.shopOpen = !state.game.shopOpen;
     state.shopModal.style.display = state.game.shopOpen ? 'flex' : 'none';
+    document.body.classList.toggle('shop-open', state.game.shopOpen);
     if (state.startHint) state.startHint.style.display = state.game.shopOpen ? 'none' : 'block';
 
     if (state.game.shopOpen) {
@@ -191,7 +200,9 @@ export function updateUI() {
         );
     }
 
-    state.uiLayer.style.opacity = state.game.started ? '1' : '0.3';
+    // Antes da corrida o hub central e a unica interface; a HUD só
+    // aparece quando ha corrida para medir.
+    state.uiLayer.style.opacity = state.game.started ? '1' : '0';
 
     if (state.uiBoost) {
         const activeBoost = state.activeBoost;

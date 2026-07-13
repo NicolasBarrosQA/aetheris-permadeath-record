@@ -1,15 +1,22 @@
 {
   "name": "AETHERIS: Permadeath Record",
   "short_name": "AETHERIS",
-  "description": "AETHERIS: Permadeath Record in mobile app mode.",
+  "description": "Cyberpunk endless runner: outrun the digital corruption wall, climb the global leaderboard and unlock skins.",
   "id": "/",
   "start_url": "/?source=homescreen",
   "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
   "display": "fullscreen",
   "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "orientation": "any",
   "background_color": "#050715",
   "theme_color": "#050715",
-  "categories": ["games"],
+  "categories": ["games", "entertainment"],
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "icons": [
     {
       "src": "/assets/img/app/aetheris-icon.svg",
@@ -35,7 +42,15 @@
       "src": "/assets/img/screenshots/gameplay.png",
       "sizes": "1366x768",
       "type": "image/png",
-      "form_factor": "wide"
+      "form_factor": "wide",
+      "label": "Desktop run with the corruption wall closing in"
+    },
+    {
+      "src": "/assets/img/screenshots/gameplay-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile layout with touch controls"
     }
   ]
 }
