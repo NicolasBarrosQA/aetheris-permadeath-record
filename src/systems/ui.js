@@ -48,6 +48,7 @@ export function toggleShop() {
 
     state.game.shopOpen = !state.game.shopOpen;
     state.shopModal.style.display = state.game.shopOpen ? 'flex' : 'none';
+    document.body.classList.toggle('shop-open', state.game.shopOpen);
     if (state.startHint) state.startHint.style.display = state.game.shopOpen ? 'none' : 'block';
 
     if (state.game.shopOpen) {

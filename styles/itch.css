@@ -69,6 +69,17 @@ body.is-fullscreen #itch-fullscreen-btn {
         letter-spacing: 1px;
     }
 
+    /* No painel compacto do itch os rails voltam a ser fluxo normal. */
+    .rail {
+        position: static;
+        width: 100%;
+        gap: 6px;
+    }
+
+    #start-cta {
+        display: none;
+    }
+
     #difficulty-picker {
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 6px;

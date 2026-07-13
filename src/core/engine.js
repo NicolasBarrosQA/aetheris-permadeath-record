@@ -536,6 +536,8 @@ export function initGame() {
     state.shopModal.style.display = 'none';
     if (state.pauseScreen) state.pauseScreen.style.display = 'none';
     if (state.startHint) state.startHint.style.display = 'block';
+    document.body.classList.remove('game-running');
+    document.body.classList.remove('shop-open');
     // associa callbacks para uso em outras partes do jogo
     state.startGameRun = startGameRun;
     state.gameOver = gameOver;
@@ -555,6 +557,7 @@ function startGameRun() {
     state.virusWall.x = state.player.x - 260;
     state.virusWall.active = getDifficultyMode().virusPressure;
     if (state.startHint) state.startHint.style.display = 'none';
+    document.body.classList.add('game-running');
     tryStartAudio();
     startLeaderboardRun(state.game.modeId);
     if (state.game.shopOpen) toggleShop();
